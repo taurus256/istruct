@@ -4,27 +4,13 @@
  * canHaveChildren целевого типа) и подсвечиваем цель зелёным/красным.
  *
  * Один и тот же жест drag&drop обслуживает ДВА разных сценария, различаемых
- * КЛАВИШЕЙ-МОДИФИКАТОРОМ (Ctrl), а не точкой отпускания мыши:
- *  - обычный drag (без Ctrl)     -> смена иерархии (reparent): работает
- *    только если отпустить МЫШЬ ПОВЕРХ ДРУГОГО УЗЛА; отпускание на свободном
- *    месте контейнера — no-op (как в исходном поведении до появления
- *    ручного позиционирования);
- *  - drag с зажатым Ctrl         -> ручное позиционирование (сдвиг узла и
- *    всей его ветви на дельту перемещения курсора между dragstart и drop),
- *    работает НЕЗАВИСИМО от того, где отпущена мышь — хоть на свободном
- *    месте, хоть поверх другого узла (иерархия в этом случае не меняется).
- * Модификатор выбран Ctrl (не Alt/Meta), т.к. на многих Linux-окружениях
- * (GNOME/KDE) Alt+перетаскивание перехватывается оконным менеджером для
- * перемещения окна целиком, что конфликтовало бы с этим жестом на уровне ОС.
- *
- * Вся логика принятия решения "reparent или reposition" сосредоточена в
- * ОДНОМ месте — обработчиках attachContainerHandlers() на корневом
- * контейнере, т.к. событие 'drop', возникающее на любом дочернем узле,
- * всё равно всплывает до контейнера (per-node обработчики drop не нужны и
- * не регистрируются — это исключает дублирование и рассинхронизацию логики).
- * attachHandlers() на каждом узле отвечает только за визуальную часть:
- * draggable-атрибут, класс .dragging, подсветка допустимой/недопустимой
- * цели при обычном (без Ctrl) drag поверх узла.
+ * только точкой отпускания мыши:
+ *  - drop поверх другого узла (.node)          -> смена иерархии (reparent),
+ *    обрабатывается attachHandlers()/onDrop, как и раньше;
+ *  - drop на свободном месте контейнера        -> ручное позиционирование
+ *    (сдвиг узла и всей его ветви), обрабатывается
+ *    attachContainerHandlers()/onRepositionDrop на основе смещения курсора
+ *    мыши между dragstart и drop.
  */
 
 var DragDrop = (function () {
@@ -35,12 +21,10 @@ var DragDrop = (function () {
   var dragStartY = 0;
 
   /**
-   * Навешивает drag&drop-обработчики на DOM-элемент узла. Отвечает только за
-   * визуальные эффекты (draggable, .dragging, подсветка цели переноса) —
-   * решение о том, что произойдёт при drop, принимается централизованно в
-   * attachContainerHandlers() (см. комментарий в шапке файла).
+   * Навешивает drag&drop-обработчики на DOM-элемент узла.
+   * callbacks.onDrop(draggedId, targetId) вызывается при успешном отпускании.
    */
-  function attachHandlers(el, node) {
+  function attachHandlers(el, node, callbacks) {
     var isRoot = node.id === Model.getState().rootId;
     // Запрет переноса root: элемент вообще не становится draggable.
     el.setAttribute('draggable', isRoot ? 'false' : 'true');
@@ -68,17 +52,6 @@ var DragDrop = (function () {
       if (!draggedId || draggedId === node.id) {
         return;
       }
-      // Ctrl зажат — это будет ручное позиционирование, а не смена
-      // иерархии, поэтому подсветка "допустимая/недопустимая цель для
-      // reparent" здесь неуместна (сброс на случай, если Ctrl отпустили
-      // прямо во время dragover над этим же узлом).
-      if (e.ctrlKey) {
-        el.classList.remove('drop-valid', 'drop-invalid');
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        return;
-      }
-
       e.preventDefault(); // обязательно, иначе drop не сработает
 
       var check = canDrop(draggedId, node.id);
@@ -89,6 +62,20 @@ var DragDrop = (function () {
 
     el.addEventListener('dragleave', function () {
       el.classList.remove('drop-valid', 'drop-invalid');
+    });
+
+    el.addEventListener('drop', function (e) {
+      e.preventDefault();
+      el.classList.remove('drop-valid', 'drop-invalid');
+      if (!draggedId) {
+        return;
+      }
+
+      var check = canDrop(draggedId, node.id);
+      if (check.ok && typeof callbacks.onDrop === 'function') {
+        callbacks.onDrop(draggedId, node.id);
+      }
+      draggedId = null;
     });
   }
 
@@ -126,13 +113,12 @@ var DragDrop = (function () {
   }
 
   /**
-   * Навешивает на контейнер #mindmap-root ЕДИНСТВЕННЫЙ источник истины для
-   * решения о результате drop (см. комментарий в шапке файла). Должен
-   * вызываться один раз для корневого контейнера.
-   * callbacks.onReparentDrop(draggedId, targetId) — смена родителя (обычный
-   *   drag без Ctrl, отпущено поверх узла targetId).
-   * callbacks.onRepositionDrop(draggedId, dx, dy) — ручное смещение (Ctrl
-   *   зажат в момент drop, независимо от того, что под курсором).
+   * Навешивает на контейнер #mindmap-root обработчики drop на СВОБОДНОЕ
+   * место (не на узел) — включают ручное позиционирование перетаскиваемого
+   * узла вместо смены родителя. Должен вызываться один раз для корневого
+   * контейнера, отдельно от attachHandlers() на каждом узле.
+   * callbacks.onRepositionDrop(draggedId, dx, dy) — dx/dy в пикселях,
+   * смещение курсора мыши между dragstart и drop.
    */
   function attachContainerHandlers(containerEl, callbacks) {
     containerEl.addEventListener('dragover', function (e) {
@@ -140,26 +126,14 @@ var DragDrop = (function () {
         return;
       }
       var overNode = e.target.closest && e.target.closest('.node');
-
-      if (e.ctrlKey) {
-        // Ctrl зажат — drop разрешён в любой точке (и над узлом, и на
-        // свободном месте), т.к. результат всегда один — позиционирование.
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        containerEl.classList.add('mm-drop-reposition');
-        return;
-      }
-
-      containerEl.classList.remove('mm-drop-reposition');
       if (overNode) {
-        // Цель — узел, Ctrl не зажат: логику dropEffect/подсветки уже
-        // отработал собственный dragover-обработчик узла из attachHandlers().
+        // Цель — узел: логику dropEffect/подсветки уже отработал его
+        // собственный dragover-обработчик из attachHandlers().
         return;
       }
-      // Свободное место без Ctrl — недопустимая цель в исходном поведении
-      // (только смена иерархии поддерживается без модификатора): НЕ вызываем
-      // preventDefault(), поэтому браузер сам покажет курсор "запрещено" и
-      // событие drop здесь не возникнет.
+      e.preventDefault(); // разрешить drop на свободном месте
+      e.dataTransfer.dropEffect = 'move';
+      containerEl.classList.add('mm-drop-reposition');
     });
 
     containerEl.addEventListener('dragleave', function (e) {
@@ -171,33 +145,22 @@ var DragDrop = (function () {
 
     containerEl.addEventListener('drop', function (e) {
       containerEl.classList.remove('mm-drop-reposition');
-      clearDropHighlights();
       if (!draggedId) {
         return;
       }
-      var id = draggedId;
-      draggedId = null;
-
-      if (e.ctrlKey) {
-        // Ручное позиционирование — независимо от того, что под курсором.
-        e.preventDefault();
-        var dx = e.clientX - dragStartX;
-        var dy = e.clientY - dragStartY;
-        if (typeof callbacks.onRepositionDrop === 'function') {
-          callbacks.onRepositionDrop(id, dx, dy);
-        }
+      var overNode = e.target.closest && e.target.closest('.node');
+      if (overNode) {
+        // Цель — узел: перенос (reparent) уже обработан drop-обработчиком
+        // самого узла (событие в него попало раньше и всплыло сюда же).
         return;
       }
-
-      var overNode = e.target.closest && e.target.closest('.node');
-      if (!overNode) {
-        return; // свободное место без Ctrl — no-op, как в исходном поведении
-      }
       e.preventDefault();
-      var targetId = overNode.dataset.id;
-      var check = canDrop(id, targetId);
-      if (check.ok && typeof callbacks.onReparentDrop === 'function') {
-        callbacks.onReparentDrop(id, targetId);
+      var id = draggedId;
+      var dx = e.clientX - dragStartX;
+      var dy = e.clientY - dragStartY;
+      draggedId = null;
+      if (typeof callbacks.onRepositionDrop === 'function') {
+        callbacks.onRepositionDrop(id, dx, dy);
       }
     });
   }
