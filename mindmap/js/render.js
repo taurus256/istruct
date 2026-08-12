@@ -20,14 +20,24 @@
 
 var Render = (function () {
   var DIRECTIONS = ['up', 'down', 'left', 'right'];
-  var DIRECTION_ARROWS = { up: '\u2191', down: '\u2193', left: '\u2190', right: '\u2192' };
-  var DIRECTION_LABELS = { up: '\u0432\u0432\u0435\u0440\u0445', down: '\u0432\u043d\u0438\u0437', left: '\u0432\u043b\u0435\u0432\u043e', right: '\u0432\u043f\u0440\u0430\u0432\u043e' };
+
 
   var container = null;
   var selectedId = null;
   // Реестр DOM-элементов узлов (.node) по id — используется для пересчёта
   // координат SVG-коннекторов после каждого рендера/ресайза.
   var nodeEls = {};
+  // Реестр видимых боксов (.node__body) по id узла — именно по геометрии
+  // бокса (а не внешнего .node, который включает комментарий под ним)
+  // рисуются SVG-коннекторы.
+  var nodeBodyEls = {};
+  // Реестр DOM-элементов комментариев (.node__comment) по id узла —
+  // чтобы можно было запустить редактирование комментария по кнопке.
+  var commentEls = {};
+  // id узла, комментарий которого нужно начать редактировать сразу после
+  // ближайшего renderAll() (например, после нажатия «добавить комментарий»,
+  // когда пустой комментарий ещё не был в DOM).
+  var pendingCommentEditId = null;
   var connectorsRaf = null;
 
   function init(rootContainer) {
@@ -115,6 +125,8 @@ var Render = (function () {
     }
     container.innerHTML = '';
     nodeEls = {};
+    nodeBodyEls = {};
+    commentEls = {};
 
     var root = Model.getRoot();
     if (!root) {
@@ -179,6 +191,17 @@ var Render = (function () {
     container.appendChild(svg);
 
     scheduleConnectorsUpdate();
+
+    // Если был запрошен автостарт редактирования комментария (например,
+    // только что создан пустой комментарий) — запускаем его теперь,
+    // когда элемент комментария уже в DOM.
+    if (pendingCommentEditId && commentEls[pendingCommentEditId]) {
+      var cid = pendingCommentEditId;
+      pendingCommentEditId = null;
+      startEditingComment(commentEls[cid], cid);
+    } else {
+      pendingCommentEditId = null;
+    }
   }
 
   /**
@@ -224,22 +247,61 @@ var Render = (function () {
     };
     var isRoot = node.id === Model.getState().rootId;
 
+    // Внешний контейнер .node — якорь позиционирования для абсолютных
+    // всплывающих панелей и контейнер для [видимый бокс + комментарий].
+    // Сам по себе не имеет рамки/фона — визуальный бокс это .node__body.
     var box = document.createElement('div');
-    box.className = 'node ' + typeDef.cssClass;
+    box.className = 'node';
     box.dataset.id = node.id;
     if (node.id === selectedId) {
       box.classList.add('node--selected');
     }
+
+    // Видимый бокс узла: рамка/фон/текст. На нём же типовые модификаторы
+    // (node--main/test/link) и node--root — чтобы цвета/шрифты применялись
+    // именно к боксу, а не к комментарию под ним.
+    var bodyEl = document.createElement('div');
+    bodyEl.className = 'node__body ' + typeDef.cssClass;
     if (isRoot) {
-      box.classList.add('node--root');
+      bodyEl.classList.add('node--root');
     }
 
     var textEl = document.createElement('span');
     textEl.className = 'node__text';
     textEl.textContent = node.text;
-    box.appendChild(textEl);
+    bodyEl.appendChild(textEl);
 
-    box.appendChild(buildToolbar(node, typeDef, isRoot));
+    // Фиксированная панель редактирования (удаление, комментарий, сброс
+    // позиции) — сверху бокса с привязкой к правому краю; видна при hover.
+    bodyEl.appendChild(buildEditPanel(node, typeDef, isRoot));
+
+    // Всплывающие панели добавления дочерних узлов — с той стороны, где
+    // может быть создана связь: для root — со всех 4 сторон, для
+    // остальных — только со стороны направления ветви. Видны при hover.
+    if (typeDef.canHaveChildren !== false) {
+      buildAddPanels(node, isRoot).forEach(function (panel) {
+        bodyEl.appendChild(panel);
+      });
+    }
+
+    box.appendChild(bodyEl);
+    nodeBodyEls[node.id] = bodyEl;
+
+    // Комментарий-атрибут: мелкий серый текст под боксом узла,
+    // выровненный по левому краю. Показывается только когда задан (не undefined).
+    var comment = Model.getComment(node.id);
+    if (comment !== undefined) {
+      var commentEl = document.createElement('div');
+      commentEl.className = 'node__comment';
+      commentEl.textContent = comment;
+      box.appendChild(commentEl);
+      commentEls[node.id] = commentEl;
+
+      commentEl.addEventListener('dblclick', function (e) {
+        e.stopPropagation();
+        startEditingComment(commentEl, node.id);
+      });
+    }
 
     // Клик по узлу — выделение (stopPropagation, чтобы не сбрасывалось кликом по фону).
     box.addEventListener('click', function (e) {
@@ -270,61 +332,28 @@ var Render = (function () {
     return box;
   }
 
-  // Тулбар узла: кнопки добавления дочерних узлов каждого зарегистрированного
-  // типа + удаление. Для прямых детей root показываются 4 стрелки (направление
-  // ветви выбирается явно), для остальных — одна кнопка (направление наследуется).
-  function buildToolbar(node, typeDef, isRoot) {
-    var toolbar = document.createElement('span');
-    toolbar.className = 'node__toolbar';
+  // Фиксированная панель редактирования узла: всегда сверху с привязкой к
+  // правому краю узла (абсолютное позиционирование в CSS). Содержит кнопки
+  // редактирования самого узла (комментарий, сброс позиции, удаление),
+  // но НЕ кнопки добавления детей (те — в боковых панелях, см. buildAddPanels).
+  function buildEditPanel(node, typeDef, isRoot) {
+    var panel = document.createElement('span');
+    panel.className = 'node__panel node__panel--edit';
 
-    if (typeDef.canHaveChildren !== false) {
-      var existingChildren = Model.getChildren(node.id);
+    // Кнопка добавления/редактирования комментария-атрибута.
+    var hasComment = Model.getComment(node.id) !== undefined;
+    var commentBtn = document.createElement('button');
+    commentBtn.type = 'button';
+    commentBtn.className = 'node__btn node__btn--comment';
+    commentBtn.title = hasComment ? 'Редактировать комментарий' : 'Добавить комментарий';
+    commentBtn.textContent = '\u{1F4AC}'; // 💬
+    commentBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      editOrAddComment(node.id);
+    });
+    panel.appendChild(commentBtn);
 
-      NodeTypeRegistry.getAll().forEach(function (childTypeDef) {
-        // Если тип ограничен "не более одного на родителя" и такой ребёнок уже
-        // есть — кнопку добавления вообще не показываем (не просто disabled).
-        if (childTypeDef.singletonPerParent === true) {
-          var alreadyHasOne = existingChildren.some(function (c) {
-            return c.type === childTypeDef.type;
-          });
-          if (alreadyHasOne) {
-            return;
-          }
-        }
-
-        if (isRoot) {
-          // Прямой ребёнок root — нужно явно выбрать направление ветви.
-          DIRECTIONS.forEach(function (direction) {
-            var addBtn = document.createElement('button');
-            addBtn.type = 'button';
-            addBtn.className = 'node__btn node__btn--add node__btn--dir';
-            addBtn.title = 'Добавить: ' + childTypeDef.label + ' (' + DIRECTION_LABELS[direction] + ')';
-            addBtn.textContent = DIRECTION_ARROWS[direction];
-            addBtn.addEventListener('click', function (e) {
-              e.stopPropagation();
-              addChild(node.id, childTypeDef.type, direction);
-            });
-            toolbar.appendChild(addBtn);
-          });
-        } else {
-          // Направление наследуется автоматически — выбор не нужен.
-          var addBtn2 = document.createElement('button');
-          addBtn2.type = 'button';
-          addBtn2.className = 'node__btn node__btn--add';
-          addBtn2.title = 'Добавить: ' + childTypeDef.label;
-          addBtn2.textContent = '+' + childTypeDef.label.charAt(0).toUpperCase();
-          addBtn2.addEventListener('click', function (e) {
-            e.stopPropagation();
-            addChild(node.id, childTypeDef.type);
-          });
-          toolbar.appendChild(addBtn2);
-        }
-      });
-    }
-
-    // Кнопка сброса ручного позиционирования показывается только у узлов,
-    // у которых сейчас есть data.offset (перетащенных мышью на свободное
-    // место) — возвращает узел (и его ветвь) на авто-вычисляемую позицию.
+    // Кнопка сброса ручного позиционирования — только у узлов с data.offset.
     if (!isRoot && node.data && node.data.offset) {
       var resetBtn = document.createElement('button');
       resetBtn.type = 'button';
@@ -337,7 +366,7 @@ var Render = (function () {
         Storage.save();
         renderAll();
       });
-      toolbar.appendChild(resetBtn);
+      panel.appendChild(resetBtn);
     }
 
     if (!isRoot) {
@@ -350,10 +379,49 @@ var Render = (function () {
         e.stopPropagation();
         deleteNode(node.id);
       });
-      toolbar.appendChild(delBtn);
+      panel.appendChild(delBtn);
     }
 
-    return toolbar;
+    return panel;
+  }
+
+  // Создаёт кнопки добавления по одной на каждый зарегистрированный тип
+  // узла (+У/+Т/+С) в указанном направлении. direction передаётся в addChild
+  // только для прямых детей root; у остальных направление наследуется
+  // (передаём undefined).
+  function makeAddButtons(parentContainer, nodeId, direction) {
+    NodeTypeRegistry.getAll().forEach(function (childTypeDef) {
+      var addBtn = document.createElement('button');
+      addBtn.type = 'button';
+      addBtn.className = 'node__btn node__btn--add';
+      addBtn.title = 'Добавить: ' + childTypeDef.label;
+      addBtn.textContent = '+' + childTypeDef.label.charAt(0).toUpperCase();
+      addBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        addChild(nodeId, childTypeDef.type, direction);
+      });
+      parentContainer.appendChild(addBtn);
+    });
+  }
+
+  // Всплывающие панели добавления дочерних узлов, расположенные с той
+  // стороны узла, где может быть создана связь: для root — все 4 стороны
+  // (каждая панель задаёт направление ветви), для остальных — одна со
+  // стороны направления ветви узла (направление наследуется).
+  function buildAddPanels(node, isRoot) {
+    var panels = [];
+    var dirs = isRoot ? DIRECTIONS : [Model.getDirection(node.id) || 'right'];
+
+    dirs.forEach(function (direction) {
+      var panel = document.createElement('span');
+      panel.className = 'node__panel node__panel--add node__panel--add-' + direction;
+      // direction явно передаём только для прямых детей root (у них
+      // направление хранится); для остальных — undefined (наследуется).
+      makeAddButtons(panel, node.id, isRoot ? direction : undefined);
+      panels.push(panel);
+    });
+
+    return panels;
   }
 
   // Редактирование текста узла прямо в дереве через contenteditable.
@@ -410,6 +478,75 @@ var Render = (function () {
 
     textEl.addEventListener('blur', finishEditing);
     textEl.addEventListener('keydown', onKeyDown);
+  }
+
+  // Нажатие кнопки комментария в панели редактирования. Если комментария
+  // ещё нет — создаём пустой и перерисовываем, чтобы элемент появился в DOM,
+  // а затем (через pendingCommentEditId в renderAll) автоматически входим в
+  // режим редактирования. Если комментарий уже есть — сразу редактируем.
+  function editOrAddComment(nodeId) {
+    selectNode(nodeId);
+    if (Model.getComment(nodeId) === undefined) {
+      Model.setComment(nodeId, '');
+      pendingCommentEditId = nodeId;
+      renderAll();
+    } else if (commentEls[nodeId]) {
+      startEditingComment(commentEls[nodeId], nodeId);
+    }
+  }
+
+  // Редактирование комментария-атрибута через contenteditable (аналогично
+  // startEditing для основного текста). Отличия: комментарий МНОГОСТРОЧНЫЙ —
+  // Enter вставляет перенос строки (не завершает редактирование), а завершение —
+  // по blur или Escape; пустой комментарий после редактирования удаляется.
+  function startEditingComment(commentEl, nodeId) {
+    commentEl.contentEditable = 'true';
+    commentEl.classList.add('node__comment--editing');
+    commentEl.focus();
+
+    var range = document.createRange();
+    range.selectNodeContents(commentEl);
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+
+    function finishEditing() {
+      commentEl.removeEventListener('blur', finishEditing);
+      commentEl.removeEventListener('keydown', onKeyDown);
+      commentEl.contentEditable = 'false';
+      commentEl.classList.remove('node__comment--editing');
+
+      var newText = commentEl.textContent.replace(/\s+$/, '');
+      if (newText === '') {
+        // Пустой комментарий — удаляем атрибут целиком («комментария нет»).
+        Model.clearComment(nodeId);
+      } else {
+        Model.setComment(nodeId, newText);
+      }
+      Storage.save();
+      renderAll();
+    }
+
+    function onKeyDown(e) {
+      // Enter без Shift — перенос строки внутри комментария (многострочный
+      // текст). Завершаем редактирование только по Escape (или blur кликом
+      // вне элемента). stopPropagation — чтобы клавиши не всплывали в
+      // глобальный хоткей app.js (аналогично багу с основным текстом).
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        var node = Model.getNode(nodeId);
+        commentEl.textContent = (node && node.data.comment !== undefined) ? node.data.comment : '';
+        commentEl.blur();
+      } else if (e.key === 'Enter') {
+        // Не завершаем — пусть браузер вставит перенос строки; останавливаем
+        // всплытие, чтобы глобальный хоткей Enter не добавил узел.
+        e.stopPropagation();
+      }
+    }
+
+    commentEl.addEventListener('blur', finishEditing);
+    commentEl.addEventListener('keydown', onKeyDown);
   }
 
   // direction передаётся только когда явно выбрана стрелка в тулбаре root'а;
@@ -516,8 +653,11 @@ var Render = (function () {
       if (!node || !node.parentId) {
         return; // у root нет родителя — линию рисовать не от чего
       }
-      var parentBox = nodeEls[node.parentId];
-      var childBox = nodeEls[id];
+      // Коннекторы привязываем к видимому боксу (.node__body), а не к внешнему
+      // .node, который может включать комментарий под боксом и исказить
+      // точку присоединения линии.
+      var parentBox = nodeBodyEls[node.parentId];
+      var childBox = nodeBodyEls[id];
       if (!parentBox || !childBox) {
         return;
       }

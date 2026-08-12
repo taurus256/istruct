@@ -302,19 +302,37 @@ body {
   stroke-width: 2;
 }
 
-/* ---------- Узел ---------- */
+/* ---------- Узел ----------
+ * Структура: внешний .node (якорь позиционирования, без рамки) →
+ *   .node__body (видимый бокс с рамкой/фоном/текстом) + абсолютные
+ *   всплывающие панели внутри него,
+ *   .node__comment (комментарий-атрибут под боксом). */
 
 .node {
   display: inline-flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  align-items: flex-start; /* комментарий выравнен по левому краю бокса */
   cursor: pointer;
   user-select: none;
-  transition: outline-color 0.15s ease, background-color 0.15s ease;
-  /* Однозначно ставит узлы в свой стекинг-контекст выше svg.mm-connectors,
-     независимо от их взаимного расположения в DOM. */
+  /* Однозначно ставит узлы в свой стекинг-контекст выше svg.mm-connectors. */
   position: relative;
   z-index: 1;
+}
+
+/* При hover или выделении узел поднимается над соседями, чтобы всплывающие
+   панели (выходящие за границы бокса) не перекрывались соседними узлами. */
+.node:hover,
+.node--selected {
+  z-index: 3;
+}
+
+/* Видимый бокс узла (рамка/фон — в theme.css). */
+.node__body {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  position: relative; /* якорь для абсолютных всплывающих панелей */
+  transition: outline-color 0.15s ease, background-color 0.15s ease;
 }
 
 .node__text {
@@ -328,38 +346,108 @@ body {
   border-radius: 4px;
   padding: 0 2px;
   /* .mindmap-root и .node выше выставляют user-select: none, который
-     блокировал бы выделение текста во время contentEditable-редактирования
-     (startEditing в render.js). Явно разрешаем выделение только тут, пока активен
-     режим редактирования. */
+     блокировал бы выделение текста во время contentEditable-редактирования. */
   user-select: text;
 }
 
-.node__toolbar {
+/* ---------- Комментарий-атрибут ---------- */
+
+.node__comment {
+  /* Мелкий серый текст под узлом, выровненный по левому краю бокса. */
+  margin-top: 3px;
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--comment-color, #8a94a0);
+  text-align: left;
+  white-space: pre-wrap; /* многострочный текст: переносы строк сохраняются */
+  max-width: 240px;
+  cursor: text;
+}
+
+.node__comment--editing {
+  outline: 1px solid var(--node-border-color, #4a90d9);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 2px 4px;
+  user-select: text;
+}
+
+/* ---------- Всплывающие панели узла ---------- */
+
+/* Общее для всех панелей: абсолютно позиционированы относительно
+   .node__body, скрыты по умолчанию, появляются при наведении на узел. */
+.node__panel {
+  position: absolute;
   display: inline-flex;
-  flex-wrap: wrap;
   gap: 2px;
-  margin-left: 4px;
+  padding: 2px;
+  background: var(--panel-bg, rgba(255, 255, 255, 0.95));
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+  z-index: 4;
+}
+
+.node:hover .node__panel {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Панель редактирования: сверху бокса, привязка к правому краю. */
+.node__panel--edit {
+  bottom: calc(100% + 4px);
+  right: 0;
+}
+
+/* Панели добавления — с той стороны, где создаётся связь. */
+.node__panel--add-right {
+  left: calc(100% + 6px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.node__panel--add-left {
+  right: calc(100% + 6px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.node__panel--add-up {
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.node__panel--add-down {
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* У root панель редактирования и верхняя add-панель могут наложиться
+   (обе сверху). Сдвигаем верхнюю add-панель выше панели редактирования. */
+.node--root .node__panel--add-up {
+  bottom: calc(100% + 34px);
 }
 
 .node__btn {
   border: 1px solid rgba(0, 0, 0, 0.15);
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.7);
   border-radius: 3px;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1;
-  padding: 2px 5px;
+  padding: 3px 6px;
   cursor: pointer;
 }
 
 .node__btn:hover {
-  background: rgba(255, 255, 255, 0.9);
-}
-
-/* Маленькие кнопки-стрелки выбора направления (только для детей root) */
-.node__btn--dir {
-  padding: 2px 4px;
-  min-width: 18px;
-  font-weight: bold;
+  background: #eef3fb;
 }
 
 .node__btn--delete {
@@ -378,14 +466,13 @@ body {
   opacity: 0.4;
 }
 
-/* Подсветка допустимой цели переноса (без циклов, тип принимает детей) */
-.node.drop-valid {
+/* Подсветка допустимой цели переноса — на видимом боксе (.node__body). */
+.node.drop-valid .node__body {
   outline: 3px dashed var(--drop-valid-color, #4caf50);
   outline-offset: 2px;
 }
 
-/* Подсветка недопустимой цели (цикл или тип не принимает детей) */
-.node.drop-invalid {
+.node.drop-invalid .node__body {
   outline: 3px dashed var(--drop-invalid-color, #e53935);
   outline-offset: 2px;
   cursor: not-allowed;

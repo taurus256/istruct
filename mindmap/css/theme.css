@@ -21,15 +21,25 @@
   --node-selected-outline: #ff9800;
   --connector-color: #b0c4d8;
 
+  /* Комментарий-атрибут (мелкий серый текст под узлом) */
+  --comment-color: #8a94a0;
+
+  /* Цвета типов узлов */
+  --test-border-color: #6a4ca8;
+  --link-border-color: #2e8b74;
+
   /* Drag & drop */
   --drop-valid-color: #4caf50;
   --drop-invalid-color: #e53935;
+
+  /* Всплывающие панели */
+  --panel-bg: rgba(255, 255, 255, 0.97);
 
   /* Тулбар */
   --toolbar-bg: #f5f7fa;
 }
 
-.node {
+.node__body {
   background: var(--node-bg);
   border: 2px solid var(--node-border-color);
   border-radius: var(--node-radius);
@@ -38,20 +48,29 @@
   color: #222;
 }
 
-/* Тип "main" — обычный узел, крупнее и с акцентной рамкой */
+/* Тип "main" — обычный текстовый узел, крупнее и с акцентной рамкой */
 .node--main {
   font-weight: 600;
   font-size: 15px;
 }
 
-/* Тип "comment" — компактный, приглушённый, курсивный, пунктирная рамка */
-.node--comment {
-  font-style: italic;
-  font-size: 12px;
-  opacity: 0.75;
-  border-style: dashed;
-  border-color: #9aa5b1;
-  padding: 4px 10px;
+/* Тип "test" — тест, фиолетовая рамка */
+.node--test {
+  font-weight: 600;
+  font-size: 15px;
+  border-color: var(--test-border-color, #6a4ca8);
+}
+
+/* Тип "link" — ссылка, зелёная рамка, подчёркнутый текст */
+.node--link {
+  font-weight: 600;
+  font-size: 15px;
+  border-color: var(--link-border-color, #2e8b74);
+}
+
+.node--link .node__text {
+  text-decoration: underline;
+  text-decoration-color: var(--link-border-color, #2e8b74);
 }
 
 /* Корневой узел — единственный на дереве, визуально выделяется сильнее всех */
@@ -63,7 +82,7 @@
   font-weight: 700;
 }
 
-.node--selected {
+.node--selected .node__body {
   outline: 3px solid var(--node-selected-outline);
   outline-offset: 2px;
 }

@@ -47,7 +47,14 @@ var NodeTypeRegistry = (function () {
   };
 })();
 
-/* ---------- Типы узлов по умолчанию ---------- */
+/* ---------- Типы узлов по умолчанию ----------
+ * ВАЖНО: "комментарий" — это НЕ отдельный тип узла, а необязательный
+ * атрибут (node.data.comment), который может быть у любого узла любого
+ * типа (текстового, теста, ссылки). См. Model.setComment()/clearComment()
+ * и render.js (.node__comment). Здесь регистрируются только настоящие
+ * типы узлов, различающиеся структурно (могут быть выделены, перемещены,
+ * иметь собственных детей и т.д.).
+ */
 
 NodeTypeRegistry.register({
   type: 'main',
@@ -58,11 +65,17 @@ NodeTypeRegistry.register({
 });
 
 NodeTypeRegistry.register({
-  type: 'comment',
-  label: 'Комментарий',
-  cssClass: 'node--comment',
-  defaultText: 'Комментарий',
-  canHaveChildren: true,
-  // У узла может быть не более одного комментария
-  singletonPerParent: true
+  type: 'test',
+  label: 'Тест',
+  cssClass: 'node--test',
+  defaultText: 'Новый тест',
+  canHaveChildren: true
+});
+
+NodeTypeRegistry.register({
+  type: 'link',
+  label: 'Ссылка',
+  cssClass: 'node--link',
+  defaultText: 'Новая ссылка',
+  canHaveChildren: true
 });

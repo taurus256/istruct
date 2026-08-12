@@ -12,7 +12,8 @@ document.addEventListener('DOMContentLoaded', function () {
   Pan.init(mindmapRoot);
 
   var addNodeBtn = document.getElementById('btn-add-node');
-  var addCommentBtn = document.getElementById('btn-add-comment');
+  var addTestBtn = document.getElementById('btn-add-test');
+  var addLinkBtn = document.getElementById('btn-add-link');
   var exportBtn = document.getElementById('btn-export');
   var importBtn = document.getElementById('btn-import');
   var importInput = document.getElementById('input-import');
@@ -27,8 +28,12 @@ document.addEventListener('DOMContentLoaded', function () {
     addNodeOfType('main');
   });
 
-  addCommentBtn.addEventListener('click', function () {
-    addNodeOfType('comment');
+  addTestBtn.addEventListener('click', function () {
+    addNodeOfType('test');
+  });
+
+  addLinkBtn.addEventListener('click', function () {
+    addNodeOfType('link');
   });
 
   exportBtn.addEventListener('click', function () {

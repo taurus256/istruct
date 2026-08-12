@@ -11,6 +11,11 @@
  * не были перемещены вручную (обычное поведение — авто-layout). Сбрасывается
  * при смене родителя (moveNode), т.к. смещение имеет смысл только относительно
  * прежнего места в дереве.
+ *
+ * data.comment — необязательный АТРИБУТ-комментарий узла (строка, может быть
+ * многострочной). Это НЕ отдельный тип узла, а свойство любого узла любого
+ * типа. Отсутствие поля означает «комментария нет». См.
+ * setComment/getComment/clearComment ниже и render.js (.node__comment).
  */
 
 var Model = (function () {
@@ -82,15 +87,18 @@ var Model = (function () {
       if (parentTypeDef && parentTypeDef.canHaveChildren === false) {
         throw new Error('Узел типа "' + parent.type + '" не может иметь детей');
       }
-      // Защита от лишних комментариев и т.п.: если тип узла ограничен до
-      // одного экземпляра на родителя, а такой уже есть — запретить.
+      // Если тип узла ограничен до одного экземпляра на родителя
+      // (singletonPerParent), а такой ребёнок уже есть — запретить.
+      // Сейчас ни один зарегистрированный тип этот флаг не использует
+      // (комментарий стал атрибутом data.comment, а не типом узла),
+      // но механизм оставлен обобщённым для будущих типов.
       if (typeDef.singletonPerParent === true) {
         var siblings = getChildren(parentId);
         var hasSameType = siblings.some(function (sibling) {
           return sibling.type === type;
         });
         if (hasSameType) {
-          throw new Error('У узла уже есть комментарий');
+          throw new Error('У родителя уже есть ребёнок типа "' + type + '"');
         }
       }
     }
@@ -280,6 +288,34 @@ var Model = (function () {
     return true;
   }
 
+  /**
+   * Комментарий — необязательный атрибут любого узла (node.data.comment):
+   * многострочный текст. Хранится только когда задан (пустой/отсутствующий —
+   * это «комментария нет»).
+   */
+  function setComment(id, text) {
+    var node = getNode(id);
+    if (!node) {
+      return false;
+    }
+    node.data.comment = text;
+    return true;
+  }
+
+  function getComment(id) {
+    var node = getNode(id);
+    return (node && node.data) ? node.data.comment : undefined;
+  }
+
+  function clearComment(id) {
+    var node = getNode(id);
+    if (!node || node.data.comment === undefined) {
+      return false;
+    }
+    delete node.data.comment;
+    return true;
+  }
+
   // Создаёт пустую модель с одним корневым узлом типа "main".
   function initEmpty() {
     state = { rootId: null, nodes: {} };
@@ -298,6 +334,9 @@ var Model = (function () {
     moveNode: moveNode,
     isDescendant: isDescendant,
     updateNodeText: updateNodeText,
+    setComment: setComment,
+    getComment: getComment,
+    clearComment: clearComment,
     getDirection: getDirection,
     setOffset: setOffset,
     addOffset: addOffset,
