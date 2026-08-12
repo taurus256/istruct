@@ -61,12 +61,21 @@ var Render = (function () {
     // (например, контент раскрылся ровно во время скролла) — цена дешёвая.
     container.addEventListener('scroll', scheduleConnectorsUpdate);
 
-    // Ручное позиционирование: drop на свободном месте контейнера (не на
-    // другом узле — тот сценарий уже обрабатывается attachHandlers()/onDrop
-    // в renderNodeBox() и означает смену родителя) сдвигает перетаскиваемый
-    // узел (и всю его ветвь — см. transform в renderBranch()) на дельту
+    // Единый центр обработки drop для всего дерева (см. шапку dragdrop.js):
+    // без Ctrl + отпущено поверх узла    -> смена родителя (как и раньше);
+    // Ctrl зажат (любая точка отпускания) -> ручное смещение узла
+    // (и всей его ветви — см. transform в renderBranch()) на дельту
     // перемещения мыши между dragstart и drop.
     DragDrop.attachContainerHandlers(container, {
+      onReparentDrop: function (draggedId, targetId) {
+        var result = Model.moveNode(draggedId, targetId);
+        if (!result.ok) {
+          console.warn('Перенос узла отклонён: ' + result.reason);
+        } else {
+          Storage.save();
+        }
+        renderAll();
+      },
       onRepositionDrop: function (draggedId, dx, dy) {
         if (dx === 0 && dy === 0) {
           return; // отпустили практически на месте — ничего не меняем
@@ -253,17 +262,9 @@ var Render = (function () {
       startEditing(textEl, node.id);
     });
 
-    DragDrop.attachHandlers(box, node, {
-      onDrop: function (draggedId, targetId) {
-        var result = Model.moveNode(draggedId, targetId);
-        if (!result.ok) {
-          console.warn('Перенос узла отклонён: ' + result.reason);
-        } else {
-          Storage.save();
-        }
-        renderAll();
-      }
-    });
+    // callbacks больше не передаются в attachHandlers() — решение о reparent/reposition
+    // принимается централизованно в attachContainerHandlers() (см. init() и dragdrop.js).
+    DragDrop.attachHandlers(box, node);
 
     nodeEls[node.id] = box;
 
@@ -387,11 +388,21 @@ var Render = (function () {
     }
 
     function onKeyDown(e) {
-      if (e.key === 'Enter') {
+      if (e.key === 'Enter' || e.key === 'Escape') {
         e.preventDefault();
+        // КРИТИЧНО: stopPropagation() до textEl.blur() — без него этот же
+        // keydown продолжает всплываться после выхода из этой функции и доходит
+        // до глобального хоткея в app.js. blur() вызывает finishEditing()
+        // СИНХРОННО (renderAll() уже отработал к тому моменту), поэтому
+        // document.activeElement к моменту всплытия уже НЕ isContentEditable, и
+        // глобальный обработчик Enter/Delete в app.js ошибочно срабатывал (например,
+        // создавал лишний дочерний узел по Enter, из-за чего визуально казалось,
+        // что у отредактированного узла сбросилось ручное позиционирование).
+        e.stopPropagation();
+      }
+      if (e.key === 'Enter') {
         textEl.blur(); // сохранить по Enter
       } else if (e.key === 'Escape') {
-        e.preventDefault();
         var node = Model.getNode(nodeId);
         textEl.textContent = node ? node.text : ''; // отменить правку
         textEl.blur();
