@@ -510,23 +510,23 @@ body {
   transform: translateY(-50%);
 }
 
-.node__panel--add-up {
-  bottom: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
-}
-
 .node__panel--add-down {
   top: calc(100% + 6px);
   left: 50%;
   transform: translateX(-50%);
 }
 
-/* У root панель редактирования и верхняя add-панель могут наложиться
-   (обе сверху). Сдвигаем верхнюю add-панель выше панели редактирования. */
-.node--root .node__panel--add-up {
-  bottom: calc(100% + 34px);
+/* Объединённая панель: кнопки добавления "вверх" встраиваются в панель
+   действий (обе были бы сверху бокса и перекрывались). Группа add-кнопок
+   отделяется от кнопок действий вертикальным разделителем. */
+.node__panel-add-group {
+  display: inline-flex;
+  gap: 2px;
+  padding-right: 4px;
+  margin-right: 2px;
+  border-right: 1px solid rgba(0, 0, 0, 0.12);
 }
+
 
 /* Прозрачный "мостик" между боксом узла и панелью, закрывающий
    физический зазор (calc(100% + Npx)). Без него при переводе курсора
@@ -565,14 +565,6 @@ body {
   width: 8px;
 }
 
-/* add-up: панель сверху, зазор снизу. */
-.node__panel--add-up::before {
-  top: 100%;
-  left: 0;
-  right: 0;
-  height: 8px;
-}
-
 /* add-down: панель снизу, зазор сверху. */
 .node__panel--add-down::before {
   bottom: 100%;
@@ -581,11 +573,6 @@ body {
   height: 8px;
 }
 
-/* У root верхняя add-панель отодвинута на 34px — мостик должен перекрыть
-   весь этот зазор (иначе остаётся дыра над панелью редактирования). */
-.node--root .node__panel--add-up::before {
-  height: 36px;
-}
 
 
 .node__btn {

@@ -273,16 +273,37 @@ var Render = (function () {
 
     // Фиксированная панель редактирования (удаление, комментарий, сброс
     // позиции) — сверху бокса с привязкой к правому краю; видна при hover.
-    bodyEl.appendChild(buildEditPanel(node, typeDef, isRoot));
+    var editPanel = buildEditPanel(node, typeDef, isRoot);
 
     // Всплывающие панели добавления дочерних узлов — с той стороны, где
     // может быть создана связь: для root — со всех 4 сторон, для
     // остальных — только со стороны направления ветви. Видны при hover.
+    // Панель направления 'up' располагалась бы сверху бокса и перекрывалась
+    // бы с панелью действий (edit, тоже сверху), поэтому её кнопки
+    // объединяются в одну панель с действиями (см. node__panel--add-group).
     if (typeDef.canHaveChildren !== false) {
-      buildAddPanels(node, isRoot).forEach(function (panel) {
-        bodyEl.appendChild(panel);
+      var dirs = isRoot ? DIRECTIONS : [Model.getDirection(node.id) || 'right'];
+      dirs.forEach(function (direction) {
+        if (direction === 'up') {
+          // Кнопки добавления "вверх" вставляем в НАЧАЛО edit-панели,
+          // отделив их от кнопок действий вертикальным разделителем.
+          var addGroup = document.createElement('span');
+          addGroup.className = 'node__panel-add-group';
+          // direction явно передаём только прямым детям root (у них
+          // направление хранится); у остальных — undefined (наследуется).
+          makeAddButtons(addGroup, node.id, isRoot ? direction : undefined);
+          editPanel.insertBefore(addGroup, editPanel.firstChild);
+          editPanel.classList.add('node__panel--merged');
+        } else {
+          var panel = document.createElement('span');
+          panel.className = 'node__panel node__panel--add node__panel--add-' + direction;
+          makeAddButtons(panel, node.id, isRoot ? direction : undefined);
+          bodyEl.appendChild(panel);
+        }
       });
     }
+
+    bodyEl.appendChild(editPanel);
 
     box.appendChild(bodyEl);
     nodeBodyEls[node.id] = bodyEl;
@@ -334,8 +355,10 @@ var Render = (function () {
 
   // Фиксированная панель редактирования узла: всегда сверху с привязкой к
   // правому краю узла (абсолютное позиционирование в CSS). Содержит кнопки
-  // редактирования самого узла (комментарий, сброс позиции, удаление),
-  // но НЕ кнопки добавления детей (те — в боковых панелях, см. buildAddPanels).
+  // редактирования самого узла (комментарий, сброс позиции, удаление).
+  // Кнопки добавления детей — в боковых/нижней панелях (node__panel--add-*);
+  // исключение — направление 'up', кнопки которого встраиваются в эту панель
+  // (см. renderNodeBox), чтобы верхние панели не перекрывались.
   function buildEditPanel(node, typeDef, isRoot) {
     var panel = document.createElement('span');
     panel.className = 'node__panel node__panel--edit';
@@ -402,26 +425,6 @@ var Render = (function () {
       });
       parentContainer.appendChild(addBtn);
     });
-  }
-
-  // Всплывающие панели добавления дочерних узлов, расположенные с той
-  // стороны узла, где может быть создана связь: для root — все 4 стороны
-  // (каждая панель задаёт направление ветви), для остальных — одна со
-  // стороны направления ветви узла (направление наследуется).
-  function buildAddPanels(node, isRoot) {
-    var panels = [];
-    var dirs = isRoot ? DIRECTIONS : [Model.getDirection(node.id) || 'right'];
-
-    dirs.forEach(function (direction) {
-      var panel = document.createElement('span');
-      panel.className = 'node__panel node__panel--add node__panel--add-' + direction;
-      // direction явно передаём только для прямых детей root (у них
-      // направление хранится); для остальных — undefined (наследуется).
-      makeAddButtons(panel, node.id, isRoot ? direction : undefined);
-      panels.push(panel);
-    });
-
-    return panels;
   }
 
   // Редактирование текста узла прямо в дереве через contenteditable.
