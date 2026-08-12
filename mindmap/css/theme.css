@@ -6,27 +6,30 @@
  */
 
 :root {
-  /* Базовый вид узла */
+  /* Базовый вид узла (портирован из Figma: Section 3 — Node Components) */
   --node-bg: #ffffff;
-  --node-border-color: #4a90d9;
+  --node-border-color: #6b7280;
   --node-radius: 8px;
-  --node-font: 14px/1.4 "Segoe UI", Arial, sans-serif;
-  --node-padding: 8px 14px;
+  --node-font: 500 14px/1.4 "Segoe UI", Arial, sans-serif;
+  --node-padding: 10px 16px;
+  --node-text-color: #1f2937;
+  --node-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
 
   /* Корневой узел */
-  --root-bg: #2d6cdf;
+  --root-bg: #005fb8;
   --root-color: #ffffff;
+  --root-shadow: 0 4px 6px #e5e7eb;
 
   /* Выделение и связи */
   --node-selected-outline: #ff9800;
   --connector-color: #b0c4d8;
 
   /* Комментарий-атрибут (мелкий серый текст под узлом) */
-  --comment-color: #8a94a0;
+  --comment-color: #8a8a8a;
 
   /* Цвета типов узлов */
-  --test-border-color: #6a4ca8;
-  --link-border-color: #2e8b74;
+  --test-border-color: #0f766e;
+  --link-border-color: #0070cb;
 
   /* Drag & drop */
   --drop-valid-color: #4caf50;
@@ -35,42 +38,53 @@
   /* Всплывающие панели */
   --panel-bg: rgba(255, 255, 255, 0.97);
 
-  /* Тулбар */
-  --toolbar-bg: #f5f7fa;
+  /* Тулбар (ribbon-style) */
+  --toolbar-bg: #f3f3f3;
 }
 
 .node__body {
   background: var(--node-bg);
-  border: 2px solid var(--node-border-color);
+  border: 1px solid var(--node-border-color);
   border-radius: var(--node-radius);
   font: var(--node-font);
   padding: var(--node-padding);
-  color: #222;
+  color: var(--node-text-color);
+  box-shadow: var(--node-shadow);
 }
 
-/* Тип "main" — обычный текстовый узел, крупнее и с акцентной рамкой */
-.node--main {
-  font-weight: 600;
-  font-size: 15px;
-}
-
-/* Тип "test" — тест, фиолетовая рамка */
+/* Тип "test" — тест: тёмно-бирюзовая рамка, значок ">?" перед текстом */
 .node--test {
-  font-weight: 600;
-  font-size: 15px;
-  border-color: var(--test-border-color, #6a4ca8);
+  border-width: 1.5px;
+  border-color: var(--test-border-color, #0f766e);
+  padding-left: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
 }
 
-/* Тип "link" — ссылка, зелёная рамка, подчёркнутый текст */
-.node--link {
+.node--test::before {
+  content: ">?";
+  color: var(--test-border-color, #0f766e);
   font-weight: 600;
-  font-size: 15px;
-  border-color: var(--link-border-color, #2e8b74);
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* Тип "link" — ссылка: синяя рамка, значок цепочки и подчёркнутый синий текст */
+.node--link {
+  border-width: 1.5px;
+  border-color: var(--link-border-color, #0070cb);
+}
+
+.node--link::before {
+  content: url("../assets/icons/node-link.svg");
+  width: 14px;
+  height: 14px;
+  display: inline-block;
 }
 
 .node--link .node__text {
+  color: var(--link-border-color, #0070cb);
   text-decoration: underline;
-  text-decoration-color: var(--link-border-color, #2e8b74);
+  text-decoration-color: var(--link-border-color, #0070cb);
 }
 
 /* Корневой узел — единственный на дереве, визуально выделяется сильнее всех */
@@ -78,8 +92,10 @@
   background: var(--root-bg);
   color: var(--root-color);
   border-color: var(--root-bg);
-  font-size: 17px;
+  padding: 12px 24px;
+  font-size: 20px;
   font-weight: 700;
+  box-shadow: var(--root-shadow);
 }
 
 .node--selected .node__body {

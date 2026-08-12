@@ -8,17 +8,88 @@
 <link rel="stylesheet" href="css/theme.css">
 </head>
 <body>
-<div id="toolbar">
-  <button id="btn-add-node" type="button">+ Узел</button>
-  <button id="btn-add-test" type="button">+ Тест</button>
-  <button id="btn-add-link" type="button">+ Ссылка</button>
-  <button id="btn-export" type="button">Экспорт JSON</button>
-  <button id="btn-import" type="button">Импорт JSON</button>
+<div id="toolbar" class="ribbon-toolbar">
+  <div class="ribbon-group">
+    <div class="ribbon-group__content">
+      <div class="ribbon-group__row">
+        <button id="btn-add-node" type="button" class="ribbon-btn ribbon-btn--selected">
+          <span class="ribbon-btn__icon"><img src="assets/icons/type.svg" alt=""></span>
+          <span class="ribbon-btn__label">+ Узел</span>
+        </button>
+        <button id="btn-add-comment" type="button" class="ribbon-btn">
+          <span class="ribbon-btn__icon"><img src="assets/icons/message-circle.svg" alt=""></span>
+          <span class="ribbon-btn__label">Комментарий</span>
+        </button>
+        <button id="btn-add-test" type="button" class="ribbon-btn">
+          <span class="ribbon-btn__icon ribbon-btn__icon--glyph">&gt;?</span>
+          <span class="ribbon-btn__label">+ Тест</span>
+        </button>
+        <button id="btn-add-link" type="button" class="ribbon-btn">
+          <span class="ribbon-btn__icon"><img src="assets/icons/link.svg" alt=""></span>
+          <span class="ribbon-btn__label">+ Ссылка</span>
+        </button>
+        <button id="btn-remove-node" type="button" class="ribbon-btn">
+          <span class="ribbon-btn__icon"><img src="assets/icons/trash.svg" alt=""></span>
+          <span class="ribbon-btn__label">Удалить узел</span>
+        </button>
+      </div>
+      <span class="ribbon-group__label">Узел</span>
+    </div>
+    <span class="ribbon-divider"></span>
+  </div>
+
+  <div class="ribbon-group">
+    <div class="ribbon-group__content">
+      <div class="ribbon-group__row">
+        <button id="btn-notes" type="button" class="ribbon-btn">
+          <span class="ribbon-btn__icon"><img src="assets/icons/edit.svg" alt=""></span>
+          <span class="ribbon-btn__label">Заметки</span>
+        </button>
+        <button id="btn-help-docs" type="button" class="ribbon-btn">
+          <span class="ribbon-btn__icon"><img src="assets/icons/book.svg" alt=""></span>
+          <span class="ribbon-btn__label">Справка</span>
+        </button>
+      </div>
+      <span class="ribbon-group__label">Панель</span>
+    </div>
+    <span class="ribbon-divider"></span>
+  </div>
+
+  <div class="ribbon-group">
+    <div class="ribbon-group__content">
+      <div class="ribbon-group__row">
+        <button id="btn-export" type="button" class="ribbon-btn">
+          <span class="ribbon-btn__icon"><img src="assets/icons/arrow-up.svg" alt=""></span>
+          <span class="ribbon-btn__label">Экспорт JSON</span>
+        </button>
+        <button id="btn-import" type="button" class="ribbon-btn">
+          <span class="ribbon-btn__icon"><img src="assets/icons/arrow-down.svg" alt=""></span>
+          <span class="ribbon-btn__label">Импорт JSON</span>
+        </button>
+      </div>
+      <span class="ribbon-group__label">Файл</span>
+    </div>
+    <span class="ribbon-divider"></span>
+  </div>
+
+  <div class="ribbon-group">
+    <div class="ribbon-group__content">
+      <div class="ribbon-group__row">
+        <button id="btn-theme" type="button" class="ribbon-btn">
+          <span class="ribbon-btn__icon"><img src="assets/icons/theme.svg" alt=""></span>
+          <span class="ribbon-btn__label">Тема</span>
+        </button>
+      </div>
+      <span class="ribbon-group__label">Прочее</span>
+    </div>
+  </div>
+
   <input id="input-import" type="file" accept="application/json,.json" hidden>
-  <span id="toolbar-hint">Клик — выделить, двойной клик по тексту — редактировать, Enter — добавить, Delete — удалить, drag&amp;drop — перенести. Наведите на узел — появятся кнопки добавления и редактирования.</span>
 </div>
 
 <div id="mindmap-root"></div>
+
+<div id="status-bar">Клик — выделить, двойной клик по тексту — редактировать, Enter — добавить, Delete — удалить, drag&amp;drop — перенести. Наведите на узел — появятся кнопки добавления и редактирования.</div>
 
 <!-- Порядок подключения важен: каждый следующий файл использует объекты, объявленные предыдущими -->
 <script src="js/nodeTypes.js"></script>
