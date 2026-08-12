@@ -1,0 +1,407 @@
+/*
+ * layout.css — структурные стили каркаса приложения.
+ * Радиальный (4-направленный) layout: корень в центре, поддеревья растут
+ * вверх/вниз/влево/вправо через вложенные flex-контейнеры. Линии-коннекторы
+ * рисуются НЕ через CSS-border-трюки (они не зеркалируются корректно для
+ * 4 направлений), а через SVG-оверлей — см. render.js renderConnectors().
+ * Здесь нет цветов узлов по типам (это в theme.css), только расположение,
+ * отступы и hover/drag-состояния. Цветовые значения берутся из
+ * CSS-переменных, объявленных в theme.css.
+ */
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  /* Страница не должна скроллиться целиком — скролл/панорамирование
+     дерева должны быть локальны именно внутри #mindmap-root, а не на странице
+     целиком — иначе тулбар уедет со скроллом и перестаёт быть видимым. */
+  overflow: hidden;
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: #fafbfc;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- Тулбар ---------- */
+
+#toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--toolbar-bg, #f5f5f5);
+  border-bottom: 1px solid #ddd;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  /* body теперь flex-column на всю высоту вьюпорта — тулбар не должен
+     сжиматься, чтобы отдать место #mindmap-root ниже. */
+  flex: 0 0 auto;
+}
+
+#toolbar button {
+  padding: 6px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+#toolbar button:hover {
+  background: #eef3fb;
+}
+
+#toolbar-hint {
+  margin-left: auto;
+  font-size: 12px;
+  color: #777;
+}
+
+/* ---------- Радиальный layout ---------- */
+
+/* Контейнер верхнего уровня: единственная строка .mm-row-middle,
+   внутри которой центральная колонка содержит верхнюю/нижнюю зоны,
+   смежные с root (см. .mm-row-middle / .mm-center-column ниже). */
+.mindmap-root {
+  position: relative; /* якорь для абсолютного SVG-оверлея коннекторов */
+  display: flex;
+  flex-direction: column;
+  /* body — flex-column на всю высоту вьюпорта (html,body { height:100%; overflow:hidden }),
+     #toolbar — flex: 0 0 auto (не сжимается). #mindmap-root — единственный оставшийся
+     flex-элемент, flex: 1 1 auto растягивает его на всё оставшееся место ПОСЛЕ тулбара —
+     это и есть ограниченная по высоте область просмотра (viewport) дерева. Ширина —
+     100% доступного пространства. Внутренний контент (.mm-row-middle и т.д.) свободно
+     расширяется за пределы этой области по обеим осям — appearance both горизонтального
+     и вертикального скроллбара обеспечивает overflow: auto ниже. */
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0; /* без этого flex-item не может стать меньше содержимого и скролл не появится */
+  padding: 24px;
+  overflow: auto;
+  cursor: grab;
+  /* Предотвращает выделение текста на пустом фоне контейнера (defense in
+     depth к preventDefault() в pan.js onMouseDown) — без активного выделения текста
+     браузер не запускает свой встроенный auto-scroll-при-выделении, который
+     конфликтовал с нашим ручным панорамированием. Редактирование текста узла
+     (contentEditable) восстанавливает выделение явно через .node__text--editing ниже. */
+  user-select: none;
+  /* КРИТИЧНО для скролла в обе стороны при overflow: без явного align-items
+     кросс-ось (горизонталь, т.к. flex-direction:column) по умолчанию
+     stretch — .mm-row-middle растягивается/сжимается ДО ВИДИМОЙ ширины
+     #mindmap-root (clientWidth), а НЕ до естественной ширины дерева. Если
+     дерево шире видимой области, .mm-row-middle получает урезанный бокс, а
+     justify-content:center внутри него (см. .mm-row-middle) центрирует
+     переполняющий контент относительно ЭТОГО урезанного бокса — то есть
+     часть контента уходит в ОТРИЦАТЕЛЬНОЕ смещение левее x=0 бокса.
+     Scrollable overflow браузер считает только в положительном направлении
+     от (0,0) скролл-порта, поэтому отрицательно смещённый контент (левая
+     ветка дерева) физически недостижим через scrollLeft (который не может
+     стать отрицательным) — скролл влево «не долистывает». flex-start даёт
+     .mm-row-middle его настоящий shrink-to-fit размер (= фактической
+     ширине всего дерева), поэтому #mindmap-root получает корректный
+     положительный scrollWidth, покрывающий весь контент. */
+  align-items: flex-start;
+}
+
+.mindmap-root.mm-panning {
+  cursor: grabbing !important;
+}
+
+.mm-row {
+  display: flex;
+  gap: 28px;
+}
+
+/* Средняя строка (единственная строка верхнего уровня):
+   [левая зона] [центральная колонка] [правая зона] в ряд.
+   flex: 1 0 auto растягивает её на всё доступное вертикальное
+   пространство контейнера — но это НЕ влияет на позицию root
+   относительно up/down-веток, так как они больше не её прямые дети
+   (см. .mm-center-column ниже), а align-items:center здесь просто
+   центрирует zoneLeft/centerColumn/zoneRight относительно друг друга. */
+.mm-row-middle {
+  flex-direction: row;
+  align-items: center;
+  /* justify-content:center убран: раньше центрировал контент внутри
+     РАСТЯНУТОГО до видимой ширины #mindmap-root бокса (см. комментарий у
+     .mindmap-root про align-items:stretch по умолчанию) — именно это
+     давало переполнению контента отрицательное смещение и делало левую
+     ветку недостижимой скроллом. Теперь (после align-items:flex-start у
+     .mindmap-root) .mm-row-middle имеет собственный shrink-to-fit размер,
+     равный фактической ширине дерева, поэтому распределять внутри него
+     свободное место больше не из чего — сам бокс центрируем относительно
+     #mindmap-root через margin:auto ниже, что БЕЗОПАСНО при overflow:
+     авто-отступы браузер обращает в 0, если свободного места нет/оно
+     отрицательное (в отличие от justify-content:center, который считает
+     негативный оффсет) — контент прижимается к левому краю скролл-области
+     и остаётся полностью достижим scrollLeft в обе стороны. */
+  margin: 0 auto;
+  flex: 1 0 auto;
+}
+
+/* Центральная колонка: [rowUp][rootBox][rowDown] друг под другом.
+   НЕ растягивается (flex: 0 0 auto) — её высота равна сумме реального
+   контента, поэтому root оказывается зажат между up- и down-ветками без
+   пустых зазоров (в отличие от прежней схемы с отдельной растянутой
+   .mm-row-middle, внутри которой root центрировался относительно ВСЕЙ
+   растянутой высоты, а верхняя/нижняя зоны были отдельными строками,
+   прижатыми к краям страницы). */
+.mm-center-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+/* Верхняя зона: поддеревья direction='up'. column-reverse — первая
+   добавленная ветка оказывается ближе к root (внизу зоны), последующие
+   растут вверх наружу от него. Смежна с root (не растягивается). */
+.mm-row-up {
+  flex-direction: column-reverse;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+/* Нижняя зона: поддеревья direction='down'. Обычный column — первая ветка
+   ближе к root (сверху зоны), последующие растут вниз наружу. Смежна с
+   root (не растягивается). */
+.mm-row-down {
+  flex-direction: column;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+/* Левая/правая зоны держат несколько top-level ветвей (если у root
+   несколько детей с одинаковым направлением) — стек по вертикали,
+   прижатый к стороне, ближайшей к root, чтобы коннекторы не расходились. */
+.mm-zone {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 20px;
+  flex: 0 0 auto;
+}
+
+.mm-zone-left {
+  align-items: flex-end;
+}
+
+.mm-zone-right {
+  align-items: flex-start;
+}
+
+.mm-root-box {
+  /* Горизонтальный отступ от zoneLeft/zoneRight и вертикальный от rowUp/rowDown —
+     постоянный визуальный зазор вокруг root во всех 4 направлениях (одинаковый
+     независимо от того, есть ли ветки в каком-то направлении вообще — аналогично
+     тому, как раньше работало горизонтальное отступание, даёт место для
+     видимой линии-коннектора и не создаёт “убегания” веток к краям страницы. */
+  margin: 24px 32px;
+  flex: 0 0 auto;
+}
+
+/* ---------- Ветвь (узел + его дети) ---------- */
+
+/* .mm-node-wrap — пара «сам узел» + «контейнер его детей».
+   Направление определяет, как они расположены друг относительно друга. */
+.mm-node-wrap {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.mm-node-wrap.mm-dir-right {
+  flex-direction: row; /* узел слева (ближе к родителю), дети справа */
+}
+
+.mm-node-wrap.mm-dir-left {
+  flex-direction: row-reverse; /* узел справа (ближе к родителю), дети слева */
+}
+
+.mm-node-wrap.mm-dir-up {
+  flex-direction: column-reverse; /* узел снизу (ближе к родителю), дети сверху */
+  align-items: center;
+}
+
+.mm-node-wrap.mm-dir-down {
+  flex-direction: column; /* узел сверху (ближе к родителю), дети снизу */
+  align-items: center;
+}
+
+/* .mm-children — контейнер сиблингов-детей одного узла: чтобы сиблинги
+   не перекрывались, они раскладываются перпендикулярно направлению роста. */
+.mm-children {
+  display: flex;
+  gap: 14px;
+}
+
+/* Для left/right дети стоят друг под другом по вертикали */
+.mm-children.mm-dir-right {
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start; /* левые края (сторона соединения с родителем) на одной линии */
+}
+
+.mm-children.mm-dir-left {
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-end; /* правые края (сторона соединения с родителем) на одной линии */
+}
+
+/* Для up/down дети стоят в ряд по горизонтали */
+.mm-children.mm-dir-up {
+  flex-direction: row;
+  align-items: flex-end; /* нижние края (сторона соединения с родителем) на одной линии */
+}
+
+.mm-children.mm-dir-down {
+  flex-direction: row;
+  align-items: flex-start; /* верхние края (сторона соединения с родителем) на одной линии */
+}
+
+/* ---------- SVG-оверлей линий-коннекторов ---------- */
+
+.mm-connectors {
+  position: absolute;
+  /* Было inset:0 (top/right/bottom/left:0), что задаёт CSS-размер бокса
+     равным размеру видимой области containing block (видимая область
+     #mindmap-root), а НЕ со всем скроллируемым контентом (scrollWidth/scrollHeight).
+     render.js теперь ставит атрибуты width/height и стили style.width/height
+     равными scrollWidth/scrollHeight — с inset:0 это конфликтовало бы с фактическим
+     CSS-размером бокса (ограниченным видимой областью), что привело бы к
+     обрезанию/масштабированию содержимого. Задаём только точку отсчёта
+     (top:0; left:0 относительно position:relative #mindmap-root) — фактический
+     размер бокса берётся из style.width/style.height, которые ставит JS. */
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  /* z-index: -1 здесь опасен: он помещает SVG НИЖЕ ближайшего
+     созданного стекинг-контекста выше по дереву (например, если body/html
+     или какой-то родитель создают свой стекинг-контекст с непрозрачным фоном),
+     и линии могут оказаться полностью скрыты. SVG и без этого визуально
+     окажется “над” узлами только потому, что он идёт последним ребёнком в DOM;
+     это не мешает читаемости узлов, так как линии рисуются от края до края
+     узла (проходят по пустому пространству), а pointer-events:none исключает
+     перехват кликов/ховеров. Для гарантии явно задаём z-index:0 и явно
+     поднимаем узлы над SVG через .node { position: relative; z-index: 1 } ниже. */
+  z-index: 0;
+}
+
+.mm-connector-line {
+  stroke: var(--connector-color, #b0c4d8);
+  stroke-width: 2;
+}
+
+/* ---------- Узел ---------- */
+
+.node {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  transition: outline-color 0.15s ease, background-color 0.15s ease;
+  /* Однозначно ставит узлы в свой стекинг-контекст выше svg.mm-connectors,
+     независимо от их взаимного расположения в DOM. */
+  position: relative;
+  z-index: 1;
+}
+
+.node__text {
+  outline: none;
+  min-width: 20px;
+}
+
+.node__text--editing {
+  cursor: text;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 4px;
+  padding: 0 2px;
+  /* .mindmap-root и .node выше выставляют user-select: none, который
+     блокировал бы выделение текста во время contentEditable-редактирования
+     (startEditing в render.js). Явно разрешаем выделение только тут, пока активен
+     режим редактирования. */
+  user-select: text;
+}
+
+.node__toolbar {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-left: 4px;
+}
+
+.node__btn {
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 3px;
+  font-size: 11px;
+  line-height: 1;
+  padding: 2px 5px;
+  cursor: pointer;
+}
+
+.node__btn:hover {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+/* Маленькие кнопки-стрелки выбора направления (только для детей root) */
+.node__btn--dir {
+  padding: 2px 4px;
+  min-width: 18px;
+  font-weight: bold;
+}
+
+.node__btn--delete {
+  color: var(--drop-invalid-color, #e53935);
+  font-weight: bold;
+}
+
+.node__btn--reset-position {
+  color: var(--node-border-color, #4a90d9);
+  font-weight: bold;
+}
+
+/* ---------- Состояния drag & drop ---------- */
+
+.node.dragging {
+  opacity: 0.4;
+}
+
+/* Подсветка допустимой цели переноса (без циклов, тип принимает детей) */
+.node.drop-valid {
+  outline: 3px dashed var(--drop-valid-color, #4caf50);
+  outline-offset: 2px;
+}
+
+/* Подсветка недопустимой цели (цикл или тип не принимает детей) */
+.node.drop-invalid {
+  outline: 3px dashed var(--drop-invalid-color, #e53935);
+  outline-offset: 2px;
+  cursor: not-allowed;
+}
+
+/* Контейнер во время drag’a над СВОБОДНЫМ местом (не над узлом) —
+   визуальный намёк на то, что отпускание здесь выполнит ручное
+   позиционирование, а не смену родителя. */
+.mindmap-root.mm-drop-reposition {
+  outline: 2px dashed var(--drop-valid-color, #4caf50);
+  outline-offset: -4px;
+}
+
+/* Узел с ручным смещением (data.offset, см. render.js/model.js) — транзишн для
+   плавного перемещения, когда смещение меняется (например, после сброса);
+   не мешает flex-раскладке соседей, т.к. transform не участвует в layout-проходе. */
+.mm-node-wrap--offset {
+  transition: transform 0.12s ease;
+}

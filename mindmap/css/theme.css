@@ -1,0 +1,69 @@
+/*
+ * theme.css — визуальное оформление узлов.
+ * Все "магические" значения вынесены в CSS-переменные в :root, поэтому
+ * пользователь может полностью сменить внешний вид mind map, отредактировав
+ * только этот файл — без изменений HTML/JS.
+ */
+
+:root {
+  /* Базовый вид узла */
+  --node-bg: #ffffff;
+  --node-border-color: #4a90d9;
+  --node-radius: 8px;
+  --node-font: 14px/1.4 "Segoe UI", Arial, sans-serif;
+  --node-padding: 8px 14px;
+
+  /* Корневой узел */
+  --root-bg: #2d6cdf;
+  --root-color: #ffffff;
+
+  /* Выделение и связи */
+  --node-selected-outline: #ff9800;
+  --connector-color: #b0c4d8;
+
+  /* Drag & drop */
+  --drop-valid-color: #4caf50;
+  --drop-invalid-color: #e53935;
+
+  /* Тулбар */
+  --toolbar-bg: #f5f7fa;
+}
+
+.node {
+  background: var(--node-bg);
+  border: 2px solid var(--node-border-color);
+  border-radius: var(--node-radius);
+  font: var(--node-font);
+  padding: var(--node-padding);
+  color: #222;
+}
+
+/* Тип "main" — обычный узел, крупнее и с акцентной рамкой */
+.node--main {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+/* Тип "comment" — компактный, приглушённый, курсивный, пунктирная рамка */
+.node--comment {
+  font-style: italic;
+  font-size: 12px;
+  opacity: 0.75;
+  border-style: dashed;
+  border-color: #9aa5b1;
+  padding: 4px 10px;
+}
+
+/* Корневой узел — единственный на дереве, визуально выделяется сильнее всех */
+.node--root {
+  background: var(--root-bg);
+  color: var(--root-color);
+  border-color: var(--root-bg);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.node--selected {
+  outline: 3px solid var(--node-selected-outline);
+  outline-offset: 2px;
+}
