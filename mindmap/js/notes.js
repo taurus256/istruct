@@ -249,6 +249,15 @@ var Notes = (function () {
       case 'underline':
         document.execCommand('underline', false, null);
         break;
+      case 'heading':
+        // Тогл заголовка: если текущий блок уже h1..h6 — возвращаем в абзац,
+        // иначе делаем h1. queryCommandValue('formatBlock') возвращает имя
+        // блочного тега активной строки.
+        var block = '';
+        try { block = document.queryCommandValue('formatBlock') || ''; } catch (e) { block = ''; }
+        var isHeading = /^h[1-6]$/.test(String(block).toLowerCase());
+        document.execCommand('formatBlock', false, isHeading ? 'P' : 'H1');
+        break;
       case 'ul':
         document.execCommand('insertUnorderedList', false, null);
         break;
@@ -303,6 +312,25 @@ var Notes = (function () {
         newStart = start + 3;
         newEnd = newStart + sel.length;
         break;
+      case 'heading':
+        // Заголовок работает построчно — расширяем выделение до границ строк,
+        // чтобы тоглить префикс "# " целиком у каждой затронутой строки.
+        var lineStart = value.lastIndexOf('\n', start - 1) + 1;
+        var lineEndIdx = value.indexOf('\n', end);
+        if (lineEndIdx === -1) { lineEndIdx = value.length; }
+        var block = value.slice(lineStart, lineEndIdx);
+        // Если все непустые строки уже заголовки — снимаем, иначе добавляем.
+        var blockLines = block.split('\n');
+        var allHeadings = blockLines.every(function (l) {
+          return l.trim() === '' || /^#{1,6}\s+/.test(l);
+        });
+        var toggled = blockLines.map(function (l) {
+          if (l.trim() === '') { return l; }
+          return allHeadings ? l.replace(/^#{1,6}\s+/, '') : ('# ' + l);
+        }).join('\n');
+        sourceEl.value = value.slice(0, lineStart) + toggled + value.slice(lineEndIdx);
+        sourceEl.setSelectionRange(lineStart, lineStart + toggled.length);
+        return;
       case 'ul':
         replacement = prefixLines(sel || '', function () { return '- '; });
         newEnd = start + replacement.length;
@@ -393,10 +421,15 @@ var Notes = (function () {
     }
 
     lines.forEach(function (line) {
+      var headingMatch = /^\s*(#{1,6})\s+(.*)$/.exec(line);
       var ulMatch = /^\s*[-*]\s+(.*)$/.exec(line);
       var olMatch = /^\s*\d+\.\s+(.*)$/.exec(line);
 
-      if (ulMatch) {
+      if (headingMatch) {
+        closeList();
+        var level = headingMatch[1].length; // количество '#' = уровень h1..h6
+        html.push('<h' + level + '>' + inlineMdToHtml(headingMatch[2]) + '</h' + level + '>');
+      } else if (ulMatch) {
         if (listType !== 'ul') { closeList(); html.push('<ul>'); listType = 'ul'; }
         html.push('<li>' + inlineMdToHtml(ulMatch[1]) + '</li>');
       } else if (olMatch) {
@@ -480,6 +513,13 @@ var Notes = (function () {
             blocks.push(prefix + inline(li));
           }
         });
+      } else if (/^h[1-6]$/.test(tag)) {
+        // Заголовок hN → префикс из N решёток. В нашем редакторе
+        // генерируется только h1, но поддерживаем любой уровень.
+        var hInner = inline(node);
+        if (hInner.trim() !== '') {
+          blocks.push(new Array(parseInt(tag.slice(1), 10) + 1).join('#') + ' ' + hInner);
+        }
       } else if (tag === 'p' || tag === 'div') {
         var inner = inline(node);
         if (inner.trim() !== '' || inner === '') {
