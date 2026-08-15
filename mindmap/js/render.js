@@ -116,6 +116,20 @@ var Render = (function () {
     if (id != null && nodeEls[id]) {
       nodeEls[id].classList.add('node--selected');
     }
+    notifySelectionChanged();
+  }
+
+  // Необязательный колбэк смены выделения (регистрируется из app.js).
+  // Развязывает render.js от notes.js: render.js не знает о Notes, а
+  // просто уведомляет подписчика, если он есть.
+  var onSelectionChange = null;
+  function setOnSelectionChange(fn) {
+    onSelectionChange = (typeof fn === 'function') ? fn : null;
+  }
+  function notifySelectionChanged() {
+    if (onSelectionChange) {
+      onSelectionChange(selectedId);
+    }
   }
 
   // Полная перерисовка дерева от корня.
@@ -563,6 +577,7 @@ var Render = (function () {
       // selectNode() — он теперь лёгкий и только переключает класс).
       selectedId = newNode.id;
       renderAll();
+      notifySelectionChanged();
     } catch (e) {
       alert('Не удалось добавить узел: ' + e.message);
     }
@@ -583,6 +598,7 @@ var Render = (function () {
       Storage.save();
       selectedId = newSelection;
       renderAll();
+      notifySelectionChanged();
     }
   }
 
@@ -710,6 +726,7 @@ var Render = (function () {
     renderAll: renderAll,
     getSelectedId: getSelectedId,
     selectNode: selectNode,
+    setOnSelectionChange: setOnSelectionChange,
     addChild: addChild,
     deleteNode: deleteNode
   };

@@ -16,6 +16,10 @@
  * многострочной). Это НЕ отдельный тип узла, а свойство любого узла любого
  * типа. Отсутствие поля означает «комментария нет». См.
  * setComment/getComment/clearComment ниже и render.js (.node__comment).
+ *
+ * data.note — необязательный АТРИБУТ-заметка узла (строка в формате Markdown,
+ * многострочная). Редактируется через боковую панель заметок (notes.js).
+ * Отсутствие поля означает «заметки нет». См. setNote/getNote/clearNote ниже.
  */
 
 var Model = (function () {
@@ -316,6 +320,37 @@ var Model = (function () {
     return true;
   }
 
+  /**
+   * Заметка — необязательный атрибут любого узла (node.data.note): текст в
+   * формате Markdown. Хранится только когда задана. Пустая/whitespace-строка
+   * трактуется как «заметки нет» (setNote при пустом значении удаляет поле).
+   */
+  function setNote(id, md) {
+    var node = getNode(id);
+    if (!node) {
+      return false;
+    }
+    if (md === undefined || md === null || String(md).trim() === '') {
+      return clearNote(id);
+    }
+    node.data.note = String(md);
+    return true;
+  }
+
+  function getNote(id) {
+    var node = getNode(id);
+    return (node && node.data) ? node.data.note : undefined;
+  }
+
+  function clearNote(id) {
+    var node = getNode(id);
+    if (!node || node.data.note === undefined) {
+      return false;
+    }
+    delete node.data.note;
+    return true;
+  }
+
   // Создаёт пустую модель с одним корневым узлом типа "main".
   function initEmpty() {
     state = { rootId: null, nodes: {} };
@@ -337,6 +372,9 @@ var Model = (function () {
     setComment: setComment,
     getComment: getComment,
     clearComment: clearComment,
+    setNote: setNote,
+    getNote: getNote,
+    clearNote: clearNote,
     getDirection: getDirection,
     setOffset: setOffset,
     addOffset: addOffset,

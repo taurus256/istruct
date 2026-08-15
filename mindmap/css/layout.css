@@ -161,6 +161,15 @@ body {
 
 /* ---------- Радиальный layout ---------- */
 
+/* Рабочая область: горизонтальная строка [ mind map | панель заметок ].
+   Занимает всё место между тулбаром (#toolbar) и статус-баром (#status-bar). */
+#work-area {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: row;
+  min-height: 0;
+}
+
 /* Контейнер верхнего уровня: единственная строка .mm-row-middle,
    внутри которой центральная колонка содержит верхнюю/нижнюю зоны,
    смежные с root (см. .mm-row-middle / .mm-center-column ниже). */
@@ -168,6 +177,10 @@ body {
   position: relative; /* якорь для абсолютного SVG-оверлея коннекторов */
   display: flex;
   flex-direction: column;
+  /* min-width: 0 — чтобы flex-элемент внутри #work-area (row) мог сжиматься
+     уже своего содержимого и отдавать место панели заметок, а overflow:auto
+     давал скролл вместо распирания. */
+  min-width: 0;
   /* body — flex-column на всю высоту вьюпорта (html,body { height:100%; overflow:hidden }),
      #toolbar — flex: 0 0 auto (не сжимается). #mindmap-root — единственный оставшийся
      flex-элемент, flex: 1 1 auto растягивает его на всё оставшееся место ПОСЛЕ тулбара —
@@ -630,4 +643,305 @@ body {
    не мешает flex-раскладке соседей, т.к. transform не участвует в layout-проходе. */
 .mm-node-wrap--offset {
   transition: transform 0.12s ease;
+}
+
+/* ---------- Боковая панель заметок ---------- */
+
+/* Ширина 350px, высота = вся высота #work-area (stretch по умолчанию).
+   [hidden] прячет панель и убирает её из flex-раскладки. */
+.notes-panel {
+  flex: 0 0 350px;
+  width: 350px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--notes-panel-bg, #ffffff);
+  border-left: 1px solid var(--notes-panel-border, #d2d2d2);
+  overflow: hidden;
+}
+
+.notes-panel[hidden] {
+  display: none;
+}
+
+.notes-panel__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--notes-panel-border, #d2d2d2);
+  flex: 0 0 auto;
+}
+
+.notes-panel__icon {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+}
+
+.notes-panel__icon img {
+  width: 100%;
+  height: 100%;
+}
+
+.notes-panel__title {
+  flex: 1 1 auto;
+  font: 600 14px/1.2 "Segoe UI", Arial, sans-serif;
+  color: var(--notes-title-color, #1f2937);
+}
+
+.notes-panel__close {
+  border: none;
+  background: transparent;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.notes-panel__close:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+/* Тулбар форматирования Markdown. */
+.notes-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--notes-panel-border, #d2d2d2);
+  background: var(--notes-toolbar-bg, #f7f7f7);
+  flex: 0 0 auto;
+}
+
+.notes-btn {
+  min-width: 28px;
+  height: 26px;
+  padding: 0 6px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background: #ffffff;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.notes-btn:hover {
+  background: #eef3fb;
+}
+
+.notes-toolbar__divider {
+  flex: 0 0 auto;
+  width: 1px;
+  height: 20px;
+  margin: 0 4px;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.notes-btn--mode {
+  margin-left: auto;
+  font-family: Consolas, "Courier New", monospace;
+}
+
+/* Область редактора: занимает всё оставшееся место, скролл — внутри. */
+.notes-panel__editor {
+  flex: 1 1 auto;
+  min-height: 0;
+  position: relative;
+  display: flex;
+}
+
+.notes-source,
+.notes-visual {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 12px;
+  overflow: auto;
+  font: 13px/1.5 "Segoe UI", Arial, sans-serif;
+  color: var(--node-text-color, #1f2937);
+}
+
+.notes-source {
+  border: none;
+  resize: none;
+  outline: none;
+  font-family: Consolas, "Courier New", monospace;
+  white-space: pre-wrap;
+}
+
+.notes-visual {
+  outline: none;
+}
+
+.notes-visual img {
+  max-width: 100%;
+}
+
+/* Визуальный плейсхолдер для пустого contenteditable. */
+.notes-visual:empty::before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+/* Режим-класс на панели управляет, какой из двух редакторов виден. */
+.notes-panel--source .notes-visual {
+  display: none;
+}
+
+.notes-panel--visual .notes-source {
+  display: none;
+}
+
+/* ---------- Боковая панель заметок ---------- */
+
+.notes-panel {
+  flex: 0 0 350px;
+  width: 350px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--notes-panel-bg, #ffffff);
+  border-left: 1px solid var(--notes-panel-border, #d2d2d2);
+  box-shadow: -2px 0 6px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+/* При атрибуте hidden панель не занимает место (перекрываем display:flex). */
+.notes-panel[hidden] {
+  display: none;
+}
+
+.notes-panel__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--notes-panel-border, #d2d2d2);
+  flex: 0 0 auto;
+}
+
+.notes-panel__icon {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+}
+
+.notes-panel__icon img {
+  width: 100%;
+  height: 100%;
+}
+
+.notes-panel__title {
+  flex: 1 1 auto;
+  font: 600 14px/1.2 "Segoe UI", Arial, sans-serif;
+  color: var(--notes-title-color, #1f2937);
+}
+
+.notes-panel__close {
+  border: none;
+  background: transparent;
+  font-size: 15px;
+  line-height: 1;
+  padding: 4px 6px;
+  cursor: pointer;
+  color: #666;
+  border-radius: 4px;
+}
+
+.notes-panel__close:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.notes-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--notes-panel-border, #d2d2d2);
+  background: var(--notes-toolbar-bg, #f7f7f7);
+  flex: 0 0 auto;
+}
+
+.notes-toolbar__divider {
+  width: 1px;
+  align-self: stretch;
+  margin: 2px 4px;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.notes-btn {
+  min-width: 28px;
+  padding: 4px 7px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background: #fff;
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1.1;
+  cursor: pointer;
+}
+
+.notes-btn:hover {
+  background: #eef3fb;
+}
+
+.notes-btn--mode {
+  margin-left: auto;
+  font-family: "Consolas", monospace;
+}
+
+.notes-panel__editor {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+}
+
+.notes-source,
+.notes-visual {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 12px;
+  border: none;
+  outline: none;
+  overflow: auto;
+  font: 400 13px/1.5 "Segoe UI", Arial, sans-serif;
+  color: var(--node-text-color, #1f2937);
+  background: var(--notes-editor-bg, #ffffff);
+}
+
+.notes-source {
+  resize: none;
+  font-family: "Consolas", "Courier New", monospace;
+  white-space: pre;
+}
+
+.notes-visual {
+  user-select: text;
+}
+
+.notes-visual img {
+  max-width: 100%;
+}
+
+/* Плейсхолдер для пустого contenteditable (textarea использует атрибут
+   placeholder). Текст плейсхолдера не попадает в содержимое (чистый CSS). */
+.notes-visual:empty::before {
+  content: attr(data-placeholder);
+  color: #9aa0a6;
+  pointer-events: none;
+}
+
+/* Активный режим определяет, какой из двух редакторов показан. */
+.notes-panel--source .notes-visual {
+  display: none;
+}
+
+.notes-panel--visual .notes-source {
+  display: none;
 }

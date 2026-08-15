@@ -1,14 +1,20 @@
 /*
  * storage.js — сохранение/загрузка модели в localStorage,
  * экспорт и импорт в формате JSON.
- * Формат файла: { "version": 2, "rootId": "n1", "nodes": { ... } }
+ * Формат файла: { "version": 3, "rootId": "n1", "nodes": { ... } }
  *
- * version 2 (текущая): у узлов в "nodes" может появиться необязательное
+ * version 2: у узлов в "nodes" может появиться необязательное
  * поле "data.offset": { "dx": number, "dy": number } — ручное смещение узла
  * (и всей его ветви) относительно автоматической radial-позиции, задаваемое
- * через Model.setOffset()/addOffset() (см. render.js/dragdrop.js). Обратная совместимость:
- * файлы version 1 (без offset) читаются без изменений — отсутствие поля трактуется
- * как авто-позиция (см. renderBranch() в render.js).
+ * через Model.setOffset()/addOffset() (см. render.js/dragdrop.js).
+ *
+ * version 3 (текущая): у узлов может появиться необязательное поле
+ * "data.note" — строка в формате Markdown (заметка узла, редактируется через
+ * боковую панель заметок, см. notes.js). Отсутствие поля означает «заметки нет».
+ *
+ * Обратная совместимость: файлы version 1/2 (без offset/note) читаются без
+ * изменений — отсутствие поля трактуется как авто-позиция / «заметки нет»
+ * (isValidPayload не требует наличия offset или note).
  */
 
 var Storage = (function () {
@@ -19,7 +25,7 @@ var Storage = (function () {
   function saveImmediate() {
     try {
       var state = Model.getState();
-      var payload = { version: 2, rootId: state.rootId, nodes: state.nodes };
+      var payload = { version: 3, rootId: state.rootId, nodes: state.nodes };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     } catch (e) {
       console.error('Не удалось сохранить mind map в localStorage', e);
@@ -77,7 +83,7 @@ var Storage = (function () {
   // Экспорт текущей модели в файл mindmap.json (Blob + скрытая ссылка-скачивание).
   function exportJSON() {
     var state = Model.getState();
-    var payload = { version: 2, rootId: state.rootId, nodes: state.nodes };
+    var payload = { version: 3, rootId: state.rootId, nodes: state.nodes };
     var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     var url = URL.createObjectURL(blob);
 

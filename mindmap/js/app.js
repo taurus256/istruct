@@ -10,6 +10,22 @@ document.addEventListener('DOMContentLoaded', function () {
   Render.init(mindmapRoot);
   Render.renderAll();
   Pan.init(mindmapRoot);
+  Notes.init();
+
+  // Панель заметок реагирует на смену выделения узла. Render не знает
+  // о Notes напрямую — пробрасываем необязательный колбэк отсюда.
+  Render.setOnSelectionChange(function (id) {
+    if (typeof Notes !== 'undefined') {
+      Notes.onSelectionChanged(id);
+    }
+  });
+
+  var notesBtn = document.getElementById('btn-notes');
+  if (notesBtn) {
+    notesBtn.addEventListener('click', function () {
+      Notes.toggle();
+    });
+  }
 
   var addNodeBtn = document.getElementById('btn-add-node');
   var addTestBtn = document.getElementById('btn-add-test');
@@ -58,8 +74,11 @@ document.addEventListener('DOMContentLoaded', function () {
   // Горячие клавиши: Delete — удалить выделенный узел, Enter — добавить дочерний узел типа main.
   document.addEventListener('keydown', function (e) {
     var active = document.activeElement;
-    // Не перехватываем клавиши во время редактирования текста узла.
-    if (active && active.isContentEditable) {
+    // Не перехватываем клавиши во время ввода текста: редактирование текста
+    // узла (contentEditable), а также поля ввода — в частности <textarea>
+    // редактора заметок (иначе Enter/Delete в заметке создавали/удаляли бы узлы).
+    if (active && (active.isContentEditable ||
+        active.tagName === 'TEXTAREA' || active.tagName === 'INPUT')) {
       return;
     }
 
