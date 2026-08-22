@@ -602,6 +602,9 @@ body {
 
 
 .node__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid var(--node-panel-btn-border, rgba(0, 0, 0, 0.15));
   background: var(--node-panel-btn-bg, rgba(255, 255, 255, 0.7));
   border-radius: 3px;
@@ -610,6 +613,12 @@ body {
   padding: 3px 6px;
   cursor: pointer;
   color: var(--node-text-color, inherit);
+}
+
+.node__btn img {
+  width: 14px;
+  height: 14px;
+  display: block;
 }
 
 .node__btn:hover {

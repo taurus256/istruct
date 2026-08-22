@@ -383,7 +383,7 @@ var Render = (function () {
     commentBtn.type = 'button';
     commentBtn.className = 'node__btn node__btn--comment';
     commentBtn.title = hasComment ? 'Редактировать комментарий' : 'Добавить комментарий';
-    commentBtn.textContent = '\u{1F4AC}'; // 💬
+    commentBtn.innerHTML = '<img src="assets/icons/small/comment.svg" alt="">';
     commentBtn.addEventListener('click', function (e) {
       e.stopPropagation();
       editOrAddComment(node.id);
@@ -411,7 +411,7 @@ var Render = (function () {
       delBtn.type = 'button';
       delBtn.className = 'node__btn node__btn--delete';
       delBtn.title = 'Удалить узел (дети перейдут к родителю)';
-      delBtn.textContent = '✕';
+      delBtn.innerHTML = '<img src="assets/icons/small/trash.svg" alt="">';
       delBtn.addEventListener('click', function (e) {
         e.stopPropagation();
         deleteNode(node.id);
@@ -432,7 +432,11 @@ var Render = (function () {
       addBtn.type = 'button';
       addBtn.className = 'node__btn node__btn--add';
       addBtn.title = 'Добавить: ' + childTypeDef.label;
-      addBtn.textContent = '+' + childTypeDef.label.charAt(0).toUpperCase();
+      if (childTypeDef.icon) {
+        addBtn.innerHTML = '<img src="' + childTypeDef.icon + '" alt="">';
+      } else {
+        addBtn.textContent = '+' + childTypeDef.label.charAt(0).toUpperCase();
+      }
       addBtn.addEventListener('click', function (e) {
         e.stopPropagation();
         addChild(nodeId, childTypeDef.type, direction);

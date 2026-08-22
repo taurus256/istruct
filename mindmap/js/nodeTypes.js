@@ -10,9 +10,11 @@ var NodeTypeRegistry = (function () {
 
   /**
    * Регистрирует тип узла.
-   * config: { type, label, cssClass, defaultText, canHaveChildren, singletonPerParent }
+   * config: { type, label, cssClass, defaultText, canHaveChildren, singletonPerParent, icon }
    * singletonPerParent: true — у одного родителя может быть не более одного
    * ребёнка этого типа (используется, например, для комментариев).
+   * icon: путь к SVG-иконке (assets/icons/small/*.svg), которая используется вместо
+   * текстовой подписи на кнопках добавления всплывающей панели (см. render.js makeAddButtons).
    */
   function register(config) {
     if (!config || !config.type) {
@@ -26,7 +28,8 @@ var NodeTypeRegistry = (function () {
       // По умолчанию узел может иметь детей, если явно не указано иное
       canHaveChildren: config.canHaveChildren !== false,
       // По умолчанию ограничение "один на родителя" не действует
-      singletonPerParent: config.singletonPerParent === true
+      singletonPerParent: config.singletonPerParent === true,
+      icon: config.icon || null
     };
   }
 
@@ -61,7 +64,8 @@ NodeTypeRegistry.register({
   label: 'Узел',
   cssClass: 'node--main',
   defaultText: 'Новый узел',
-  canHaveChildren: true
+  canHaveChildren: true,
+  icon: 'assets/icons/small/text.svg'
 });
 
 NodeTypeRegistry.register({
@@ -69,7 +73,8 @@ NodeTypeRegistry.register({
   label: 'Тест',
   cssClass: 'node--test',
   defaultText: 'Новый тест',
-  canHaveChildren: true
+  canHaveChildren: true,
+  icon: 'assets/icons/small/test.svg'
 });
 
 NodeTypeRegistry.register({
@@ -77,5 +82,6 @@ NodeTypeRegistry.register({
   label: 'Ссылка',
   cssClass: 'node--link',
   defaultText: 'Новая ссылка',
-  canHaveChildren: true
+  canHaveChildren: true,
+  icon: 'assets/icons/small/link.svg'
 });
