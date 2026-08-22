@@ -172,9 +172,30 @@ var TestPanel = (function () {
           infoCard('clock', '~' + mins + ' минут') +
           infoCard('check', threshold + '% нужно набрать') +
         '</div>' +
+        introStatusHtml(nodeId) +
       '</div>' +
       '<div class="test-footer">' +
         '<button type="button" class="test-btn test-btn--primary" data-action="start">Начать тест</button>' +
+      '</div>';
+  }
+
+  // Статус предыдущего прохождения на стартовом экране: если есть сохранённый
+  // результат (пройден/не пройден/прерван) — показываем его; иначе — плейсхолдер
+  // «тест не запускался». Статус всегда от только от последнего прохождения (история не хранится).
+  function introStatusHtml(nodeId) {
+    var result = Model.getTestResult(nodeId);
+    if (!result) {
+      return '<div class="test-intro-not-started">Тест не запускался</div>';
+    }
+    var passed = result.passed;
+    return '' +
+      '<div class="test-intro-status">' +
+        '<div class="test-intro-status__title' + (passed ? ' test-intro-status__title--pass' : ' test-intro-status__title--fail') + '">' +
+          (passed ? 'Пройден' : 'Не пройден') +
+        '</div>' +
+        '<div class="test-intro-status__detail">' +
+          result.correctCount + '/' + result.totalCount + ' правильных (' + result.scorePercent + '%)' +
+        '</div>' +
       '</div>';
   }
 
@@ -380,12 +401,11 @@ var TestPanel = (function () {
         '<div class="test-node-title">' + esc(nodeTitle(nodeId)) + '</div>' +
         '<div class="test-result-card ' + (passed ? 'test-result-card--pass' : 'test-result-card--fail') + '">' +
           '<div class="test-result-status">' + (passed ? 'Пройден' : 'Не пройден') + '</div>' +
-          '<div class="test-result-req">Для прохождения необходимо ' + threshold + '%</div>' +
         '</div>' +
         '<div class="test-stats">' +
           statCard('Время', '~' + mins + ' мин', false) +
-          statCard('Балл', result.scorePercent + '%', passed) +
-          statCard('Отвечено', result.answeredCount + '/' + result.totalCount, false) +
+          statCard('Набрано', result.scorePercent + '% / ' + threshold + '%', passed) +
+          statCard('Вопросов', result.answeredCount + ' / ' + result.totalCount, false) +
         '</div>' +
         wrongHtml +
       '</div>' +

@@ -1123,6 +1123,36 @@ body {
   line-height: 1.05;
 }
 
+/* Статус предыдущего прохождения на стартовом экране (под инфо-карточками). */
+.test-intro-status {
+  margin-top: 16px;
+  text-align: center;
+}
+
+/* тест ещё не запускался — обычный текст без специального выделения, наследует
+   шрифт/цвет от .test-body и просто отступает от инфо-карточек. */
+.test-intro-not-started {
+  margin-top: 16px;
+}
+
+.test-intro-status__title {
+  font: 700 20px/1.2 "Segoe UI", Arial, sans-serif;
+  margin-bottom: 4px;
+}
+
+.test-intro-status__title--pass {
+  color: var(--test-pass, #1a7f37);
+}
+
+.test-intro-status__title--fail {
+  color: var(--test-fail, #c00000);
+}
+
+.test-intro-status__detail {
+  color: var(--text-muted, #6b7280);
+  font-size: 13px;
+}
+
 /* Навигация по вопросам. */
 .test-nav {
   display: flex;
