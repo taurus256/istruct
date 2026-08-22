@@ -1,8 +1,12 @@
 /*
- * notes.js — боковая панель «Заметки».
+ * notes.js — вью «Заметки» (#notes-view) внутри общей боковой панели #side-panel.
  *
- * Кнопка #btn-notes в тулбаре — МОДАЛЬНЫЙ переключатель: пока режим активен,
- * панель видна и всегда отражает ТЕКУЩИЙ выделенный узел (Render.getSelectedId()).
+ * ВАЖНО: открытием/закрытием самой панели и классом кнопки #btn-notes теперь
+ * управляет координатор в app.js (панель общая для заметок и тестов). Этот
+ * модуль отвечает ТОЛЬКО за содержимое вью заметок: загрузку/сохранение заметки
+ * выделенного узла и форматирование. Координатор вызывает Notes.showNode(id)
+ * при показе вью и Notes.saveCurrent() перед уходом с узла/закрытием.
+ *
  * Заметка хранится как атрибут узла node.data.note (Markdown-строка), см. model.js.
  *
  * Два режима редактирования:
@@ -15,39 +19,45 @@
  */
 
 var Notes = (function () {
-  var active = false;
   var mode = 'source'; // 'source' | 'visual'
   var currentNodeId = null;
   var saveTimer = null;
   var SAVE_DEBOUNCE_MS = 350;
 
   // DOM-ссылки (заполняются в init()).
-  var panelEl = null;
+  var viewEl = null;      // #notes-view
   var toolbarEl = null;
   var sourceEl = null;    // <textarea>
   var visualEl = null;    // contenteditable <div>
-  var btnNotes = null;    // ribbon-кнопка #btn-notes
   var modeToggleEl = null;
+
+  // Необязательный колбэк «закрыть панель» — регистрируется координатором
+  // (app.js), т.к. кнопкой ✕ теперь управляет общая панель.
+  var onCloseRequest = null;
+  function setOnCloseRequest(fn) {
+    onCloseRequest = (typeof fn === 'function') ? fn : null;
+  }
 
   /* ============================ Инициализация ============================ */
 
   function init() {
-    panelEl = document.getElementById('notes-panel');
+    viewEl = document.getElementById('notes-view');
     toolbarEl = document.getElementById('notes-toolbar');
     sourceEl = document.getElementById('notes-source');
     visualEl = document.getElementById('notes-visual');
-    btnNotes = document.getElementById('btn-notes');
     modeToggleEl = document.getElementById('notes-mode-toggle');
 
-    if (!panelEl) {
+    if (!viewEl) {
       return; // разметки нет — модуль неактивен
     }
 
-    // Кнопка закрытия в шапке панели — эквивалент выключения режима.
+    // Кнопка закрытия в шапке панели — просим координатор закрыть панель.
     var closeBtn = document.getElementById('notes-close');
     if (closeBtn) {
       closeBtn.addEventListener('click', function () {
-        setActive(false);
+        if (onCloseRequest) {
+          onCloseRequest();
+        }
       });
     }
 
@@ -80,52 +90,15 @@ var Notes = (function () {
     updateModeClass();
   }
 
-  /* ========================= Модальный переключатель ===================== */
+  /* ================== Показ вью и смена выделения ==================== */
 
-  function toggle() {
-    setActive(!active);
-  }
-
-  function setActive(next) {
-    if (active === next) {
-      return;
-    }
-    if (!next) {
-      // Перед закрытием сохраняем текущую заметку.
+  // Показать заметку узла id (вызывает координатор при показе вью заметок).
+  // Перед сменой узла координатор сам вызывает saveCurrent() при необходимости,
+  // но на всякий случай сохраняем предыдущий, если узел меняется.
+  function showNode(id) {
+    if (id !== currentNodeId) {
       saveCurrent();
     }
-    active = next;
-
-    if (panelEl) {
-      panelEl.hidden = !active;
-    }
-    if (btnNotes) {
-      btnNotes.classList.toggle('ribbon-btn--selected', active);
-    }
-
-    if (active) {
-      loadNode(Render.getSelectedId());
-    } else {
-      currentNodeId = null;
-    }
-  }
-
-  function isActive() {
-    return active;
-  }
-
-  /* ===================== Реакция на смену выделения ====================== */
-
-  // Вызывается из app.js (через Render.setOnSelectionChange). Сохраняет заметку
-  // предыдущего узла и загружает заметку нового.
-  function onSelectionChanged(id) {
-    if (!active) {
-      return;
-    }
-    if (id === currentNodeId) {
-      return;
-    }
-    saveCurrent();
     loadNode(id);
   }
 
@@ -206,9 +179,9 @@ var Notes = (function () {
   }
 
   function updateModeClass() {
-    if (panelEl) {
-      panelEl.classList.toggle('notes-panel--visual', mode === 'visual');
-      panelEl.classList.toggle('notes-panel--source', mode === 'source');
+    if (viewEl) {
+      viewEl.classList.toggle('notes-panel--visual', mode === 'visual');
+      viewEl.classList.toggle('notes-panel--source', mode === 'source');
     }
     if (modeToggleEl) {
       // В визуальном режиме кнопка предлагает уйти в исходник и наоборот.
@@ -558,8 +531,8 @@ var Notes = (function () {
 
   return {
     init: init,
-    toggle: toggle,
-    isActive: isActive,
-    onSelectionChanged: onSelectionChanged
+    showNode: showNode,
+    saveCurrent: saveCurrent,
+    setOnCloseRequest: setOnCloseRequest
   };
 })();

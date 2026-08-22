@@ -11,19 +11,90 @@ document.addEventListener('DOMContentLoaded', function () {
   Render.renderAll();
   Pan.init(mindmapRoot);
   Notes.init();
+  TestPanel.init();
 
-  // Панель заметок реагирует на смену выделения узла. Render не знает
-  // о Notes напрямую — пробрасываем необязательный колбэк отсюда.
-  Render.setOnSelectionChange(function (id) {
-    if (typeof Notes !== 'undefined') {
-      Notes.onSelectionChanged(id);
+  /* ================= Координатор общей боковой панели =================
+     Панель открывается ТОЛЬКО кнопкой #btn-notes. Когда открыта: для узла
+     типа 'test' показываем тест-вью, иначе — вью заметок. Смена выделения
+     при открытой панели переключает вью. */
+  var sidePanel = document.getElementById('side-panel');
+  var notesView = document.getElementById('notes-view');
+  var testView = document.getElementById('test-view');
+  var notesBtn = document.getElementById('btn-notes');
+  var panelOpen = false;
+  var currentView = null; // 'notes' | 'test' | null
+
+  function isTestNode(id) {
+    var node = id ? Model.getNode(id) : null;
+    return !!(node && node.type === 'test');
+  }
+
+  // Сброс состояния выходящего вью (сохранение заметки / прерывание теста).
+  function flushView(view) {
+    if (view === 'notes') {
+      Notes.saveCurrent();
+    } else if (view === 'test') {
+      TestPanel.abortIfActive();
     }
+  }
+
+  function routeSelection(id) {
+    if (!panelOpen) {
+      return;
+    }
+    var desired = isTestNode(id) ? 'test' : 'notes';
+
+    // При смене ТИПА вью — сбросить выходящий (внутри-вью смена узла
+    // обрабатывается самими модулями: Notes.showNode/TestPanel.show).
+    if (currentView && currentView !== desired) {
+      flushView(currentView);
+    }
+
+    if (notesView) { notesView.hidden = (desired !== 'notes'); }
+    if (testView) { testView.hidden = (desired !== 'test'); }
+
+    if (desired === 'test') {
+      TestPanel.show(id);
+    } else {
+      Notes.showNode(id);
+    }
+    currentView = desired;
+  }
+
+  function openPanel() {
+    if (panelOpen) { return; }
+    panelOpen = true;
+    if (sidePanel) { sidePanel.hidden = false; }
+    if (notesBtn) { notesBtn.classList.add('ribbon-btn--selected'); }
+    currentView = null;
+    routeSelection(Render.getSelectedId());
+  }
+
+  function closePanel() {
+    if (!panelOpen) { return; }
+    flushView(currentView); // сохранить заметку / прервать тест перед закрытием
+    panelOpen = false;
+    currentView = null;
+    if (sidePanel) { sidePanel.hidden = true; }
+    if (notesBtn) { notesBtn.classList.remove('ribbon-btn--selected'); }
+  }
+
+  function togglePanel() {
+    if (panelOpen) { closePanel(); } else { openPanel(); }
+  }
+
+  // Кнопка ✕ в любом вью просит закрыть панель.
+  Notes.setOnCloseRequest(closePanel);
+  TestPanel.setOnCloseRequest(closePanel);
+
+  // Единая регистрация хука смены выделения — маршрутизирует в нужный вью.
+  Render.setOnSelectionChange(function (id) {
+    routeSelection(id);
   });
 
-  var notesBtn = document.getElementById('btn-notes');
   if (notesBtn) {
     notesBtn.addEventListener('click', function () {
-      Notes.toggle();
+      togglePanel();
     });
   }
 

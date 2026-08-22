@@ -46,6 +46,14 @@
   --notes-panel-border: #d2d2d2;
   --notes-toolbar-bg: #f7f7f7;
   --notes-title-color: #1f2937;
+
+  /* Панель прохождения теста */
+  --test-accent-blue: #005fb8;       /* первичные кнопки (Start/Submit/Return) */
+  --test-accent-blue-hover: #0a4f95;
+  --test-pass: #1a7f37;              /* «Passed», успешные значения */
+  --test-fail: #c00000;              /* «Failed», ошибки */
+  --test-progress: #1a7f37;          /* заливка прогресс-бара / выбранный вариант */
+  --test-card-border: #e2e5e9;       /* рамки карточек */
 }
 
 .node__body {

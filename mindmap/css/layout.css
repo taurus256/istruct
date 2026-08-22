@@ -645,11 +645,12 @@ body {
   transition: transform 0.12s ease;
 }
 
-/* ---------- Боковая панель заметок ---------- */
+/* ---------- Общая боковая панель (заметки / тест) ---------- */
 
 /* Ширина 350px, высота = вся высота #work-area (stretch по умолчанию).
-   [hidden] прячет панель и убирает её из flex-раскладки. */
-.notes-panel {
+   [hidden] прячет панель и убирает её из flex-раскладки. Внутри — два
+   взаимоисключающих вью (#notes-view / #test-view). */
+.side-panel {
   flex: 0 0 350px;
   width: 350px;
   display: flex;
@@ -660,8 +661,60 @@ body {
   overflow: hidden;
 }
 
-.notes-panel[hidden] {
+.side-panel[hidden] {
   display: none;
+}
+
+/* Вью — flex-колонка на всю панель; виден только один. */
+.side-view {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.side-view[hidden] {
+  display: none;
+}
+
+/* Шапка тест-вью (глиф >?, заголовок, ✕). Аналогична шапке заметок. */
+.side-view__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--notes-panel-border, #d2d2d2);
+  background: var(--notes-toolbar-bg, #f7f7f7);
+  flex: 0 0 auto;
+}
+
+.side-view__glyph {
+  color: var(--test-border-color, #0f766e);
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.side-view__title {
+  flex: 1 1 auto;
+  font: 600 14px/1.2 "Segoe UI", Arial, sans-serif;
+  color: var(--notes-title-color, #1f2937);
+}
+
+.side-view__close {
+  border: none;
+  background: transparent;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.side-view__close:hover {
+  background: rgba(0, 0, 0, 0.06);
 }
 
 .notes-panel__header {
@@ -945,3 +998,356 @@ body {
 .notes-panel--visual .notes-source {
   display: none;
 }
+
+/* ---------- Вью прохождения теста (#test-view) ---------- */
+
+/* Скроллируемая середина + закреплённый футер (флекс-колонка в .side-view). */
+.test-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px;
+  font: 400 13px/1.5 "Segoe UI", Arial, sans-serif;
+  color: var(--node-text-color, #1f2937);
+}
+
+.test-footer {
+  flex: 0 0 auto;
+  padding: 12px 16px;
+  border-top: 1px solid var(--notes-panel-border, #d2d2d2);
+  background: var(--notes-toolbar-bg, #f7f7f7);
+}
+
+.test-node-title {
+  font: 700 18px/1.25 "Segoe UI", Arial, sans-serif;
+  color: var(--node-text-color, #1f2937);
+  margin-bottom: 10px;
+}
+
+.test-node-title--upper {
+  text-transform: uppercase;
+}
+
+.test-divider {
+  height: 1px;
+  background: var(--test-card-border, #e2e5e9);
+  margin: 8px 0 16px;
+}
+
+.test-empty {
+  text-align: center;
+  color: #9aa0a6;
+  margin-top: 12px;
+}
+
+.test-desc {
+  color: #6b7280;
+  margin-bottom: 16px;
+}
+
+/* Инфо-карточки на стартовом экране (иконка + жирный текст). */
+.test-info-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.test-info-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--test-card-border, #e2e5e9);
+  border-radius: 8px;
+  font-weight: 700;
+}
+
+.test-info-card__glyph {
+  flex: 0 0 auto;
+  width: 22px;
+  text-align: center;
+  color: var(--test-accent-blue, #005fb8);
+  font-size: 12px;
+  line-height: 1.05;
+}
+
+/* Навигация по вопросам. */
+.test-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.test-nav__label {
+  color: #6b7280;
+}
+
+.test-nav__btn {
+  width: 32px;
+  height: 30px;
+  border: 1px solid var(--test-card-border, #e2e5e9);
+  background: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--node-text-color, #1f2937);
+}
+
+.test-nav__btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Прогресс-бар. */
+.test-progress {
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.test-progress__bar {
+  height: 100%;
+  background: var(--test-progress, #1a7f37);
+  transition: width 0.15s ease;
+}
+
+/* Карточка вопроса. */
+.test-question-card {
+  padding: 14px;
+  border: 1px solid var(--test-card-border, #e2e5e9);
+  border-radius: 8px;
+  margin-bottom: 14px;
+}
+
+.test-question-card > :first-child { margin-top: 0; }
+.test-question-card > :last-child { margin-bottom: 0; }
+
+/* Варианты ответа. */
+.test-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.test-choice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--test-card-border, #e2e5e9);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.test-choice--selected {
+  border-color: var(--test-progress, #1a7f37);
+}
+
+.test-choice__box {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  background: #e5e7eb;
+  position: relative;
+}
+
+.test-choice__box--check {
+  border-radius: 4px;
+}
+
+.test-choice__box--radio {
+  border-radius: 50%;
+}
+
+.test-choice__box--on {
+  background: var(--test-progress, #1a7f37);
+}
+
+.test-choice__box--on::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 2px;
+  width: 5px;
+  height: 10px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.test-choice__box--radio.test-choice__box--on::after {
+  left: 6px;
+  top: 6px;
+  width: 6px;
+  height: 6px;
+  border: none;
+  border-radius: 50%;
+  background: #fff;
+  transform: none;
+}
+
+.test-choice__text {
+  flex: 1 1 auto;
+}
+
+/* Кнопки футера. */
+.test-btn {
+  display: block;
+  width: 100%;
+  padding: 11px 14px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font: 600 14px/1.2 "Segoe UI", Arial, sans-serif;
+}
+
+.test-btn--primary {
+  background: var(--test-accent-blue, #005fb8);
+  color: #fff;
+}
+
+.test-btn--primary:hover {
+  background: var(--test-accent-blue-hover, #0a4f95);
+}
+
+.test-link {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  border: none;
+  background: transparent;
+  color: #9aa0a6;
+  cursor: pointer;
+  font: 400 13px/1.2 "Segoe UI", Arial, sans-serif;
+  text-align: center;
+}
+
+.test-link:hover {
+  color: #6b7280;
+}
+
+/* Экран результата. */
+.test-result-card {
+  padding: 16px;
+  border: 1px solid var(--test-card-border, #e2e5e9);
+  border-radius: 8px;
+  margin-bottom: 14px;
+}
+
+.test-result-status {
+  font: 700 22px/1.2 "Segoe UI", Arial, sans-serif;
+  margin-bottom: 6px;
+}
+
+.test-result-card--pass .test-result-status {
+  color: var(--test-pass, #1a7f37);
+}
+
+.test-result-card--fail .test-result-status {
+  color: var(--test-fail, #c00000);
+}
+
+.test-result-score {
+  font-weight: 700;
+}
+
+.test-result-req {
+  color: #9aa0a6;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+/* Стат-карточки (Time / Score / Answered). */
+.test-stats {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.test-stat {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 6px;
+  border: 1px solid var(--test-card-border, #e2e5e9);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.test-stat__label {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.test-stat__value {
+  font-weight: 700;
+}
+
+.test-stat__value--pass {
+  color: var(--test-pass, #1a7f37);
+}
+
+/* Блок Wrong Answers. */
+.test-wrong-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.test-wrong-head__title {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.test-wrong-head__count {
+  color: var(--test-fail, #c00000);
+  font-size: 13px;
+}
+
+.test-wrong-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.test-wrong-card {
+  padding: 12px 14px;
+  border: 1px solid var(--test-card-border, #e2e5e9);
+  border-radius: 8px;
+}
+
+.test-wrong-card__q {
+  margin-bottom: 8px;
+}
+
+.test-wrong-card__your,
+.test-wrong-card__correct {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.test-wrong-card__your {
+  color: var(--test-fail, #c00000);
+  margin-bottom: 4px;
+}
+
+.test-wrong-card__correct {
+  color: var(--test-pass, #1a7f37);
+}
+
+.test-mark {
+  flex: 0 0 auto;
+  font-weight: 700;
+}
+
+.test-mark--x { color: var(--test-fail, #c00000); }
+.test-mark--v { color: var(--test-pass, #1a7f37); }

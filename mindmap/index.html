@@ -90,30 +90,36 @@
 <div id="work-area">
   <div id="mindmap-root"></div>
 
-  <aside id="notes-panel" class="notes-panel" hidden>
-    <div class="notes-panel__header">
-      <span class="notes-panel__icon"><img src="assets/icons/edit.svg" alt=""></span>
-      <span class="notes-panel__title">Заметка</span>
-      <button id="notes-close" type="button" class="notes-panel__close" title="Закрыть панель заметок">✕</button>
+  <aside id="side-panel" class="side-panel" hidden>
+    <!-- Вью заметок (для узлов любого типа, кроме сценария теста) -->
+    <div id="notes-view" class="side-view">
+      <div class="notes-panel__header">
+        <span class="notes-panel__icon"><img src="assets/icons/edit.svg" alt=""></span>
+        <span class="notes-panel__title">Заметка</span>
+        <button id="notes-close" type="button" class="notes-panel__close" title="Закрыть панель">✕</button>
+      </div>
+
+      <div id="notes-toolbar" class="notes-toolbar">
+        <button type="button" class="notes-btn" data-cmd="bold" title="Полужирный"><b>B</b></button>
+        <button type="button" class="notes-btn" data-cmd="italic" title="Курсив"><i>I</i></button>
+        <button type="button" class="notes-btn" data-cmd="underline" title="Подчёркнутый"><u>U</u></button>
+        <button type="button" class="notes-btn" data-cmd="heading" title="Заголовок (вкл/выкл)">H</button>
+        <button type="button" class="notes-btn" data-cmd="ul" title="Маркированный список">•</button>
+        <button type="button" class="notes-btn" data-cmd="ol" title="Нумерованный список">1.</button>
+        <button type="button" class="notes-btn" data-cmd="link" title="Вставить ссылку">🔗</button>
+        <button type="button" class="notes-btn" data-cmd="image" title="Вставить изображение (по ссылке)">🖼</button>
+        <span class="notes-toolbar__divider"></span>
+        <button id="notes-mode-toggle" type="button" class="notes-btn notes-btn--mode" title="Переключить режим: Markdown ↔ визуальный">&lt;/&gt;</button>
+      </div>
+
+      <div class="notes-panel__editor">
+        <textarea id="notes-source" class="notes-source" placeholder="Здесь можно создать заметку" spellcheck="false"></textarea>
+        <div id="notes-visual" class="notes-visual" contenteditable="true" data-placeholder="Здесь можно создать заметку"></div>
+      </div>
     </div>
 
-    <div id="notes-toolbar" class="notes-toolbar">
-      <button type="button" class="notes-btn" data-cmd="bold" title="Полужирный"><b>B</b></button>
-      <button type="button" class="notes-btn" data-cmd="italic" title="Курсив"><i>I</i></button>
-      <button type="button" class="notes-btn" data-cmd="underline" title="Подчёркнутый"><u>U</u></button>
-      <button type="button" class="notes-btn" data-cmd="heading" title="Заголовок (вкл/выкл)">H</button>
-      <button type="button" class="notes-btn" data-cmd="ul" title="Маркированный список">•</button>
-      <button type="button" class="notes-btn" data-cmd="ol" title="Нумерованный список">1.</button>
-      <button type="button" class="notes-btn" data-cmd="link" title="Вставить ссылку">🔗</button>
-      <button type="button" class="notes-btn" data-cmd="image" title="Вставить изображение (по ссылке)">🖼</button>
-      <span class="notes-toolbar__divider"></span>
-      <button id="notes-mode-toggle" type="button" class="notes-btn notes-btn--mode" title="Переключить режим: Markdown ↔ визуальный">&lt;/&gt;</button>
-    </div>
-
-    <div class="notes-panel__editor">
-      <textarea id="notes-source" class="notes-source" placeholder="Здесь можно создать заметку" spellcheck="false"></textarea>
-      <div id="notes-visual" class="notes-visual" contenteditable="true" data-placeholder="Здесь можно создать заметку"></div>
-    </div>
+    <!-- Вью теста (для узлов типа 'test'); наполняется динамически из test.js -->
+    <div id="test-view" class="side-view" hidden></div>
   </aside>
 </div>
 
@@ -125,7 +131,9 @@
 <script src="js/storage.js"></script>
 <script src="js/dragdrop.js"></script>
 <script src="js/render.js"></script>
+<script src="js/markdown.js"></script>
 <script src="js/notes.js"></script>
+<script src="js/test.js"></script>
 <script src="js/pan.js"></script>
 <script src="js/app.js"></script>
 </body>

@@ -20,6 +20,13 @@
  * data.note — необязательный АТРИБУТ-заметка узла (строка в формате Markdown,
  * многострочная). Редактируется через боковую панель заметок (notes.js).
  * Отсутствие поля означает «заметки нет». См. setNote/getNote/clearNote ниже.
+ *
+ * data.test и data.testResult — необязательные поля тестирования (версия
+ * формата 4): data.test — ОПРЕДЕЛЕНИЕ теста (вопросы/варианты/порог), создаётся
+ * внешним приложением (редактора в UI нет); data.testResult — результат
+ * ПОСЛЕДНЕЙ попытки (историю не храним), пишется только при завершении
+ * прохождения. Формат см. storage.js (version 4). См. setTest/getTest/hasTest/
+ * clearTest и setTestResult/getTestResult/clearTestResult ниже, а также test.js.
  */
 
 var Model = (function () {
@@ -351,6 +358,74 @@ var Model = (function () {
     return true;
   }
 
+  /**
+   * Тест — необязательный атрибут узла (node.data.test): ОПРЕДЕЛЕНИЕ теста
+   * (заголовок, описание, порог прохождения, список вопросов с вариантами).
+   * Создаётся внешним приложением; в UI редактора нет. Формат см. storage.js
+   * (version 4). Обычно задаётся у узлов типа 'test'.
+   */
+  function setTest(id, testObj) {
+    var node = getNode(id);
+    if (!node) {
+      return false;
+    }
+    if (testObj === undefined || testObj === null) {
+      return clearTest(id);
+    }
+    node.data.test = testObj;
+    return true;
+  }
+
+  function getTest(id) {
+    var node = getNode(id);
+    return (node && node.data) ? node.data.test : undefined;
+  }
+
+  function hasTest(id) {
+    var t = getTest(id);
+    return !!(t && Array.isArray(t.questions) && t.questions.length > 0);
+  }
+
+  function clearTest(id) {
+    var node = getNode(id);
+    if (!node || node.data.test === undefined) {
+      return false;
+    }
+    delete node.data.test;
+    return true;
+  }
+
+  /**
+   * Результат прохождения теста (node.data.testResult) — ТОЛЬКО последняя
+   * попытка (историю не храним). Пишется исключительно при завершении
+   * прохождения (успех/провал/прерывание). Формат см. storage.js (version 4).
+   */
+  function setTestResult(id, resultObj) {
+    var node = getNode(id);
+    if (!node) {
+      return false;
+    }
+    if (resultObj === undefined || resultObj === null) {
+      return clearTestResult(id);
+    }
+    node.data.testResult = resultObj;
+    return true;
+  }
+
+  function getTestResult(id) {
+    var node = getNode(id);
+    return (node && node.data) ? node.data.testResult : undefined;
+  }
+
+  function clearTestResult(id) {
+    var node = getNode(id);
+    if (!node || node.data.testResult === undefined) {
+      return false;
+    }
+    delete node.data.testResult;
+    return true;
+  }
+
   // Создаёт пустую модель с одним корневым узлом типа "main".
   function initEmpty() {
     state = { rootId: null, nodes: {} };
@@ -375,6 +450,13 @@ var Model = (function () {
     setNote: setNote,
     getNote: getNote,
     clearNote: clearNote,
+    setTest: setTest,
+    getTest: getTest,
+    hasTest: hasTest,
+    clearTest: clearTest,
+    setTestResult: setTestResult,
+    getTestResult: getTestResult,
+    clearTestResult: clearTestResult,
     getDirection: getDirection,
     setOffset: setOffset,
     addOffset: addOffset,
