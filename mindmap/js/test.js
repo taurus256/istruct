@@ -390,8 +390,8 @@ var TestPanel = (function () {
         wrongHtml +
       '</div>' +
       '<div class="test-footer">' +
-        '<button type="button" class="test-btn test-btn--primary" data-action="return">Return</button>' +
-        '<button type="button" class="test-link" data-action="retry">Try again</button>' +
+        '<button type="button" class="test-btn test-btn--primary" data-action="return">Назад</button>' +
+        '<button type="button" class="test-link" data-action="retry">Пройти ещё раз</button>' +
       '</div>';
   }
 
