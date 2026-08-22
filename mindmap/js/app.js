@@ -4,6 +4,7 @@
  */
 
 document.addEventListener('DOMContentLoaded', function () {
+  Theme.init();
   Storage.load();
 
   var mindmapRoot = document.getElementById('mindmap-root');

@@ -1,13 +1,17 @@
 /*
- * theme.css — визуальное оформление узлов.
+ * theme.css — визуальное оформление узлов и общая цветовая тема.
  * Все "магические" значения вынесены в CSS-переменные в :root, поэтому
  * пользователь может полностью сменить внешний вид mind map, отредактировав
  * только этот файл — без изменений HTML/JS.
+ *
+ * Тёмная тема (портирована из Figma: dark-theme-design-system) переопределяет
+ * те же переменные в блоке :root[data-theme="dark"] — переключение происходит
+ * атрибутом data-theme на <html>, который проставляет js/theme.js.
  */
 
 :root {
   /* Базовый вид узла (портирован из Figma: Section 3 — Node Components) */
-  --node-bg: #ffffff;
+  --surface: #ffffff;
   --node-border-color: #6b7280;
   --node-radius: 8px;
   --node-font: 500 14px/1.4 "Segoe UI", Arial, sans-serif;
@@ -22,7 +26,7 @@
 
   /* Выделение и связи */
   --node-selected-outline: #ff9800;
-  --connector-color: #b0c4d8;
+  --connector-color: #1a1a1a;
 
   /* Комментарий-атрибут (мелкий серый текст под узлом) */
   --comment-color: #8a8a8a;
@@ -35,29 +39,125 @@
   --drop-valid-color: #4caf50;
   --drop-invalid-color: #e53935;
 
-  /* Всплывающие панели */
+  /* Всплывающие панели узла (редактирование/добавление) */
   --panel-bg: rgba(255, 255, 255, 0.97);
+  --node-panel-border: rgba(0, 0, 0, 0.12);
+  --node-panel-btn-bg: rgba(255, 255, 255, 0.7);
+  --node-panel-btn-border: rgba(0, 0, 0, 0.15);
+  --editing-bg: rgba(255, 255, 255, 0.8);
+
+  /* Страница целиком */
+  --page-bg: #fafbfc;
 
   /* Тулбар (ribbon-style) */
   --toolbar-bg: #f3f3f3;
+  --ribbon-border: #d2d2d2;
+  /* Figma-переменная color/toolbar-bg удалена из файла — используем
+     color/background (--toolbar-bg) вместо неё. */
+  --ribbon-btn-bg: var(--toolbar-bg);
+  --ribbon-btn-border: #d2d2d2;
+  --ribbon-btn-hover-bg: #eef3fb;
+  --ribbon-btn-hover-border: #b7cbe0;
+  --ribbon-btn-selected-bg: #e1f0f9;
+  --ribbon-btn-selected-border: #005fb8;
+  --ribbon-label-color: #323130;
+  --ribbon-group-label-color: #7a7a7a;
+  --ribbon-divider-color: #d2d2d2;
+  /* 0 — нейтральные иконки (Узел/Комментарий/Тема) как есть, 1 — инвертировать
+     в белый цвет (нужно только в тёмной теме, где их исходный тёмно-серый
+     штрих сливается с тёмным фоном тулбара). */
+  --ribbon-icon-invert: 0;
 
-  /* Боковая панель заметок */
-  --notes-panel-bg: #ffffff;
+  /* Статус-бар (низ страницы) */
+  --status-bar-color: #777777;
+  --status-bar-border: #d2d2d2;
+
+  /* Боковая панель (заметки / прохождение теста) */
+  --notes-panel-bg: #f3f3f3;
   --notes-panel-border: #d2d2d2;
-  --notes-toolbar-bg: #f7f7f7;
-  --notes-title-color: #1f2937;
+  --notes-inner-border: #e5e7eb;
+  --notes-toolbar-bg: #ffffff;
+  --notes-title-color: #1a1a1a;
+  --notes-editor-bg: #ffffff;
 
-  /* Панель прохождения теста */
-  --test-accent-blue: #005fb8;       /* первичные кнопки (Start/Submit/Return) */
+  --test-card-border: #e2e5e9;
+  --test-accent-blue: #005fb8;
   --test-accent-blue-hover: #0a4f95;
-  --test-pass: #1a7f37;              /* «Passed», успешные значения */
-  --test-fail: #c00000;              /* «Failed», ошибки */
-  --test-progress: #1a7f37;          /* заливка прогресс-бара / выбранный вариант */
-  --test-card-border: #e2e5e9;       /* рамки карточек */
+  --test-accent-text: #ffffff;
+  --test-progress: #1a7f37;
+  --test-pass: #1a7f37;
+  --test-fail: #c00000;
+  --choice-box-bg: #e5e7eb;
+
+  --text-muted: #6b7280;
+  --text-faint: #9aa0a6;
+  --hover-tint: rgba(0, 0, 0, 0.06);
+}
+
+/* ---------- Тёмная тема (Figma: dark-theme-design-system) ---------- */
+:root[data-theme="dark"] {
+  --surface: #121212;
+  --node-border-color: rgba(255, 255, 255, 0.16);
+  --node-text-color: #ffffff;
+  --node-shadow: 0 2px 4px rgba(0, 0, 0, 0.19);
+
+  --root-bg: #60cdff;
+  --root-color: #000000;
+  --root-shadow: 0 4px 6px rgba(0, 0, 0, 0.25);
+
+  --connector-color: rgba(255, 255, 255, 0.3);
+  --comment-color: rgba(255, 255, 255, 0.55);
+
+  --test-border-color: #6ccb5f;
+  --link-border-color: #60cdff;
+
+  --panel-bg: rgba(28, 28, 28, 0.97);
+  --node-panel-border: rgba(255, 255, 255, 0.14);
+  --node-panel-btn-bg: rgba(255, 255, 255, 0.08);
+  --node-panel-btn-border: rgba(255, 255, 255, 0.16);
+  --editing-bg: rgba(0, 0, 0, 0.55);
+
+  --page-bg: #2d2d2d;
+
+  --toolbar-bg: #1c1c1c;
+  --ribbon-border: rgba(255, 255, 255, 0.08);
+  --ribbon-btn-bg: transparent;
+  --ribbon-btn-border: transparent;
+  --ribbon-btn-hover-bg: rgba(255, 255, 255, 0.06);
+  --ribbon-btn-hover-border: rgba(255, 255, 255, 0.16);
+  --ribbon-btn-selected-bg: #1e293b;
+  --ribbon-btn-selected-border: #60cdff;
+  --ribbon-label-color: #ffffff;
+  --ribbon-group-label-color: rgba(255, 255, 255, 0.78);
+  --ribbon-divider-color: rgba(255, 255, 255, 0.08);
+  --ribbon-icon-invert: 1;
+
+  --status-bar-color: rgba(255, 255, 255, 0.6);
+  --status-bar-border: rgba(255, 255, 255, 0.08);
+
+  --notes-panel-bg: #1c1c1c;
+  --notes-panel-border: rgba(255, 255, 255, 0.16);
+  --notes-inner-border: rgba(255, 255, 255, 0.08);
+  --notes-toolbar-bg: #2d2d2d;
+  --notes-title-color: #ffffff;
+  --notes-editor-bg: #1c1c1c;
+
+  --test-card-border: rgba(255, 255, 255, 0.12);
+  --test-accent-blue: #60cdff;
+  --test-accent-blue-hover: #3fb8f0;
+  --test-accent-text: #000000;
+  --test-progress: #6ccb5f;
+  --test-pass: #6ccb5f;
+  --test-fail: #ff99a4;
+  --choice-box-bg: rgba(255, 255, 255, 0.16);
+
+  --text-muted: rgba(255, 255, 255, 0.6);
+  --text-faint: rgba(255, 255, 255, 0.4);
+  --hover-tint: rgba(255, 255, 255, 0.08);
 }
 
 .node__body {
-  background: var(--node-bg);
+  background: var(--surface);
   border: 1px solid var(--node-border-color);
   border-radius: var(--node-radius);
   font: var(--node-font);
@@ -66,7 +166,7 @@
   box-shadow: var(--node-shadow);
 }
 
-/* Тип "test" — тест: тёмно-бирюзовая рамка, значок ">?" перед текстом */
+/* Тип "test" — тест: зелёная/бирюзовая рамка, значок ">?" перед текстом */
 .node--test {
   border-width: 1.5px;
   border-color: var(--test-border-color, #0f766e);

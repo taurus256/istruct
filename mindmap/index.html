@@ -6,19 +6,28 @@
 <title>Mind Map</title>
 <link rel="stylesheet" href="css/layout.css">
 <link rel="stylesheet" href="css/theme.css">
+<script>
+/* Проставляем data-theme ДО первой отрисовки, чтобы не было мигания
+   светлой темой при загрузке (сохранённая тема / системная тема). */
+(function () {
+  try {
+    var saved = localStorage.getItem('mindmap-theme');
+    var theme = saved === 'dark' || saved === 'light'
+      ? saved
+      : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', theme);
+  } catch (e) {}
+})();
+</script>
 </head>
 <body>
 <div id="toolbar" class="ribbon-toolbar">
   <div class="ribbon-group">
     <div class="ribbon-group__content">
       <div class="ribbon-group__row">
-        <button id="btn-add-node" type="button" class="ribbon-btn ribbon-btn--selected">
-          <span class="ribbon-btn__icon"><img src="assets/icons/type.svg" alt=""></span>
+        <button id="btn-add-node" type="button" class="ribbon-btn">
+          <span class="ribbon-btn__icon ribbon-btn__icon--neutral"><img src="assets/icons/type.svg" alt=""></span>
           <span class="ribbon-btn__label">+ Узел</span>
-        </button>
-        <button id="btn-add-comment" type="button" class="ribbon-btn">
-          <span class="ribbon-btn__icon"><img src="assets/icons/message-circle.svg" alt=""></span>
-          <span class="ribbon-btn__label">Комментарий</span>
         </button>
         <button id="btn-add-test" type="button" class="ribbon-btn">
           <span class="ribbon-btn__icon ribbon-btn__icon--glyph">&gt;?</span>
@@ -41,13 +50,13 @@
   <div class="ribbon-group">
     <div class="ribbon-group__content">
       <div class="ribbon-group__row">
-        <button id="btn-notes" type="button" class="ribbon-btn">
-          <span class="ribbon-btn__icon"><img src="assets/icons/edit.svg" alt=""></span>
-          <span class="ribbon-btn__label">Панель</span>
-        </button>
         <button id="btn-help-docs" type="button" class="ribbon-btn">
           <span class="ribbon-btn__icon"><img src="assets/icons/book.svg" alt=""></span>
           <span class="ribbon-btn__label">Справка</span>
+        </button>
+        <button id="btn-notes" type="button" class="ribbon-btn">
+          <span class="ribbon-btn__icon"><img src="assets/icons/panel.svg" alt=""></span>
+          <span class="ribbon-btn__label">Панель</span>
         </button>
       </div>
       <span class="ribbon-group__label">Панель</span>
@@ -76,7 +85,7 @@
     <div class="ribbon-group__content">
       <div class="ribbon-group__row">
         <button id="btn-theme" type="button" class="ribbon-btn">
-          <span class="ribbon-btn__icon"><img src="assets/icons/theme.svg" alt=""></span>
+          <span class="ribbon-btn__icon ribbon-btn__icon--neutral"><img src="assets/icons/theme.svg" alt=""></span>
           <span class="ribbon-btn__label">Тема</span>
         </button>
       </div>
@@ -96,19 +105,21 @@
       <div class="notes-panel__header">
         <span class="notes-panel__icon"><img src="assets/icons/edit.svg" alt=""></span>
         <span class="notes-panel__title">Заметка</span>
-        <button id="notes-close" type="button" class="notes-panel__close" title="Закрыть панель">✕</button>
+        <button id="notes-close" type="button" class="notes-panel__close" title="Закрыть панель"><img src="assets/icons/notes-close.svg" alt=""></button>
       </div>
 
       <div id="notes-toolbar" class="notes-toolbar">
-        <button type="button" class="notes-btn" data-cmd="bold" title="Полужирный"><b>B</b></button>
-        <button type="button" class="notes-btn" data-cmd="italic" title="Курсив"><i>I</i></button>
-        <button type="button" class="notes-btn" data-cmd="underline" title="Подчёркнутый"><u>U</u></button>
-        <button type="button" class="notes-btn" data-cmd="heading" title="Заголовок (вкл/выкл)">H</button>
-        <button type="button" class="notes-btn" data-cmd="ul" title="Маркированный список">•</button>
-        <button type="button" class="notes-btn" data-cmd="ol" title="Нумерованный список">1.</button>
-        <button type="button" class="notes-btn" data-cmd="link" title="Вставить ссылку">🔗</button>
-        <button type="button" class="notes-btn" data-cmd="image" title="Вставить изображение (по ссылке)">🖼</button>
+        <button type="button" class="notes-btn" data-cmd="bold" title="Полужирный"><img src="assets/icons/notes-bold.svg" alt=""></button>
+        <button type="button" class="notes-btn" data-cmd="italic" title="Курсив"><img src="assets/icons/notes-italic.svg" alt=""></button>
+        <button type="button" class="notes-btn" data-cmd="underline" title="Подчёркнутый"><img src="assets/icons/notes-underline.svg" alt=""></button>
         <span class="notes-toolbar__divider"></span>
+        <button type="button" class="notes-btn" data-cmd="heading" title="Заголовок (вкл/выкл)"><img src="assets/icons/notes-heading.svg" alt=""></button>
+        <span class="notes-toolbar__divider"></span>
+        <button type="button" class="notes-btn" data-cmd="ul" title="Маркированный список"><img src="assets/icons/notes-list.svg" alt=""></button>
+        <button type="button" class="notes-btn" data-cmd="ol" title="Нумерованный список"><img src="assets/icons/notes-list-ordered.svg" alt=""></button>
+        <span class="notes-toolbar__divider"></span>
+        <button type="button" class="notes-btn" data-cmd="link" title="Вставить ссылку"><img src="assets/icons/notes-link.svg" alt=""></button>
+        <button type="button" class="notes-btn" data-cmd="image" title="Вставить изображение (по ссылке)"><img src="assets/icons/notes-image.svg" alt=""></button>
         <button id="notes-mode-toggle" type="button" class="notes-btn notes-btn--mode" title="Переключить режим: Markdown ↔ визуальный">&lt;/&gt;</button>
       </div>
 
@@ -126,6 +137,7 @@
 <div id="status-bar">Клик — выделить, двойной клик по тексту — редактировать, Enter — добавить, Delete — удалить, drag&amp;drop — перенести. Наведите на узел — появятся кнопки добавления и редактирования.</div>
 
 <!-- Порядок подключения важен: каждый следующий файл использует объекты, объявленные предыдущими -->
+<script src="js/theme.js"></script>
 <script src="js/nodeTypes.js"></script>
 <script src="js/model.js"></script>
 <script src="js/storage.js"></script>

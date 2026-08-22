@@ -22,7 +22,7 @@ html, body {
      целиком — иначе тулбар уедет со скроллом и перестаёт быть видимым. */
   overflow: hidden;
   font-family: "Segoe UI", Arial, sans-serif;
-  background: #fafbfc;
+  background: var(--page-bg, #fafbfc);
 }
 
 body {
@@ -35,11 +35,11 @@ body {
 .ribbon-toolbar {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  height: 100px;
-  padding: 4px 8px;
+  padding: 8px 8px 4px;
   background: var(--toolbar-bg, #f3f3f3);
-  border-bottom: 1px solid #d2d2d2;
+  border-bottom: 1px solid var(--ribbon-border, #d2d2d2);
   box-shadow: 0 2px 2px rgba(0, 0, 0, 0.03);
   position: sticky;
   top: 0;
@@ -54,7 +54,6 @@ body {
   display: flex;
   align-items: stretch;
   gap: 8px;
-  height: 100%;
   flex: 0 0 auto;
 }
 
@@ -64,7 +63,6 @@ body {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  height: 100%;
   padding: 2px 6px;
 }
 
@@ -77,14 +75,13 @@ body {
 
 .ribbon-group__label {
   font-size: 10px;
-  color: #7a7a7a;
+  color: var(--ribbon-group-label-color, #7a7a7a);
   white-space: nowrap;
 }
 
 .ribbon-divider {
   width: 1px;
-  height: 100%;
-  background: #d2d2d2;
+  background: var(--ribbon-divider-color, #d2d2d2);
   opacity: 0.7;
   flex: 0 0 auto;
 }
@@ -95,24 +92,25 @@ body {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  width: 80px;
+  width: 100px;
+  height: 98px;
   flex: 0 0 auto;
   padding: 6px 4px 4px;
-  background: #f5f5f5;
-  border: 1px solid #d2d2d2;
+  background: var(--ribbon-btn-bg, #f5f5f5);
+  border: 1px solid var(--ribbon-btn-border, #d2d2d2);
   border-radius: 4px;
   cursor: pointer;
   font-family: inherit;
 }
 
 .ribbon-btn:hover {
-  background: #eef3fb;
-  border-color: #b7cbe0;
+  background: var(--ribbon-btn-hover-bg, #eef3fb);
+  border-color: var(--ribbon-btn-hover-border, #b7cbe0);
 }
 
 .ribbon-btn--selected {
-  background: #e1f0f9;
-  border-color: #005fb8;
+  background: var(--ribbon-btn-selected-bg, #e1f0f9);
+  border-color: var(--ribbon-btn-selected-border, #005fb8);
 }
 
 .ribbon-btn__icon {
@@ -130,16 +128,29 @@ body {
 }
 
 .ribbon-btn__icon--glyph {
-  font-size: 22px;
+  font-size: 32px;
   font-weight: 600;
   color: #0f766e;
   line-height: 1;
 }
 
+/* Нейтральные (не акцентно-цветные) SVG-иконки — Узел/Панель/Тема:
+   в тёмной теме их исходный тёмно-серый штрих (#1A1A1A) сливается с фоном
+   тулбара, поэтому инвертируем в белый (см. --ribbon-icon-invert в theme.css). */
+.ribbon-btn__icon--neutral img {
+  filter: invert(var(--ribbon-icon-invert, 0)) brightness(calc(1 + var(--ribbon-icon-invert, 0) * 1.5));
+}
+
+/* Нейтральные иконки панели заметок (форматирование, закрыть) — та же логика. */
+.notes-btn img,
+.notes-panel__close img {
+  filter: invert(var(--ribbon-icon-invert, 0)) brightness(calc(1 + var(--ribbon-icon-invert, 0) * 1.5));
+}
+
 .ribbon-btn__label {
   max-width: 100%;
-  font-size: 10px;
-  color: #323130;
+  font-size: 12px;
+  color: var(--ribbon-label-color, #323130);
   text-align: center;
   white-space: nowrap;
   overflow: hidden;
@@ -152,9 +163,9 @@ body {
   flex: 0 0 auto;
   padding: 6px 16px;
   background: var(--toolbar-bg, #f3f3f3);
-  border-top: 1px solid #d2d2d2;
+  border-top: 1px solid var(--status-bar-border, #d2d2d2);
   font-size: 12px;
-  color: #777;
+  color: var(--status-bar-color, #777);
   white-space: nowrap;
   overflow-x: auto;
 }
@@ -175,6 +186,8 @@ body {
    смежные с root (см. .mm-row-middle / .mm-center-column ниже). */
 .mindmap-root {
   position: relative; /* якорь для абсолютного SVG-оверлея коннекторов */
+  /* color/surface из Figma (совпадает с фоном узла --surface: #fff светлая / #1c1c1c тёмная). */
+  background: var(--surface, #ffffff);
   display: flex;
   flex-direction: column;
   /* min-width: 0 — чтобы flex-элемент внутри #work-area (row) мог сжиматься
@@ -404,7 +417,7 @@ body {
 
 .mm-connector-line {
   stroke: var(--connector-color, #b0c4d8);
-  stroke-width: 2;
+  stroke-width: 1;
 }
 
 /* ---------- Узел ----------
@@ -447,7 +460,7 @@ body {
 
 .node__text--editing {
   cursor: text;
-  background: rgba(255, 255, 255, 0.7);
+  background: var(--editing-bg, rgba(255, 255, 255, 0.7));
   border-radius: 4px;
   padding: 0 2px;
   /* .mindmap-root и .node выше выставляют user-select: none, который
@@ -460,7 +473,7 @@ body {
 .node__comment {
   /* Мелкий серый текст под узлом, выровненный по левому краю бокса. */
   margin-top: 3px;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.3;
   color: var(--comment-color, #8a94a0);
   text-align: left;
@@ -472,7 +485,7 @@ body {
 .node__comment--editing {
   outline: 1px solid var(--node-border-color, #4a90d9);
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--editing-bg, rgba(255, 255, 255, 0.85));
   padding: 2px 4px;
   user-select: text;
 }
@@ -487,7 +500,7 @@ body {
   gap: 2px;
   padding: 2px;
   background: var(--panel-bg, rgba(255, 255, 255, 0.95));
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--node-panel-border, rgba(0, 0, 0, 0.12));
   border-radius: 4px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
   white-space: nowrap;
@@ -537,7 +550,7 @@ body {
   gap: 2px;
   padding-right: 4px;
   margin-right: 2px;
-  border-right: 1px solid rgba(0, 0, 0, 0.12);
+  border-right: 1px solid var(--node-panel-border, rgba(0, 0, 0, 0.12));
 }
 
 
@@ -589,17 +602,18 @@ body {
 
 
 .node__btn {
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--node-panel-btn-border, rgba(0, 0, 0, 0.15));
+  background: var(--node-panel-btn-bg, rgba(255, 255, 255, 0.7));
   border-radius: 3px;
   font-size: 12px;
   line-height: 1;
   padding: 3px 6px;
   cursor: pointer;
+  color: var(--node-text-color, inherit);
 }
 
 .node__btn:hover {
-  background: #eef3fb;
+  background: var(--ribbon-btn-hover-bg, #eef3fb);
 }
 
 .node__btn--delete {
@@ -647,17 +661,18 @@ body {
 
 /* ---------- Общая боковая панель (заметки / тест) ---------- */
 
-/* Ширина 350px, высота = вся высота #work-area (stretch по умолчанию).
+/* Ширина 400px, высота = вся высота #work-area (stretch по умолчанию).
    [hidden] прячет панель и убирает её из flex-раскладки. Внутри — два
    взаимоисключающих вью (#notes-view / #test-view). */
 .side-panel {
-  flex: 0 0 350px;
-  width: 350px;
+  flex: 0 0 400px;
+  width: 400px;
   display: flex;
   flex-direction: column;
   min-height: 0;
-  background: var(--notes-panel-bg, #ffffff);
+  background: var(--notes-panel-bg, #f3f3f3);
   border-left: 1px solid var(--notes-panel-border, #d2d2d2);
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.05);
   overflow: hidden;
 }
 
@@ -684,8 +699,7 @@ body {
   align-items: center;
   gap: 8px;
   padding: 10px 12px;
-  border-bottom: 1px solid var(--notes-panel-border, #d2d2d2);
-  background: var(--notes-toolbar-bg, #f7f7f7);
+  border-bottom: 1px solid var(--notes-inner-border, #e5e7eb);
   flex: 0 0 auto;
 }
 
@@ -698,7 +712,7 @@ body {
 
 .side-view__title {
   flex: 1 1 auto;
-  font: 600 14px/1.2 "Segoe UI", Arial, sans-serif;
+  font: 600 16px/1.2 "Segoe UI", Arial, sans-serif;
   color: var(--notes-title-color, #1f2937);
 }
 
@@ -708,13 +722,13 @@ body {
   font-size: 16px;
   line-height: 1;
   cursor: pointer;
-  color: #6b7280;
+  color: var(--text-muted, #6b7280);
   padding: 2px 6px;
   border-radius: 4px;
 }
 
 .side-view__close:hover {
-  background: rgba(0, 0, 0, 0.06);
+  background: var(--hover-tint, rgba(0, 0, 0, 0.06));
 }
 
 .notes-panel__header {
@@ -722,14 +736,14 @@ body {
   align-items: center;
   gap: 8px;
   padding: 10px 12px;
-  border-bottom: 1px solid var(--notes-panel-border, #d2d2d2);
+  border-bottom: 1px solid var(--notes-inner-border, #e5e7eb);
   flex: 0 0 auto;
 }
 
 .notes-panel__icon {
   display: inline-flex;
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
 }
 
 .notes-panel__icon img {
@@ -739,23 +753,31 @@ body {
 
 .notes-panel__title {
   flex: 1 1 auto;
-  font: 600 14px/1.2 "Segoe UI", Arial, sans-serif;
-  color: var(--notes-title-color, #1f2937);
+  font: 600 16px/1.2 "Segoe UI", Arial, sans-serif;
+  color: var(--notes-title-color, #1a1a1a);
 }
 
 .notes-panel__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
   border: none;
   background: transparent;
-  font-size: 16px;
-  line-height: 1;
   cursor: pointer;
-  color: #6b7280;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 6px;
+  border-radius: 2px;
+}
+
+.notes-panel__close img {
+  width: 16px;
+  height: 16px;
+  display: block;
 }
 
 .notes-panel__close:hover {
-  background: rgba(0, 0, 0, 0.06);
+  background: var(--hover-tint, rgba(0, 0, 0, 0.06));
 }
 
 /* Тулбар форматирования Markdown. */
@@ -763,35 +785,45 @@ body {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 3px;
-  padding: 6px 8px;
-  border-bottom: 1px solid var(--notes-panel-border, #d2d2d2);
-  background: var(--notes-toolbar-bg, #f7f7f7);
+  gap: 8px;
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--notes-inner-border, #e5e7eb);
+  background: var(--notes-toolbar-bg, #ffffff);
   flex: 0 0 auto;
 }
 
 .notes-btn {
-  min-width: 28px;
-  height: 26px;
-  padding: 0 6px;
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  background: #ffffff;
-  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 6px;
+  border: none;
+  background: transparent;
+  border-radius: 2px;
   cursor: pointer;
   font-size: 13px;
   line-height: 1;
+  color: var(--node-text-color, inherit);
+}
+
+.notes-btn img {
+  width: 16px;
+  height: 16px;
+  display: block;
 }
 
 .notes-btn:hover {
-  background: #eef3fb;
+  background: var(--ribbon-btn-hover-bg, #eef3fb);
 }
 
 .notes-toolbar__divider {
   flex: 0 0 auto;
   width: 1px;
-  height: 20px;
-  margin: 0 4px;
-  background: rgba(0, 0, 0, 0.15);
+  height: 16px;
+  margin: 0 2px;
+  background: var(--notes-inner-border, #e5e7eb);
 }
 
 .notes-btn--mode {
@@ -812,10 +844,10 @@ body {
   width: 100%;
   height: 100%;
   box-sizing: border-box;
-  padding: 12px;
+  padding: 16px;
   overflow: auto;
-  font: 13px/1.5 "Segoe UI", Arial, sans-serif;
-  color: var(--node-text-color, #1f2937);
+  font: 400 14px/20px "Segoe UI", Arial, sans-serif;
+  color: var(--notes-title-color, #1a1a1a);
 }
 
 .notes-source {
@@ -837,7 +869,7 @@ body {
 /* Визуальный плейсхолдер для пустого contenteditable. */
 .notes-visual:empty::before {
   content: attr(data-placeholder);
-  color: #9ca3af;
+  color: var(--text-faint, #9ca3af);
   pointer-events: none;
 }
 
@@ -853,8 +885,8 @@ body {
 /* ---------- Боковая панель заметок ---------- */
 
 .notes-panel {
-  flex: 0 0 350px;
-  width: 350px;
+  flex: 0 0 400px;
+  width: 400px;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -874,14 +906,14 @@ body {
   align-items: center;
   gap: 8px;
   padding: 10px 12px;
-  border-bottom: 1px solid var(--notes-panel-border, #d2d2d2);
+  border-bottom: 1px solid var(--notes-inner-border, #e5e7eb);
   flex: 0 0 auto;
 }
 
 .notes-panel__icon {
   display: inline-flex;
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
 }
 
 .notes-panel__icon img {
@@ -891,56 +923,76 @@ body {
 
 .notes-panel__title {
   flex: 1 1 auto;
-  font: 600 14px/1.2 "Segoe UI", Arial, sans-serif;
-  color: var(--notes-title-color, #1f2937);
+  font: 600 16px/1.2 "Segoe UI", Arial, sans-serif;
+  color: var(--notes-title-color, #1a1a1a);
 }
 
 .notes-panel__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
   border: none;
   background: transparent;
-  font-size: 15px;
-  line-height: 1;
-  padding: 4px 6px;
   cursor: pointer;
-  color: #666;
-  border-radius: 4px;
+  padding: 6px;
+  border-radius: 2px;
+}
+
+.notes-panel__close img {
+  width: 16px;
+  height: 16px;
+  display: block;
 }
 
 .notes-panel__close:hover {
-  background: rgba(0, 0, 0, 0.06);
+  background: var(--hover-tint, rgba(0, 0, 0, 0.06));
 }
 
 .notes-toolbar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 3px;
-  padding: 6px 10px;
-  border-bottom: 1px solid var(--notes-panel-border, #d2d2d2);
-  background: var(--notes-toolbar-bg, #f7f7f7);
+  gap: 8px;
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--notes-inner-border, #e5e7eb);
+  background: var(--notes-toolbar-bg, #ffffff);
   flex: 0 0 auto;
 }
 
 .notes-toolbar__divider {
   width: 1px;
-  align-self: stretch;
-  margin: 2px 4px;
-  background: rgba(0, 0, 0, 0.15);
+  height: 16px;
+  align-self: center;
+  margin: 0 2px;
+  background: var(--notes-inner-border, #e5e7eb);
 }
 
 .notes-btn {
-  min-width: 28px;
-  padding: 4px 7px;
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  background: #fff;
-  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 6px;
+  border: none;
+  background: transparent;
+  border-radius: 2px;
   font-size: 13px;
   line-height: 1.1;
   cursor: pointer;
+  color: var(--node-text-color, inherit);
+}
+
+.notes-btn img {
+  width: 16px;
+  height: 16px;
+  display: block;
 }
 
 .notes-btn:hover {
-  background: #eef3fb;
+  background: var(--ribbon-btn-hover-bg, #eef3fb);
 }
 
 .notes-btn--mode {
@@ -959,12 +1011,12 @@ body {
   width: 100%;
   height: 100%;
   box-sizing: border-box;
-  padding: 12px;
+  padding: 16px;
   border: none;
   outline: none;
   overflow: auto;
-  font: 400 13px/1.5 "Segoe UI", Arial, sans-serif;
-  color: var(--node-text-color, #1f2937);
+  font: 400 14px/20px "Segoe UI", Arial, sans-serif;
+  color: var(--notes-title-color, #1a1a1a);
   background: var(--notes-editor-bg, #ffffff);
 }
 
@@ -986,7 +1038,7 @@ body {
    placeholder). Текст плейсхолдера не попадает в содержимое (чистый CSS). */
 .notes-visual:empty::before {
   content: attr(data-placeholder);
-  color: #9aa0a6;
+  color: var(--text-faint, #9aa0a6);
   pointer-events: none;
 }
 
@@ -1014,8 +1066,7 @@ body {
 .test-footer {
   flex: 0 0 auto;
   padding: 12px 16px;
-  border-top: 1px solid var(--notes-panel-border, #d2d2d2);
-  background: var(--notes-toolbar-bg, #f7f7f7);
+  border-top: 1px solid var(--notes-inner-border, #e5e7eb);
 }
 
 .test-node-title {
@@ -1036,12 +1087,12 @@ body {
 
 .test-empty {
   text-align: center;
-  color: #9aa0a6;
+  color: var(--text-faint, #9aa0a6);
   margin-top: 12px;
 }
 
 .test-desc {
-  color: #6b7280;
+  color: var(--text-muted, #6b7280);
   margin-bottom: 16px;
 }
 
@@ -1057,6 +1108,7 @@ body {
   align-items: center;
   gap: 12px;
   padding: 12px 14px;
+  background: var(--surface, #ffffff);
   border: 1px solid var(--test-card-border, #e2e5e9);
   border-radius: 8px;
   font-weight: 700;
@@ -1081,14 +1133,14 @@ body {
 }
 
 .test-nav__label {
-  color: #6b7280;
+  color: var(--text-muted, #6b7280);
 }
 
 .test-nav__btn {
   width: 32px;
   height: 30px;
   border: 1px solid var(--test-card-border, #e2e5e9);
-  background: #fff;
+  background: var(--surface, #fff);
   border-radius: 6px;
   cursor: pointer;
   font-size: 16px;
@@ -1104,7 +1156,7 @@ body {
 /* Прогресс-бар. */
 .test-progress {
   height: 6px;
-  background: #e5e7eb;
+  background: var(--choice-box-bg, #e5e7eb);
   border-radius: 4px;
   overflow: hidden;
   margin-bottom: 16px;
@@ -1119,6 +1171,7 @@ body {
 /* Карточка вопроса. */
 .test-question-card {
   padding: 14px;
+  background: var(--surface, #ffffff);
   border: 1px solid var(--test-card-border, #e2e5e9);
   border-radius: 8px;
   margin-bottom: 14px;
@@ -1139,6 +1192,7 @@ body {
   align-items: center;
   gap: 12px;
   padding: 12px 14px;
+  background: var(--surface, #ffffff);
   border: 1.5px solid var(--test-card-border, #e2e5e9);
   border-radius: 8px;
   cursor: pointer;
@@ -1152,7 +1206,7 @@ body {
   flex: 0 0 auto;
   width: 20px;
   height: 20px;
-  background: #e5e7eb;
+  background: var(--choice-box-bg, #e5e7eb);
   position: relative;
 }
 
@@ -1208,7 +1262,7 @@ body {
 
 .test-btn--primary {
   background: var(--test-accent-blue, #005fb8);
-  color: #fff;
+  color: var(--test-accent-text, #fff);
 }
 
 .test-btn--primary:hover {
@@ -1221,19 +1275,20 @@ body {
   margin-top: 8px;
   border: none;
   background: transparent;
-  color: #9aa0a6;
+  color: var(--text-faint, #9aa0a6);
   cursor: pointer;
   font: 400 13px/1.2 "Segoe UI", Arial, sans-serif;
   text-align: center;
 }
 
 .test-link:hover {
-  color: #6b7280;
+  color: var(--text-muted, #6b7280);
 }
 
 /* Экран результата. */
 .test-result-card {
   padding: 16px;
+  background: var(--surface, #ffffff);
   border: 1px solid var(--test-card-border, #e2e5e9);
   border-radius: 8px;
   margin-bottom: 14px;
@@ -1257,7 +1312,7 @@ body {
 }
 
 .test-result-req {
-  color: #9aa0a6;
+  color: var(--text-faint, #9aa0a6);
   font-size: 12px;
   margin-top: 2px;
 }
@@ -1276,13 +1331,14 @@ body {
   align-items: center;
   gap: 4px;
   padding: 10px 6px;
+  background: var(--surface, #ffffff);
   border: 1px solid var(--test-card-border, #e2e5e9);
   border-radius: 8px;
   text-align: center;
 }
 
 .test-stat__label {
-  color: #6b7280;
+  color: var(--text-muted, #6b7280);
   font-size: 12px;
 }
 
@@ -1320,6 +1376,7 @@ body {
 
 .test-wrong-card {
   padding: 12px 14px;
+  background: var(--surface, #ffffff);
   border: 1px solid var(--test-card-border, #e2e5e9);
   border-radius: 8px;
 }
