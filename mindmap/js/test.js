@@ -111,6 +111,16 @@ var TestPanel = (function () {
     return html.replace(/^<p>/, '').replace(/<\/p>$/, '');
   }
 
+  // Русское склонение слова «вопрос» по числу: 1 вопрос, 2 вопроса, 5 вопросов.
+  function pluralQuestions(n) {
+    var d = n % 10;
+    var dd = n % 100;
+    var word = (d === 1 && dd !== 11) ? 'вопрос'
+      : (d >= 2 && d <= 4 && (dd < 10 || dd >= 20)) ? 'вопроса'
+      : 'вопросов';
+    return n + ' ' + word;
+  }
+
   // Общая шапка вью: зелёный глиф >?, заголовок, кнопка закрытия.
   function headerHtml(title) {
     return '' +
@@ -126,11 +136,11 @@ var TestPanel = (function () {
   function renderEmpty(nodeId) {
     var title = (nodeId != null) ? nodeTitle(nodeId) : '';
     viewEl.innerHTML =
-      headerHtml('Test') +
+      headerHtml('Тест') +
       '<div class="test-body">' +
         '<div class="test-node-title">' + esc(title) + '</div>' +
         '<div class="test-divider"></div>' +
-        '<div class="test-empty">There are no test yet</div>' +
+        '<div class="test-empty">Тест отсутствует</div>' +
       '</div>';
   }
 
@@ -150,7 +160,7 @@ var TestPanel = (function () {
     var threshold = test.passThreshold;
 
     viewEl.innerHTML =
-      headerHtml('Test') +
+      headerHtml('Тест') +
       '<div class="test-body">' +
         '<div class="test-node-title">' + esc(nodeTitle(nodeId)) + '</div>' +
         '<div class="test-divider"></div>' +
@@ -158,13 +168,13 @@ var TestPanel = (function () {
           ? '<div class="test-desc">' + md(test.description) + '</div>'
           : '') +
         '<div class="test-info-cards">' +
-          infoCard('list', n + (n === 1 ? ' question' : ' questions')) +
-          infoCard('clock', '~' + mins + ' minutes') +
-          infoCard('check', threshold + '% correct required') +
+          infoCard('list', pluralQuestions(n)) +
+          infoCard('clock', '~' + mins + ' минут') +
+          infoCard('check', threshold + '% нужно набрать') +
         '</div>' +
       '</div>' +
       '<div class="test-footer">' +
-        '<button type="button" class="test-btn test-btn--primary" data-action="start">Start Test</button>' +
+        '<button type="button" class="test-btn test-btn--primary" data-action="start">Начать тест</button>' +
       '</div>';
   }
 
@@ -213,12 +223,12 @@ var TestPanel = (function () {
     }).join('');
 
     viewEl.innerHTML =
-      headerHtml('Test') +
+      headerHtml('Тест') +
       '<div class="test-body">' +
         '<div class="test-node-title test-node-title--upper">' + esc(nodeTitle(attempt.nodeId)) + '</div>' +
         '<div class="test-nav">' +
           '<button type="button" class="test-nav__btn" data-action="prev"' + (num === 1 ? ' disabled' : '') + '>‹</button>' +
-          '<span class="test-nav__label">Question ' + num + ' of ' + total + '</span>' +
+          '<span class="test-nav__label">Вопрос ' + num + ' из ' + total + '</span>' +
           '<button type="button" class="test-nav__btn" data-action="next"' + (num === total ? ' disabled' : '') + '>›</button>' +
         '</div>' +
         '<div class="test-progress"><div class="test-progress__bar" style="width:' + progress + '%"></div></div>' +
@@ -226,10 +236,8 @@ var TestPanel = (function () {
         '<div class="test-choices">' + optionsHtml + '</div>' +
       '</div>' +
       '<div class="test-footer">' +
-        '<button type="button" class="test-btn test-btn--primary" data-action="submit">' +
-          (num === total ? 'Submit Answer' : 'Submit Answer') +
-        '</button>' +
-        '<button type="button" class="test-link" data-action="finish">Finish the test</button>' +
+        '<button type="button" class="test-btn test-btn--primary" data-action="submit">Ответить</button>' +
+        '<button type="button" class="test-link" data-action="finish">Завершить тест</button>' +
       '</div>';
   }
 
@@ -284,7 +292,7 @@ var TestPanel = (function () {
     var answeredCount = 0;
     var wrong = [];
 
-    questions.forEach(function (q) {
+    questions.forEach(function (q, i) {
       var selMap = attempt.answers[q.id] || {};
       var selectedIds = Object.keys(selMap);
       if (selectedIds.length > 0) {
@@ -297,6 +305,7 @@ var TestPanel = (function () {
         var correctIds = q.options.filter(function (o) { return o.correct; })
           .map(function (o) { return o.id; });
         wrong.push({
+          num: i + 1, // 1-based номер вопроса — для подписи «Вопрос N:» в карточке
           questionText: (typeof Markdown !== 'undefined') ? Markdown.toPlainText(q.text) : String(q.text),
           yourText: yourTexts.length ? yourTexts.join(', ') : '—',
           correctText: optionTextsByIds(q, correctIds).join(', ')
@@ -348,37 +357,35 @@ var TestPanel = (function () {
     if (wrong.length > 0) {
       wrongHtml =
         '<div class="test-wrong-head">' +
-          '<span class="test-wrong-head__title">Wrong Answers</span>' +
-          '<span class="test-wrong-head__count">' + wrong.length +
-            (wrong.length === 1 ? ' question' : ' questions') + '</span>' +
+          '<span class="test-wrong-head__title">Неправильные ответы</span>' +
+          '<span class="test-wrong-head__count">' + pluralQuestions(wrong.length) + '</span>' +
         '</div>' +
         '<div class="test-wrong-list">' +
           wrong.map(function (w) {
+            var qLabel = (w.num != null) ? ('Вопрос ' + w.num + ': ') : '';
             return '<div class="test-wrong-card">' +
-              '<div class="test-wrong-card__q">' + esc(w.questionText) + '</div>' +
+              '<div class="test-wrong-card__q">' + esc(qLabel + w.questionText) + '</div>' +
               '<div class="test-wrong-card__your"><span class="test-mark test-mark--x">✕</span>' +
-                'Your Answer: ' + esc(w.yourText) + '</div>' +
+                'Ваш ответ: ' + esc(w.yourText) + '</div>' +
               '<div class="test-wrong-card__correct"><span class="test-mark test-mark--v">✓</span>' +
-                'Correct: ' + esc(w.correctText) + '</div>' +
+                'Правильно: ' + esc(w.correctText) + '</div>' +
             '</div>';
           }).join('') +
         '</div>';
     }
 
     viewEl.innerHTML =
-      headerHtml('Test Results') +
+      headerHtml('Результаты теста') +
       '<div class="test-body">' +
         '<div class="test-node-title">' + esc(nodeTitle(nodeId)) + '</div>' +
         '<div class="test-result-card ' + (passed ? 'test-result-card--pass' : 'test-result-card--fail') + '">' +
-          '<div class="test-result-status">' + (passed ? 'Passed' : 'Failed') + '</div>' +
-          '<div class="test-result-score">' + result.correctCount + '/' + result.totalCount +
-            ' correct (' + result.scorePercent + '%)</div>' +
-          '<div class="test-result-req">' + threshold + '% required to pass</div>' +
+          '<div class="test-result-status">' + (passed ? 'Пройден' : 'Не пройден') + '</div>' +
+          '<div class="test-result-req">Для прохождения необходимо ' + threshold + '%</div>' +
         '</div>' +
         '<div class="test-stats">' +
-          statCard('Time', '~' + mins + ' min', false) +
-          statCard('Score', result.scorePercent + '%', passed) +
-          statCard('Answered', result.answeredCount + '/' + result.totalCount, false) +
+          statCard('Время', '~' + mins + ' мин', false) +
+          statCard('Балл', result.scorePercent + '%', passed) +
+          statCard('Отвечено', result.answeredCount + '/' + result.totalCount, false) +
         '</div>' +
         wrongHtml +
       '</div>' +
