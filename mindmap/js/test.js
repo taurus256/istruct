@@ -66,12 +66,11 @@ var TestPanel = (function () {
       return;
     }
 
-    var result = Model.getTestResult(nodeId);
-    if (result) {
-      renderResult(nodeId, result);
-    } else {
-      renderIntro(nodeId);
-    }
+    // Открытие узла (в т.ч. повторное) всегда показывает стартовый экран —
+    // он же отражает статус последнего прохождения (см. introStatusHtml). Экран
+    // «Результаты теста» с разбором ошибок показывается только сразу
+    // после завершения попытки (см. finalize()), а не при обычном показе.
+    renderIntro(nodeId);
   }
 
   // Прерывание активной попытки: посчитать промежуточный результат, сохранить
