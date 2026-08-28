@@ -147,6 +147,13 @@ body {
   filter: invert(var(--ribbon-icon-invert, 0)) brightness(calc(1 + var(--ribbon-icon-invert, 0) * 1.5));
 }
 
+/* Нейтральные иконки всплывающих панелей узла (комментарий, +текстовый узел) —
+   та же логика: #1A1A1A сливается с тёмным фоном панели (--panel-bg). */
+.node__panel img[src$="/small/comment.svg"],
+.node__panel img[src$="/small/text.svg"] {
+  filter: invert(var(--ribbon-icon-invert, 0)) brightness(calc(1 + var(--ribbon-icon-invert, 0) * 1.5));
+}
+
 .ribbon-btn__label {
   max-width: 100%;
   font-size: 12px;
@@ -619,6 +626,36 @@ body {
   width: 14px;
   height: 14px;
   display: block;
+}
+
+/* Иконки-маски (см. node__btn--iconMask в nodeTypes.js): цвет берётся из
+   CSS-переменной темы (--icon-mask-color), а не зашит в SVG — поэтому в тёмной
+   теме автоматически используется более яркий акцентный оттенок того же типа
+   узла (--test-border-color/--link-border-color), вместо низкоконтрастного
+   светлотемного значения. */
+.node__btn__icon-mask {
+  width: 14px;
+  height: 14px;
+  display: block;
+  background-color: var(--icon-mask-color, currentColor);
+  -webkit-mask-image: var(--icon-mask-image);
+  mask-image: var(--icon-mask-image);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
+.node__btn--add-test .node__btn__icon-mask {
+  --icon-mask-image: url("../assets/icons/small/test.svg");
+  --icon-mask-color: var(--test-border-color, #0f766e);
+}
+
+.node__btn--add-link .node__btn__icon-mask {
+  --icon-mask-image: url("../assets/icons/small/link.svg");
+  --icon-mask-color: var(--link-border-color, #0070cb);
 }
 
 .node__btn:hover {
@@ -1132,6 +1169,13 @@ body {
   line-height: 1.05;
 }
 
+.test-info-card__glyph img {
+  width: 100%;
+  height: auto;
+  display: block;
+  filter: none;
+}
+
 /* Статус предыдущего прохождения на стартовом экране (под инфо-карточками). */
 .test-intro-status {
   margin-top: 16px;
@@ -1442,8 +1486,15 @@ body {
 
 .test-mark {
   flex: 0 0 auto;
-  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
 }
 
-.test-mark--x { color: var(--test-fail, #c00000); }
-.test-mark--v { color: var(--test-pass, #1a7f37); }
+/* Иконки check.svg/cross.svg уже окрашены в нужные цвета палитры прямо в
+   исходном SVG (зелёный/красный) — в отличие от других иконок в приложении,
+   перекрашивать их через CSS mask-image не нужно — просто выводим как обычное изображение. */
+.test-mark__icon {
+  width: 14px;
+  height: 14px;
+  display: block;
+}

@@ -200,9 +200,11 @@ var TestPanel = (function () {
   }
 
   function infoCard(icon, text) {
-    var glyph = icon === 'list' ? '<span class="test-info-card__glyph">1.<br>2.</span>'
-      : icon === 'clock' ? '<span class="test-info-card__glyph">◷</span>'
-      : '<span class="test-info-card__glyph">✓</span>';
+    var glyph = icon === 'list'
+      ? '<span class="test-info-card__glyph"><img src="assets/icons/small/list-ordered.svg" alt=""></span>'
+      : icon === 'clock'
+      ? '<span class="test-info-card__glyph"><img src="assets/icons/small/clock.svg" alt=""></span>'
+      : '<span class="test-info-card__glyph"><img src="assets/icons/small/check_blue.svg" alt=""></span>';
     return '<div class="test-info-card">' + glyph +
       '<span class="test-info-card__text">' + esc(text) + '</span></div>';
   }
@@ -386,9 +388,9 @@ var TestPanel = (function () {
             var qLabel = (w.num != null) ? ('Вопрос ' + w.num + ': ') : '';
             return '<div class="test-wrong-card">' +
               '<div class="test-wrong-card__q">' + esc(qLabel + w.questionText) + '</div>' +
-              '<div class="test-wrong-card__your"><span class="test-mark test-mark--x">✕</span>' +
+              '<div class="test-wrong-card__your"><span class="test-mark test-mark--x"><img class="test-mark__icon" src="assets/icons/small/cross.svg" alt=""></span>' +
                 'Ваш ответ: ' + esc(w.yourText) + '</div>' +
-              '<div class="test-wrong-card__correct"><span class="test-mark test-mark--v">✓</span>' +
+              '<div class="test-wrong-card__correct"><span class="test-mark test-mark--v"><img class="test-mark__icon" src="assets/icons/small/check.svg" alt=""></span>' +
                 'Правильно: ' + esc(w.correctText) + '</div>' +
             '</div>';
           }).join('') +
