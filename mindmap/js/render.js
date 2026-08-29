@@ -279,6 +279,9 @@ var Render = (function () {
     if (isRoot) {
       bodyEl.classList.add('node--root');
     }
+    if (node.data && node.data.marked) {
+      bodyEl.classList.add('node--marked');
+    }
 
     var textEl = document.createElement('span');
     textEl.className = 'node__text';
@@ -342,6 +345,22 @@ var Render = (function () {
     box.addEventListener('click', function (e) {
       e.stopPropagation();
       selectNode(node.id);
+    });
+
+    // Ctrl+клик по тексту узла-ссылки — переход по URL из комментария узла
+    // (открывается в новой вкладке, чтобы не терять состояние mind map).
+    // Без Ctrl или для узлов не типа 'link' — событие не перехватываем,
+    // оно всплывает на .node как обычно (выделение узла).
+    textEl.addEventListener('click', function (e) {
+      if (node.type !== 'link' || !e.ctrlKey) {
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      var url = Model.getComment(node.id);
+      if (url) {
+        window.open(url, '_blank', 'noopener,noreferrer');
+      }
     });
 
     // Двойной клик по тексту — редактирование через contenteditable.
@@ -579,6 +598,17 @@ var Render = (function () {
   function addChild(parentId, type, direction) {
     try {
       var newNode = Model.createNode(type, parentId, null, direction);
+
+      // Узел типа "ссылка": сразу запрашиваем URL и кладём его в комментарий
+      // узла (НЕ в текст) — так панель узла продолжает показывать обычный
+      // заголовок, а URL хранится как атрибут-комментарий (см. Model.setComment).
+      if (type === 'link') {
+        var linkUrl = window.prompt('URL ссылки:', 'https://');
+        if (linkUrl != null && linkUrl.trim() !== '') {
+          Model.setComment(newNode.id, linkUrl.trim());
+        }
+      }
+
       Storage.save();
       // Структурное изменение модели: новый узел ещё не существует в DOM,
       // поэтому нужен полный renderAll() (не полагаемся на побочный эффект
@@ -607,6 +637,25 @@ var Render = (function () {
       selectedId = newSelection;
       renderAll();
       notifySelectionChanged();
+    }
+  }
+
+  // Переключает отметку узла (data.marked, кнопка "Выполнен" тулбара).
+  // Лёгкое обновление, как selectNode(): DOM-класс переключается точечно,
+  // без renderAll() — структура дерева не меняется.
+  function toggleMarked(id) {
+    if (id == null || id === Model.getState().rootId) {
+      return; // root не отмечается — он и так выделен сильнее всех узлов
+    }
+    var marked = Model.toggleMarked(id);
+    if (marked === null) {
+      return;
+    }
+    Storage.save();
+    var box = nodeEls[id];
+    var bodyEl = box && box.querySelector('.node__body');
+    if (bodyEl) {
+      bodyEl.classList.toggle('node--marked', marked);
     }
   }
 
@@ -736,6 +785,7 @@ var Render = (function () {
     selectNode: selectNode,
     setOnSelectionChange: setOnSelectionChange,
     addChild: addChild,
-    deleteNode: deleteNode
+    deleteNode: deleteNode,
+    toggleMarked: toggleMarked
   };
 })();
