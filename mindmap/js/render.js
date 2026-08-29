@@ -396,7 +396,7 @@ var Render = (function () {
       resetBtn.type = 'button';
       resetBtn.className = 'node__btn node__btn--reset-position';
       resetBtn.title = 'Сбросить ручное положение узла';
-      resetBtn.textContent = '\u27F2';
+      resetBtn.innerHTML = '<img src="assets/icons/small/undo-2.svg" alt="">';
       resetBtn.addEventListener('click', function (e) {
         e.stopPropagation();
         Model.clearOffset(node.id);
@@ -430,9 +430,13 @@ var Render = (function () {
     NodeTypeRegistry.getAll().forEach(function (childTypeDef) {
       var addBtn = document.createElement('button');
       addBtn.type = 'button';
-      addBtn.className = 'node__btn node__btn--add';
+      addBtn.className = 'node__btn node__btn--add node__btn--add-' + childTypeDef.type;
       addBtn.title = 'Добавить: ' + childTypeDef.label;
-      if (childTypeDef.icon) {
+      if (childTypeDef.iconMask) {
+        // Цвет иконки — через CSS mask-image (см. .node__btn__icon-mask в layout.css),
+        // а не зашитый в SVG, чтобы совпадать с акцентным цветом типа в обеих темах.
+        addBtn.innerHTML = '<span class="node__btn__icon-mask"></span>';
+      } else if (childTypeDef.icon) {
         addBtn.innerHTML = '<img src="' + childTypeDef.icon + '" alt="">';
       } else {
         addBtn.textContent = '+' + childTypeDef.label.charAt(0).toUpperCase();

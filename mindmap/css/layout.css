@@ -150,7 +150,8 @@ body {
 /* Нейтральные иконки всплывающих панелей узла (комментарий, +текстовый узел) —
    та же логика: #1A1A1A сливается с тёмным фоном панели (--panel-bg). */
 .node__panel img[src$="/small/comment.svg"],
-.node__panel img[src$="/small/text.svg"] {
+.node__panel img[src$="/small/text.svg"],
+.node__panel img[src$="/small/undo-2.svg"] {
   filter: invert(var(--ribbon-icon-invert, 0)) brightness(calc(1 + var(--ribbon-icon-invert, 0) * 1.5));
 }
 
@@ -667,10 +668,6 @@ body {
   font-weight: bold;
 }
 
-.node__btn--reset-position {
-  color: var(--node-border-color, #4a90d9);
-  font-weight: bold;
-}
 
 /* ---------- Состояния drag & drop ---------- */
 
