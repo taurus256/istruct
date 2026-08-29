@@ -1,7 +1,7 @@
 /*
  * storage.js — сохранение/загрузка модели в localStorage,
  * экспорт и импорт в формате JSON.
- * Формат файла: { "version": 4, "rootId": "n1", "nodes": { ... } }
+ * Формат файла: { "version": 5, "rootId": "n1", "nodes": { ... } }
  *
  * version 2: у узлов в "nodes" может появиться необязательное
  * поле "data.offset": { "dx": number, "dy": number } — ручное смещение узла
@@ -12,7 +12,7 @@
  * "data.note" — строка в формате Markdown (заметка узла, редактируется через
  * боковую панель заметок, см. notes.js). Отсутствие поля означает «заметки нет».
  *
- * version 4 (текущая): у узлов могут появиться необязательные поля тестирования:
+ * version 4: у узлов могут появиться необязательные поля тестирования:
  *   "data.test"       — ОПРЕДЕЛЕНИЕ теста (создаётся внешним приложением):
  *       {
  *         title?: string,            // если нет — заголовком служит node.text
@@ -34,9 +34,16 @@
  *       }
  *   См. model.js (get/set/clear Test/TestResult) и test.js.
  *
- * Обратная совместимость: файлы version 1/2/3 (без offset/note/test) читаются
- * без изменений — отсутствие поля трактуется как авто-позиция / «заметки нет» /
- * «теста нет» (isValidPayload не требует наличия этих полей).
+ * version 5 (текущая): у узлов может появиться необязательное поле
+ * "data.marked" — boolean, чисто визуальная отметка узла (зелёная рамка),
+ * переключается кнопкой "Выполнен" тулбара. Отсутствие поля означает
+ * «не отмечен». См. model.js (setMarked/isMarked/toggleMarked) и
+ * render.js (Render.toggleMarked).
+ *
+ * Обратная совместимость: файлы version 1–4 (без offset/note/test/marked)
+ * читаются без изменений — отсутствие поля трактуется как авто-позиция /
+ * «заметки нет» / «теста нет» / «не отмечен» (isValidPayload не требует
+ * наличия этих полей).
  */
 
 var Storage = (function () {
@@ -47,7 +54,7 @@ var Storage = (function () {
   function saveImmediate() {
     try {
       var state = Model.getState();
-      var payload = { version: 4, rootId: state.rootId, nodes: state.nodes };
+      var payload = { version: 5, rootId: state.rootId, nodes: state.nodes };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     } catch (e) {
       console.error('Не удалось сохранить mind map в localStorage', e);
@@ -105,7 +112,7 @@ var Storage = (function () {
   // Экспорт текущей модели в файл mindmap.json (Blob + скрытая ссылка-скачивание).
   function exportJSON() {
     var state = Model.getState();
-    var payload = { version: 4, rootId: state.rootId, nodes: state.nodes };
+    var payload = { version: 5, rootId: state.rootId, nodes: state.nodes };
     var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     var url = URL.createObjectURL(blob);
 

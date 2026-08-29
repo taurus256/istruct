@@ -27,6 +27,11 @@
  * ПОСЛЕДНЕЙ попытки (историю не храним), пишется только при завершении
  * прохождения. Формат см. storage.js (version 4). См. setTest/getTest/hasTest/
  * clearTest и setTestResult/getTestResult/clearTestResult ниже, а также test.js.
+ *
+ * data.marked — необязательный АТРИБУТ-отметка узла (boolean, версия формата 5):
+ * чисто визуальный маркер (зелёная рамка), переключается кнопкой "Выполнен"
+ * тулбара. Отсутствие поля равнозначно false. Корневой узел не отмечается
+ * (см. Render.toggleMarked). См. setMarked/isMarked/toggleMarked ниже.
  */
 
 var Model = (function () {
@@ -328,6 +333,39 @@ var Model = (function () {
   }
 
   /**
+   * Отметка — необязательный атрибут любого узла (node.data.marked): boolean.
+   * Чисто визуальный маркер (зелёная рамка), не влияет на структуру/логику
+   * дерева. Хранится только когда true — отсутствие поля равнозначно false.
+   */
+  function setMarked(id, value) {
+    var node = getNode(id);
+    if (!node) {
+      return false;
+    }
+    if (value) {
+      node.data.marked = true;
+    } else {
+      delete node.data.marked;
+    }
+    return true;
+  }
+
+  function isMarked(id) {
+    var node = getNode(id);
+    return !!(node && node.data && node.data.marked);
+  }
+
+  function toggleMarked(id) {
+    var node = getNode(id);
+    if (!node) {
+      return null;
+    }
+    var next = !isMarked(id);
+    setMarked(id, next);
+    return next;
+  }
+
+  /**
    * Заметка — необязательный атрибут любого узла (node.data.note): текст в
    * формате Markdown. Хранится только когда задана. Пустая/whitespace-строка
    * трактуется как «заметки нет» (setNote при пустом значении удаляет поле).
@@ -447,6 +485,9 @@ var Model = (function () {
     setComment: setComment,
     getComment: getComment,
     clearComment: clearComment,
+    setMarked: setMarked,
+    isMarked: isMarked,
+    toggleMarked: toggleMarked,
     setNote: setNote,
     getNote: getNote,
     clearNote: clearNote,

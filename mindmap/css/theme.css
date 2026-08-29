@@ -31,9 +31,14 @@
   /* Комментарий-атрибут (мелкий серый текст под узлом) */
   --comment-color: #8a8a8a;
 
-  /* Цвета типов узлов */
+  /* Цвета типов узлов (значок/текст типа; рамка по умолчанию — общая
+     --node-border-color, см. .node--test/.node--link ниже) */
   --test-border-color: #0f766e;
   --link-border-color: #0070cb;
+
+  /* Отметка узла (кнопка "Выполнен" тулбара) — зелёная рамка поверх
+     цвета рамки любого типа узла */
+  --marked-border-color: #0f7b0f;
 
   /* Drag & drop */
   --drop-valid-color: #4caf50;
@@ -97,19 +102,23 @@
 /* ---------- Тёмная тема (Figma: dark-theme-design-system) ---------- */
 :root[data-theme="dark"] {
   --surface: #121212;
-  --node-border-color: rgba(255, 255, 255, 0.16);
-  --node-text-color: #ffffff;
+  /* color/connection (Figma-переменная, режим Dark) — используется и для
+     рамки узла, и для линий-коннекторов между узлами. */
+  --node-border-color: #b0b0b0;
+  /* color/text-answer (Figma-переменная, режим Dark) */
+  --node-text-color: #e5e5e5;
   --node-shadow: 0 2px 4px rgba(0, 0, 0, 0.19);
 
   --root-bg: #60cdff;
   --root-color: #000000;
   --root-shadow: 0 4px 6px rgba(0, 0, 0, 0.25);
 
-  --connector-color: rgba(255, 255, 255, 0.3);
+  --connector-color: #b0b0b0;
   --comment-color: rgba(255, 255, 255, 0.55);
 
   --test-border-color: #6ccb5f;
   --link-border-color: #60cdff;
+  --marked-border-color: #6ccb5f;
 
   --panel-bg: rgba(28, 28, 28, 0.97);
   --node-panel-border: rgba(255, 255, 255, 0.14);
@@ -166,10 +175,10 @@
   box-shadow: var(--node-shadow);
 }
 
-/* Тип "test" — тест: зелёная/бирюзовая рамка, значок ">?" перед текстом */
+/* Тип "test" — тест: значок ">?" перед текстом (бирюзовый). Рамка — общая
+   для всех типов (--node-border-color), кроме отметки (.node--marked ниже). */
 .node--test {
   border-width: 1.5px;
-  border-color: var(--test-border-color, #0f766e);
   padding-left: 10px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
 }
@@ -182,10 +191,10 @@
   line-height: 1;
 }
 
-/* Тип "link" — ссылка: синяя рамка, значок цепочки и подчёркнутый синий текст */
+/* Тип "link" — ссылка: значок цепочки и подчёркнутый синий текст. Рамка —
+   общая для всех типов (--node-border-color), кроме отметки (.node--marked). */
 .node--link {
   border-width: 1.5px;
-  border-color: var(--link-border-color, #0070cb);
 }
 
 .node--link::before {
@@ -199,6 +208,14 @@
   color: var(--link-border-color, #0070cb);
   text-decoration: underline;
   text-decoration-color: var(--link-border-color, #0070cb);
+}
+
+/* Отметка узла (кнопка "Выполнен" тулбара) — зелёная рамка поверх цвета
+   рамки любого типа узла. Правило идёт после .node--test/.node--link,
+   чтобы побеждать в каскаде при равной специфичности у отмеченных узлов
+   любого типа. Корневой узел не отмечается (см. Render.toggleMarked). */
+.node--marked {
+  border-color: var(--marked-border-color, #0f7b0f);
 }
 
 /* Корневой узел — единственный на дереве, визуально выделяется сильнее всех */
