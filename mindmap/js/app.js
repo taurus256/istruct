@@ -88,9 +88,11 @@ document.addEventListener('DOMContentLoaded', function () {
   Notes.setOnCloseRequest(closePanel);
   TestPanel.setOnCloseRequest(closePanel);
 
-  // Единая регистрация хука смены выделения — маршрутизирует в нужный вью.
+  // Единая регистрация хука смены выделения — маршрутизирует в нужный вью
+  // и обновляет состояние модальной кнопки "Выполнен".
   Render.setOnSelectionChange(function (id) {
     routeSelection(id);
+    updateMarkButtonState(id);
   });
 
   if (notesBtn) {
@@ -102,6 +104,8 @@ document.addEventListener('DOMContentLoaded', function () {
   var addNodeBtn = document.getElementById('btn-add-node');
   var addTestBtn = document.getElementById('btn-add-test');
   var addLinkBtn = document.getElementById('btn-add-link');
+  var markBtn = document.getElementById('btn-mark-node');
+  var removeBtn = document.getElementById('btn-remove-node');
   var exportBtn = document.getElementById('btn-export');
   var importBtn = document.getElementById('btn-import');
   var importInput = document.getElementById('input-import');
@@ -124,8 +128,47 @@ document.addEventListener('DOMContentLoaded', function () {
     addNodeOfType('link');
   });
 
+  // "Выполнен" — модальная кнопка: отражает состояние выделенного узла
+  // (data.marked), а не одно и то же нажатое/ненажатое состояние. Подсветка
+  // (ribbon-btn--selected) обновляется здесь же и при каждой смене выделения
+  // (см. Render.setOnSelectionChange ниже).
+  function updateMarkButtonState(id) {
+    markBtn.classList.toggle('ribbon-btn--selected', !!(id && Model.isMarked(id)));
+  }
+
+  markBtn.addEventListener('click', function () {
+    var selectedId = Render.getSelectedId();
+    if (selectedId) {
+      Render.toggleMarked(selectedId);
+      updateMarkButtonState(selectedId);
+    }
+  });
+
+  removeBtn.addEventListener('click', function () {
+    var selectedId = Render.getSelectedId();
+    if (selectedId) {
+      Render.deleteNode(selectedId);
+    }
+  });
+
   exportBtn.addEventListener('click', function () {
     Storage.exportJSON();
+  });
+
+  // "Очистить" — полный сброс схемы к исходному состоянию (один корневой узел),
+  // с подтверждением через confirm — все данные предыдущей схемы теряются безвозвратно.
+  var clearSchemeBtn = document.getElementById('btn-clear-scheme');
+  clearSchemeBtn.addEventListener('click', function () {
+    var confirmed = window.confirm('Вы уверены, что хотите очистить схему и все данные?');
+    if (!confirmed) {
+      return;
+    }
+    Model.initEmpty();
+    Storage.saveImmediate();
+    // Структурное изменение всей модели — как и при импорте JSON, нужен полный
+    // renderAll() (selectNode() теперь лёгкий и сам по себе не пересбирает DOM).
+    Render.selectNode(null);
+    Render.renderAll();
   });
 
   importBtn.addEventListener('click', function () {
