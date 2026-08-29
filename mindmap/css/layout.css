@@ -871,7 +871,6 @@ body {
 
 .notes-btn--mode {
   margin-left: auto;
-  font-family: Consolas, "Courier New", monospace;
 }
 
 /* Область редактора: занимает всё оставшееся место, скролл — внутри. */
@@ -1040,7 +1039,6 @@ body {
 
 .notes-btn--mode {
   margin-left: auto;
-  font-family: "Consolas", monospace;
 }
 
 .notes-panel__editor {

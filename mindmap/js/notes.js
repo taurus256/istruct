@@ -184,8 +184,8 @@ var Notes = (function () {
       viewEl.classList.toggle('notes-panel--source', mode === 'source');
     }
     if (modeToggleEl) {
-      // В визуальном режиме кнопка предлагает уйти в исходник и наоборот.
-      modeToggleEl.textContent = (mode === 'visual') ? '</>' : 'Aa';
+      // Иконка кнопки статична (notes-code.svg, задана в index.html) — в визуальном режиме
+      // кнопка предлагает уйти в исходник и наоборот, меняется только title.
       modeToggleEl.title = (mode === 'visual')
         ? 'Показать Markdown-исходник'
         : 'Показать визуальный редактор';
