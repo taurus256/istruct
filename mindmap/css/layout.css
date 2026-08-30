@@ -736,6 +736,154 @@ body {
   display: none;
 }
 
+/* ---------- Панель справки (#help-panel) — НЕЗАВИСИМАЯ, СЛЕВА ---------- */
+
+/* Первый ребёнок #work-area (до #mindmap-root) — поэтому визуально слева.
+   Независима от .side-panel (она справа, управляется кнопкой «Панель») — обе
+   могут быть открыты одновременно, .mindmap-root (min-width:0) просто сжимается. */
+.help-panel {
+  flex: 0 0 350px;
+  width: 350px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--notes-panel-bg, #f3f3f3);
+  border-right: 1px solid var(--notes-panel-border, #d2d2d2);
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.help-panel[hidden] {
+  display: none;
+}
+
+.help-section-label {
+  color: var(--text-muted, #6b7280);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 4px 0 8px;
+}
+
+.help-section-label--files {
+  margin-top: 20px;
+}
+
+.help-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Карточка-строка раздела оглавления (кликабельная <button>, текст + стрелка). */
+.help-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--test-card-border, #e2e5e9);
+  border-radius: 8px;
+  font: 600 14px/1.3 "Segoe UI", Arial, sans-serif;
+  color: var(--node-text-color, #1f2937);
+  cursor: pointer;
+  text-align: left;
+}
+
+.help-card:hover {
+  background: var(--hover-tint, rgba(0, 0, 0, 0.06));
+}
+
+.help-card__arrow {
+  color: var(--text-faint, #9aa0a6);
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* Карточка-ссылка на файл (<a download>): иконка + заголовок + описание. */
+.help-file-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--test-card-border, #e2e5e9);
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.help-file-card:hover {
+  background: var(--hover-tint, rgba(0, 0, 0, 0.06));
+}
+
+.help-file-card__icon {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+}
+
+.help-file-card__icon img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.help-file-card__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.help-file-card__title {
+  font: 600 14px/1.3 "Segoe UI", Arial, sans-serif;
+  color: var(--node-text-color, #1f2937);
+}
+
+.help-file-card__desc {
+  font-size: 12px;
+  color: var(--text-muted, #6b7280);
+}
+
+.help-article-title {
+  font: 700 20px/1.3 "Segoe UI", Arial, sans-serif;
+  color: var(--node-text-color, #1f2937);
+}
+
+.help-article-body p {
+  margin: 0 0 12px;
+  line-height: 1.5;
+  color: var(--node-text-color, #1f2937);
+}
+
+.help-article-body p:last-child {
+  margin-bottom: 0;
+}
+
+/* Акцентный блок-подсказка/пример (жёлтый фон, как в референсном макете Figma). */
+.help-callout {
+  background: var(--help-callout-bg, #fdf6e3);
+  border: 1px solid var(--help-callout-border, #f0e0a8);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 0 0 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--node-text-color, #1f2937);
+}
+
+.help-inline-link {
+  color: var(--test-accent-blue, #005fb8);
+  text-decoration: underline;
+}
+
+.help-inline-link:hover {
+  color: var(--test-accent-blue-hover, #0053a3);
+}
+
 /* Шапка тест-вью (глиф >?, заголовок, ✕). Аналогична шапке заметок. */
 .side-view__header {
   display: flex;
@@ -771,6 +919,32 @@ body {
 }
 
 .side-view__close:hover {
+  background: var(--hover-tint, rgba(0, 0, 0, 0.06));
+}
+
+/* Иконка внутри .side-view__glyph (используется в справке — assets/icons/book.svg;
+   в тест-вью глиф остаётся текстом ">?", это правило не мешает). */
+.side-view__glyph img {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+/* Кнопка «назад» (‹) в шапке детального экрана раздела справки —
+   зеркально .side-view__close, но слева от заголовка. */
+.side-view__back {
+  border: none;
+  background: transparent;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--text-muted, #6b7280);
+  padding: 2px 6px;
+  border-radius: 4px;
+  flex: 0 0 auto;
+}
+
+.side-view__back:hover {
   background: var(--hover-tint, rgba(0, 0, 0, 0.06));
 }
 

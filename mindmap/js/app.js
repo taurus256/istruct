@@ -14,6 +14,17 @@ document.addEventListener('DOMContentLoaded', function () {
   Notes.init();
   TestPanel.init();
 
+  // Справка — независимая левая панель (#help-panel), полностью управляется
+  // внутри help.js и не взаимодействует с координатором #side-panel ниже —
+  // обе панели могут быть открыты одновременно.
+  Help.init();
+  var helpBtn = document.getElementById('btn-help-docs');
+  if (helpBtn) {
+    helpBtn.addEventListener('click', function () {
+      Help.toggle();
+    });
+  }
+
   /* ================= Координатор общей боковой панели =================
      Панель открывается ТОЛЬКО кнопкой #btn-notes. Когда открыта: для узла
      типа 'test' показываем тест-вью, иначе — вью заметок. Смена выделения

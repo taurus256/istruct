@@ -97,6 +97,10 @@
   --text-muted: #6b7280;
   --text-faint: #9aa0a6;
   --hover-tint: rgba(0, 0, 0, 0.06);
+
+  /* Акцентный блок-подсказка в справке (.help-callout) */
+  --help-callout-bg: #fdf6e3;
+  --help-callout-border: #f0e0a8;
 }
 
 /* ---------- Тёмная тема (Figma: dark-theme-design-system) ---------- */
@@ -163,6 +167,9 @@
   --text-muted: rgba(255, 255, 255, 0.6);
   --text-faint: rgba(255, 255, 255, 0.4);
   --hover-tint: rgba(255, 255, 255, 0.08);
+
+  --help-callout-bg: rgba(255, 209, 102, 0.14);
+  --help-callout-border: rgba(255, 209, 102, 0.35);
 }
 
 .node__body {
