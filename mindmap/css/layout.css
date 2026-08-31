@@ -740,10 +740,11 @@ body {
 
 /* Первый ребёнок #work-area (до #mindmap-root) — поэтому визуально слева.
    Независима от .side-panel (она справа, управляется кнопкой «Панель») — обе
-   могут быть открыты одновременно, .mindmap-root (min-width:0) просто сжимается. */
+   могут быть открыты одновременно, .mindmap-root (min-width:0) просто сжимается.
+   Ширина — как у .side-panel (эталон): 400px. */
 .help-panel {
-  flex: 0 0 350px;
-  width: 350px;
+  flex: 0 0 400px;
+  width: 400px;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -797,9 +798,14 @@ body {
 }
 
 .help-card__arrow {
-  color: var(--text-faint, #9aa0a6);
-  font-size: 18px;
-  line-height: 1;
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.help-card__arrow img {
+  width: 16px;
+  height: 16px;
+  display: block;
 }
 
 /* Карточка-ссылка на файл (<a download>): иконка + заголовок + описание. */
@@ -930,21 +936,56 @@ body {
   display: block;
 }
 
-/* Кнопка «назад» (‹) в шапке детального экрана раздела справки —
-   зеркально .side-view__close, но слева от заголовка. */
-.side-view__back {
+/* Кнопка ✕ в шапке справки — эталон: .notes-panel__close (правая панель:
+   иконка вместо текстового глифа, коробка 28×28 с наведением). */
+.help-panel__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
   border: none;
   background: transparent;
-  font-size: 20px;
-  line-height: 1;
   cursor: pointer;
-  color: var(--text-muted, #6b7280);
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 6px;
+  border-radius: 2px;
   flex: 0 0 auto;
 }
 
-.side-view__back:hover {
+.help-panel__close img {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+.help-panel__close:hover {
+  background: var(--hover-tint, rgba(0, 0, 0, 0.06));
+}
+
+/* Кнопка «назад» (‹) в шапке детального экрана раздела справки — та же
+   коробка-эталон (28×28, скругление, hover), что и у .help-panel__close/
+   .notes-panel__close, но слева от заголовка. Иконка — Figma chevron-left. */
+.help-panel__back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 2px;
+  flex: 0 0 auto;
+}
+
+.help-panel__back img {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+.help-panel__back:hover {
   background: var(--hover-tint, rgba(0, 0, 0, 0.06));
 }
 
@@ -1388,16 +1429,24 @@ body {
   color: var(--text-muted, #6b7280);
 }
 
+/* Иконки Figma chevron-left/chevron-right (эталон: та же пара, что и в
+   help-panel — см. .help-panel__back/.help-card__arrow). */
 .test-nav__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 32px;
   height: 30px;
   border: 1px solid var(--test-card-border, #e2e5e9);
   background: var(--surface, #fff);
   border-radius: 6px;
   cursor: pointer;
-  font-size: 16px;
-  line-height: 1;
-  color: var(--node-text-color, #1f2937);
+}
+
+.test-nav__btn img {
+  width: 16px;
+  height: 16px;
+  display: block;
 }
 
 .test-nav__btn:disabled {

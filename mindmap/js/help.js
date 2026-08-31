@@ -133,15 +133,17 @@ var Help = (function () {
   }
 
   function headerHtml(title, showBack) {
+    // Кнопка ✕ и коробка кнопки «назад» — по эталону правой панели
+    // (.notes-panel__close): иконка вместо текстового глифа, см. layout.css.
     var backBtn = showBack
-      ? '<button type="button" class="side-view__back" data-action="back" title="К оглавлению">&lsaquo;</button>'
+      ? '<button type="button" class="help-panel__back" data-action="back" title="К оглавлению"><img src="assets/icons/small/chevron-left.svg" alt=""></button>'
       : '';
     return '' +
       '<div class="side-view__header">' +
         backBtn +
         '<span class="side-view__glyph"><img src="assets/icons/book.svg" alt=""></span>' +
         '<span class="side-view__title">' + esc(title) + '</span>' +
-        '<button type="button" class="side-view__close" data-action="close" title="Закрыть панель">✕</button>' +
+        '<button type="button" class="help-panel__close" data-action="close" title="Закрыть панель"><img src="assets/icons/notes-close.svg" alt=""></button>' +
       '</div>';
   }
 
@@ -152,7 +154,7 @@ var Help = (function () {
     var cardsHtml = SECTIONS.map(function (s) {
       return '<button type="button" class="help-card" data-action="open-section" data-section="' + s.id + '">' +
         '<span class="help-card__title">' + esc(s.title) + '</span>' +
-        '<span class="help-card__arrow">&rsaquo;</span>' +
+        '<span class="help-card__arrow"><img src="assets/icons/small/chevron-right.svg" alt=""></span>' +
       '</button>';
     }).join('');
 

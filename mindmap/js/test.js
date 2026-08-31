@@ -249,9 +249,9 @@ var TestPanel = (function () {
       '<div class="test-body">' +
         '<div class="test-node-title test-node-title--upper">' + esc(nodeTitle(attempt.nodeId)) + '</div>' +
         '<div class="test-nav">' +
-          '<button type="button" class="test-nav__btn" data-action="prev"' + (num === 1 ? ' disabled' : '') + '>‹</button>' +
+          '<button type="button" class="test-nav__btn" data-action="prev"' + (num === 1 ? ' disabled' : '') + '><img src="assets/icons/small/chevron-left.svg" alt=""></button>' +
           '<span class="test-nav__label">Вопрос ' + num + ' из ' + total + '</span>' +
-          '<button type="button" class="test-nav__btn" data-action="next"' + (num === total ? ' disabled' : '') + '>›</button>' +
+          '<button type="button" class="test-nav__btn" data-action="next"' + (num === total ? ' disabled' : '') + '><img src="assets/icons/small/chevron-right.svg" alt=""></button>' +
         '</div>' +
         '<div class="test-progress"><div class="test-progress__bar" style="width:' + progress + '%"></div></div>' +
         '<div class="test-question-card">' + md(q.text) + '</div>' +
