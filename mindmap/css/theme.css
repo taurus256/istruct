@@ -215,6 +215,18 @@
   color: var(--link-border-color, #0070cb);
   text-decoration: underline;
   text-decoration-color: var(--link-border-color, #0070cb);
+  /* Базовый курсор — НЕ "рука": весь .node и так имеет cursor:pointer (для
+     обычного выделения кликом), поэтому явно 'default' здесь, чтобы ниже
+     можно было вернуть "руку" ТОЛЬКО при зажатой Ctrl. */
+  cursor: default;
+}
+
+/* Курсор над текстом узла-ссылки меняется на "руку" ТОЛЬКО при зажатой Ctrl
+   (класс body.mm-ctrl-down ставится/снимается в app.js по keydown/keyup) — это
+   сигнализирует пользователю, что сейчас клик откроет ссылку (см. Ctrl+клик
+   обработчик в render.js), а не обычное выделение узла. */
+body.mm-ctrl-down .node--link .node__text {
+  cursor: pointer;
 }
 
 /* Отметка узла (кнопка "Выполнен" тулбара) — зелёная рамка поверх цвета

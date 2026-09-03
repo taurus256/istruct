@@ -1123,6 +1123,12 @@ body {
   max-width: 100%;
 }
 
+/* Ссылки внутри contenteditable по умолчанию получают курсор текста — явно
+   возвращаем "руку", т.к. клик по Markdown-ссылке всегда открывает URL. */
+.notes-visual a {
+  cursor: pointer;
+}
+
 /* Визуальный плейсхолдер для пустого contenteditable. */
 .notes-visual:empty::before {
   content: attr(data-placeholder);
@@ -1288,6 +1294,13 @@ body {
 
 .notes-visual img {
   max-width: 100%;
+}
+
+/* Ссылки внутри contenteditable по умолчанию получают курсор текста (браузер
+   считает, что область редактируется) — явно возвращаем "руку", т.к. клик
+   по Markdown-ссылке всегда открывает URL (см. обработчик click на visualEl в notes.js). */
+.notes-visual a {
+  cursor: pointer;
 }
 
 /* Плейсхолдер для пустого contenteditable (textarea использует атрибут
