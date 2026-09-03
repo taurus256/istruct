@@ -85,6 +85,21 @@ var Notes = (function () {
       // Плейсхолдер через CSS :empty; убеждаемся, что пустой редактор реально
       // пуст (без <br>), чтобы :empty срабатывал.
       visualEl.addEventListener('blur', normalizeVisualIfEmpty);
+      // Клик по ссылке внутри визуального редактора — переход по URL в новой
+      // вкладке (то же поведение, что Ctrl+клик по узлу-ссылке на диаграмме).
+      // Внутри contenteditable ссылки по умолчанию не открываются кликом —
+      // без preventDefault курсор просто встал бы в текст ссылки.
+      visualEl.addEventListener('click', function (e) {
+        var link = e.target.closest ? e.target.closest('a') : null;
+        if (!link) {
+          return;
+        }
+        e.preventDefault();
+        var url = link.getAttribute('href');
+        if (url) {
+          window.open(url, '_blank', 'noopener,noreferrer');
+        }
+      });
     }
 
     updateModeClass();
