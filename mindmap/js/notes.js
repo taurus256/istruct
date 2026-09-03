@@ -453,7 +453,9 @@ var Notes = (function () {
     }
 
     lines.forEach(function (line) {
-      var isFenceMarker = /^\s*```\s*$/.test(line);
+      // После открывающих ``` может идти название языка (```python, ```js и т.п.) —
+      // оно допускается регулярным выражением, но игнорируется (подсветки синтаксиса нет).
+      var isFenceMarker = /^\s*```\s*\S*\s*$/.test(line);
 
       if (isFenceMarker) {
         if (inCodeFence) {
