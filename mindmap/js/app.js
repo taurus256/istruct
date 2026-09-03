@@ -197,25 +197,6 @@ document.addEventListener('DOMContentLoaded', function () {
     importInput.value = ''; // сброс, чтобы можно было повторно выбрать тот же файл
   });
 
-  // Отслеживаем состояние клавиши Ctrl через класс на <body> — чисто визуальный
-  // сигнал для CSS (курсор "рука" над текстом узла-ссылки только при зажатом
-  // Ctrl, см. theme.css .node--link .node__text), не влияет на логику Ctrl+клика
-  // (она читает e.ctrlKey напрямую в render.js). Сбрасываем и по blur окна —
-  // иначе класс может "залипнуть", если Ctrl отпущен вне окна браузера.
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Control') {
-      document.body.classList.add('mm-ctrl-down');
-    }
-  });
-  document.addEventListener('keyup', function (e) {
-    if (e.key === 'Control') {
-      document.body.classList.remove('mm-ctrl-down');
-    }
-  });
-  window.addEventListener('blur', function () {
-    document.body.classList.remove('mm-ctrl-down');
-  });
-
   // Горячие клавиши: Delete — удалить выделенный узел, Enter — добавить дочерний узел типа main.
   document.addEventListener('keydown', function (e) {
     var active = document.activeElement;
