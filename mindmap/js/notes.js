@@ -19,7 +19,7 @@
  */
 
 var Notes = (function () {
-  var mode = 'source'; // 'source' | 'visual'
+  var mode = 'visual'; // 'source' | 'visual' — по умолчанию визуальный режим
   var currentNodeId = null;
   var saveTimer = null;
   var SAVE_DEBOUNCE_MS = 350;
@@ -353,38 +353,74 @@ var Notes = (function () {
 
   // Инлайновые Markdown-конструкции внутри одной строки → HTML.
   // Порядок важен: сначала экранируем спецсимволы, затем восстанавливаем
-  // разрешённый <u>, затем изображения/ссылки, затем bold/italic.
+  // разрешённый <u>, затем изображения/ссылки (ЗАЩИЩЁННЫЕ плейсхолдерами, чтобы
+  // их href/src не попадал под последующий bold/italic-regex), затем bold/italic,
+  // в самом конце восстанавливаем плейсхолдеры на готовый HTML ссылок/картинок.
+  //
+  // Зачем это нужно (багфикс): без защиты строка вида "[test](http://link_to_site)"
+  // после вставки <a href="http://link_to_site"> обрабатывалась целиком как
+  // обычная строка последующим regexом курсива /_([^_]+)_/ — он случайно находил
+  // "_to_" внутри самого URL (внутри href) и ломал href на <em>-тег. Плейсхолдеры не
+  // содержат ни "*", ни "_", поэтому bold/italic regex их гарантированно не затронут.
   function inlineMdToHtml(text) {
     var s = escapeHtml(text);
 
     // Разрешённый inline-HTML <u>...</u> (в escapeHtml он стал &lt;u&gt;).
     s = s.replace(/&lt;u&gt;/g, '<u>').replace(/&lt;\/u&gt;/g, '</u>');
 
+    var protectedFragments = [];
+    function protect(html) {
+      var token = '\u0000P' + protectedFragments.length + '\u0000';
+      protectedFragments.push(html);
+      return token;
+    }
+
     // Изображения ![alt](url) — раньше ссылок, т.к. синтаксис пересекается.
+    // Сразу прячем HTML за плейсхолдер — URL внутри src никогда не попадёт под bold/italic.
     s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, function (m, alt, url) {
-      return '<img src="' + url + '" alt="' + alt + '">';
+      return protect('<img src="' + url + '" alt="' + alt + '">');
     });
-    // Ссылки [text](url)
+    // Ссылки [text](url) — аналогично защищаем плейсхолдером.
     s = s.replace(/\[([^\]]*)\]\(([^)]+)\)/g, function (m, txt, url) {
-      return '<a href="' + url + '">' + txt + '</a>';
+      return protect('<a href="' + url + '">' + txt + '</a>');
     });
 
-    // Полужирный **x** или __x__
+    // Полужирный **x** или __x__ — безопасно, плейсхолдеры выше не содержат * или _.
     s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
     s = s.replace(/__([^_]+)__/g, '<strong>$1</strong>');
     // Курсив *x* или _x_
     s = s.replace(/\*([^*]+)\*/g, '<em>$1</em>');
     s = s.replace(/_([^_]+)_/g, '<em>$1</em>');
 
+    // Восстанавливаем защищённые ссылки/картинки последними — их href/src никогда не
+    // проходили через bold/italic-regex выше.
+    s = s.replace(/\u0000P(\d+)\u0000/g, function (m, idx) {
+      return protectedFragments[idx];
+    });
+
     return s;
   }
 
   // Markdown → HTML (для визуального редактора). Построчно: списки в <ul>/<ol>,
   // прочие непустые строки — в <p>. Пустые строки разделяют блоки.
+  // Ссылающийся CSS-класс для блока-цитаты: тот же визуальный стиль (жёлтый
+  // акцентный блок), что и в панели справки (см. .help-callout в layout.css/help.js).
+  var QUOTE_BLOCK_CLASS = 'help-callout';
+
+  // Markdown → HTML (для визуального редактора). Построчно: списки в <ul>/<ol>,
+  // прочие непустые строки — в <p>. Пустые строки разделяют блоки.
+  //
+  // Блок-цитата (```...```, тройные обратные кавычки) — в тулбаре редактора
+  // кнопки для её создания НЕТ, но если такой блок пришёл извне (например, из
+  // импортированного JSON от внешнего LLM-агента), рендерим его как акцентный
+  // блок. Содержимое внутри ЦИТАТЫ НЕ проходит через inlineMdToHtml (только
+  // escapeHtml) — markdown-разметка внутри цитаты намеренно отключена.
   function mdToHtml(md) {
     var lines = String(md).replace(/\r\n/g, '\n').split('\n');
     var html = [];
     var listType = null; // 'ul' | 'ol' | null
+    var inCodeFence = false;
+    var codeFenceLines = [];
 
     function closeList() {
       if (listType) {
@@ -393,7 +429,33 @@ var Notes = (function () {
       }
     }
 
+    // Рендерит накопленные строки цитаты без инлайн-markdown, экранированными,
+    // с <br> вместо переносов строк (это единый <div>, не отдельные <p> на каждую строку).
+    function flushCodeFence() {
+      var escaped = codeFenceLines.map(function (l) { return escapeHtml(l); }).join('<br>');
+      html.push('<div class="' + QUOTE_BLOCK_CLASS + '">' + escaped + '</div>');
+      codeFenceLines = [];
+    }
+
     lines.forEach(function (line) {
+      var isFenceMarker = /^\s*```\s*$/.test(line);
+
+      if (isFenceMarker) {
+        if (inCodeFence) {
+          flushCodeFence();
+          inCodeFence = false;
+        } else {
+          closeList(); // на всякий случай закрываем открытый список перед цитатой
+          inCodeFence = true;
+        }
+        return; // сама строка-маркер ``` не попадает в вывод
+      }
+
+      if (inCodeFence) {
+        codeFenceLines.push(line); // копим сырые строки, НЕ обрабатывая markdown
+        return;
+      }
+
       var headingMatch = /^\s*(#{1,6})\s+(.*)$/.exec(line);
       var ulMatch = /^\s*[-*]\s+(.*)$/.exec(line);
       var olMatch = /^\s*\d+\.\s+(.*)$/.exec(line);
@@ -416,6 +478,10 @@ var Notes = (function () {
       }
     });
     closeList();
+    if (inCodeFence) {
+      // Не закрыт до конца документа — всё равно рендерим накопленное, без ошибки.
+      flushCodeFence();
+    }
 
     return html.join('');
   }
@@ -493,6 +559,20 @@ var Notes = (function () {
         if (hInner.trim() !== '') {
           blocks.push(new Array(parseInt(tag.slice(1), 10) + 1).join('#') + ' ' + hInner);
         }
+      } else if (tag === 'div' && node.classList && node.classList.contains('help-callout')) {
+        // Блок-цитата (создана mdToHtml из ```...```) — сериализуем обратно в
+        // тройные кавычки. Содержимое берём через textContent (НЕ inline()) — внутри
+        // цитаты нет markdown-разметки, только сырой текст + <br> вместо переносов.
+        var quoteLines = [];
+        node.childNodes.forEach(function (child) {
+          if (child.nodeType === 1 && child.tagName.toLowerCase() === 'br') {
+            quoteLines.push('\n');
+          } else {
+            quoteLines.push(child.textContent || '');
+          }
+        });
+        var quoteText = quoteLines.join('').split('\n');
+        blocks.push('```\n' + quoteText.join('\n') + '\n```');
       } else if (tag === 'p' || tag === 'div') {
         var inner = inline(node);
         if (inner.trim() !== '' || inner === '') {
