@@ -708,6 +708,7 @@ body {
    [hidden] прячет панель и убирает её из flex-раскладки. Внутри — два
    взаимоисключающих вью (#notes-view / #test-view). */
 .side-panel {
+  position: relative; /* якорь для абсолютно позиционированной ручки ресайза, см. panelResize.js */
   flex: 0 0 400px;
   width: 400px;
   display: flex;
@@ -743,6 +744,7 @@ body {
    могут быть открыты одновременно, .mindmap-root (min-width:0) просто сжимается.
    Ширина — как у .side-panel (эталон): 400px. */
 .help-panel {
+  position: relative; /* якорь для абсолютно позиционированной ручки ресайза, см. panelResize.js */
   flex: 0 0 400px;
   width: 400px;
   display: flex;
@@ -752,6 +754,46 @@ body {
   border-right: 1px solid var(--notes-panel-border, #d2d2d2);
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
   overflow: hidden;
+}
+
+/* ---------- Ручка ресайза боковых панелей (создаётся программно из panelResize.js) ---------- */
+
+.panel-resize-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  background: transparent;
+  z-index: 5; /* выше содержимого панели (.node__panel z-index:4), но не претендует на глобальные элементы */
+  transition: background-color 0.12s ease;
+}
+
+.panel-resize-handle--right {
+  right: -3px; /* граница с #mindmap-root справа от #help-panel */
+}
+
+.panel-resize-handle--left {
+  left: -3px; /* граница с #mindmap-root слева от #side-panel */
+}
+
+.panel-resize-handle:hover,
+.panel-resize-handle:active {
+  background: var(--test-accent-blue, #005fb8);
+  opacity: 0.35;
+}
+
+/* Во время активного ресайза — курсор col-resize на всём документе и блокировка выделения
+   текста (аналогично body.mm-panning в pan.js) — чтобы курсор не «мигал» при быстром движении
+   мыши за пределы самой ручки. */
+body.mm-resizing {
+  cursor: col-resize !important;
+  user-select: none;
+}
+
+body.mm-resizing .panel-resize-handle {
+  background: var(--test-accent-blue, #005fb8);
+  opacity: 0.35;
 }
 
 .help-panel[hidden] {

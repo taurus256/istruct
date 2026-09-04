@@ -25,11 +25,34 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // Ресайз боковых панелей (перетаскивание ширины мышью) — ширина сохраняется
+  // в localStorage, НЕ входит в экспорт/импорт JSON схемы (чисто UI-настройка,
+  // как и тема). Единая логика для обеих панелей — см. panelResize.js.
+  var helpPanelEl = document.getElementById('help-panel');
+  if (helpPanelEl && typeof PanelResize !== 'undefined') {
+    PanelResize.attach({
+      panelEl: helpPanelEl,
+      storageKey: 'mindmap-help-panel-width',
+      edge: 'right',
+      minWidth: 260,
+      maxWidth: 700
+    });
+  }
+
   /* ================= Координатор общей боковой панели =================
      Панель открывается ТОЛЬКО кнопкой #btn-notes. Когда открыта: для узла
      типа 'test' показываем тест-вью, иначе — вью заметок. Смена выделения
      при открытой панели переключает вью. */
   var sidePanel = document.getElementById('side-panel');
+  if (sidePanel && typeof PanelResize !== 'undefined') {
+    PanelResize.attach({
+      panelEl: sidePanel,
+      storageKey: 'mindmap-side-panel-width',
+      edge: 'left',
+      minWidth: 260,
+      maxWidth: 700
+    });
+  }
   var notesView = document.getElementById('notes-view');
   var testView = document.getElementById('test-view');
   var notesBtn = document.getElementById('btn-notes');
