@@ -1,6 +1,7 @@
-<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-<g id="panel">
-<rect id="Vector" x="6" y="9" width="36" height="30" rx="4" stroke="#0070CB" stroke-width="2"/>
-<path id="Vector_2" d="M30 9V39" stroke="#0070CB" stroke-width="2" stroke-linecap="round"/>
-</g>
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M8 8H40C41.3333 8 42 8.66667 42 10V38C42 39.3333 41.3333 40 40 40H8C6.66667 40 6 39.3333 6 38V10C6 8.66667 6.66667 8 8 8Z" stroke="#0070CB" stroke-width="2"/>
+<path d="M30 8V40" stroke="#0070CB" stroke-width="2"/>
+<path d="M34 16H38" stroke="#0070CB" stroke-width="2" stroke-linecap="round"/>
+<path d="M34 22H38" stroke="#0070CB" stroke-width="2" stroke-linecap="round"/>
+<path d="M34 28H38" stroke="#0070CB" stroke-width="2" stroke-linecap="round"/>
 </svg>
