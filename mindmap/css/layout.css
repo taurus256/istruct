@@ -801,23 +801,16 @@ body.mm-resizing .panel-resize-handle {
   display: none;
 }
 
-.help-section-label {
-  color: var(--text-muted, #6b7280);
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin: 4px 0 8px;
-}
-
-.help-section-label--files {
-  margin-top: 20px;
-}
-
 .help-card-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+/* Отбивка между списком разделов и списком файлов для скачивания
+   (в Figma — gap 20px; раньше её задавал заголовок .help-section-label--files). */
+.help-card-list--files {
+  margin-top: 20px;
 }
 
 /* Карточка-строка раздела оглавления (кликабельная <button>, текст + стрелка). */
@@ -868,17 +861,16 @@ body.mm-resizing .panel-resize-handle {
   background: var(--hover-tint, rgba(0, 0, 0, 0.06));
 }
 
+/* Иконка = Figma-компонент SmallIcon/arrow-down (node 293:2427). Инлайновый
+   <svg> со stroke="currentColor" (а не <img>), чтобы цвет брался из темы —
+   Figma color/attention через --attention — и корректно работал при открытии
+   приложения по file://. */
 .help-file-card__icon {
   flex: 0 0 auto;
   width: 18px;
   height: 18px;
   margin-top: 2px;
-}
-
-.help-file-card__icon img {
-  width: 100%;
-  height: 100%;
-  display: block;
+  color: var(--attention, #0070cb);
 }
 
 .help-file-card__text {

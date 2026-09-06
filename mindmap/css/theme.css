@@ -90,6 +90,11 @@
   --test-border-color: #0f766e;
   --link-border-color: #0070cb;
 
+  /* Figma: color/attention — акцентный синий (тот же оттенок, что рамка/текст
+     ссылок-узлов). Ссылается на --link-border-color, поэтому автоматически
+     следует за ним и в тёмной теме (#60cdff). */
+  --attention: var(--link-border-color);
+
   /* Отметка узла (кнопка "Выполнен" тулбара) — зелёная рамка поверх
      цвета рамки любого типа узла */
   --marked-border-color: #0f7b0f;

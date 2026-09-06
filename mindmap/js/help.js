@@ -160,14 +160,18 @@ var Help = (function () {
 
     var filesHtml = '' +
       '<a class="help-file-card" href="DATA_FORMAT.md" download>' +
-        '<span class="help-file-card__icon"><img src="assets/icons/small/link.svg" alt=""></span>' +
+        '<svg class="help-file-card__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">' +
+          '<path d="M12 4.9992V19.0008M4.99921 12L12 19.0008L19.0008 12" stroke="currentColor" stroke-linecap="round"/>' +
+        '</svg>' +
         '<span class="help-file-card__text">' +
           '<span class="help-file-card__title">DATA_FORMAT.md</span>' +
           '<span class="help-file-card__desc">Формат данных для чат-LLM</span>' +
         '</span>' +
       '</a>' +
       '<a class="help-file-card" href="SKILL.md" download>' +
-        '<span class="help-file-card__icon"><img src="assets/icons/small/link.svg" alt=""></span>' +
+        '<svg class="help-file-card__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">' +
+          '<path d="M12 4.9992V19.0008M4.99921 12L12 19.0008L19.0008 12" stroke="currentColor" stroke-linecap="round"/>' +
+        '</svg>' +
         '<span class="help-file-card__text">' +
           '<span class="help-file-card__title">SKILL.md</span>' +
           '<span class="help-file-card__desc">Инструкция для агентской LLM</span>' +
@@ -177,10 +181,8 @@ var Help = (function () {
     panelEl.innerHTML =
       headerHtml('Справка', false) +
       '<div class="test-body">' +
-        '<div class="help-section-label">Разделы</div>' +
         '<div class="help-card-list">' + cardsHtml + '</div>' +
-        '<div class="help-section-label help-section-label--files">Файлы для скачивания</div>' +
-        '<div class="help-card-list">' + filesHtml + '</div>' +
+        '<div class="help-card-list help-card-list--files">' + filesHtml + '</div>' +
       '</div>';
     currentSection = null;
   }
