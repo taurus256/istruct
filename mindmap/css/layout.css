@@ -21,7 +21,7 @@ html, body {
      дерева должны быть локальны именно внутри #mindmap-root, а не на странице
      целиком — иначе тулбар уедет со скроллом и перестаёт быть видимым. */
   overflow: hidden;
-  font-family: "Segoe UI", Arial, sans-serif;
+  font-family: var(--font-family-base);
   background: var(--page-bg, #fafbfc);
 }
 
@@ -829,7 +829,7 @@ body.mm-resizing .panel-resize-handle {
   background: var(--surface, #ffffff);
   border: 1px solid var(--test-card-border, #e2e5e9);
   border-radius: 4px;
-  font: 600 14px/1.3 "Segoe UI", Arial, sans-serif;
+  font: 600 14px/1.3 var(--font-family-base);
   color: var(--node-text-color, #1f2937);
   cursor: pointer;
   text-align: left;
@@ -887,7 +887,7 @@ body.mm-resizing .panel-resize-handle {
 }
 
 .help-file-card__title {
-  font: 600 14px/1.3 "Segoe UI", Arial, sans-serif;
+  font: 600 14px/1.3 var(--font-family-base);
   color: var(--node-text-color, #1f2937);
 }
 
@@ -897,7 +897,7 @@ body.mm-resizing .panel-resize-handle {
 }
 
 .help-article-title {
-  font: 700 20px/1.3 "Segoe UI", Arial, sans-serif;
+  font: 700 20px/1.3 var(--font-family-base);
   color: var(--node-text-color, #1f2937);
 }
 
@@ -951,7 +951,7 @@ body.mm-resizing .panel-resize-handle {
 
 .side-view__title {
   flex: 1 1 auto;
-  font: 600 16px/1.2 "Segoe UI", Arial, sans-serif;
+  font: 600 16px/1.2 var(--font-family-base);
   color: var(--notes-title-color, #1f2937);
 }
 
@@ -1053,7 +1053,7 @@ body.mm-resizing .panel-resize-handle {
 
 .notes-panel__title {
   flex: 1 1 auto;
-  font: 600 16px/1.2 "Segoe UI", Arial, sans-serif;
+  font: 600 16px/1.2 var(--font-family-base);
   color: var(--notes-title-color, #1a1a1a);
 }
 
@@ -1145,7 +1145,7 @@ body.mm-resizing .panel-resize-handle {
   box-sizing: border-box;
   padding: 16px;
   overflow: auto;
-  font: 400 14px/20px "Segoe UI", Arial, sans-serif;
+  font: 400 14px/20px var(--font-family-base);
   color: var(--notes-title-color, #1a1a1a);
 }
 
@@ -1153,7 +1153,7 @@ body.mm-resizing .panel-resize-handle {
   border: none;
   resize: none;
   outline: none;
-  font-family: Consolas, "Courier New", monospace;
+  font-family: var(--font-family-mono);
   white-space: pre-wrap;
 }
 
@@ -1228,7 +1228,7 @@ body.mm-resizing .panel-resize-handle {
 
 .notes-panel__title {
   flex: 1 1 auto;
-  font: 600 16px/1.2 "Segoe UI", Arial, sans-serif;
+  font: 600 16px/1.2 var(--font-family-base);
   color: var(--notes-title-color, #1a1a1a);
 }
 
@@ -1319,14 +1319,14 @@ body.mm-resizing .panel-resize-handle {
   border: none;
   outline: none;
   overflow: auto;
-  font: 400 14px/20px "Segoe UI", Arial, sans-serif;
+  font: 400 14px/20px var(--font-family-base);
   color: var(--notes-title-color, #1a1a1a);
   background: var(--notes-editor-bg, #ffffff);
 }
 
 .notes-source {
   resize: none;
-  font-family: "Consolas", "Courier New", monospace;
+  font-family: var(--font-family-mono);
   white-space: pre;
 }
 
@@ -1370,7 +1370,7 @@ body.mm-resizing .panel-resize-handle {
   min-height: 0;
   overflow: auto;
   padding: 16px;
-  font: 400 13px/1.5 "Segoe UI", Arial, sans-serif;
+  font: 400 13px/1.5 var(--font-family-base);
   color: var(--node-text-color, #1f2937);
 }
 
@@ -1381,7 +1381,7 @@ body.mm-resizing .panel-resize-handle {
 }
 
 .test-node-title {
-  font: 700 18px/1.25 "Segoe UI", Arial, sans-serif;
+  font: 700 18px/1.25 var(--font-family-base);
   color: var(--node-text-color, #1f2937);
   margin-bottom: 10px;
 }
@@ -1454,7 +1454,7 @@ body.mm-resizing .panel-resize-handle {
 }
 
 .test-intro-status__title {
-  font: 700 20px/1.2 "Segoe UI", Arial, sans-serif;
+  font: 700 20px/1.2 var(--font-family-base);
   margin-bottom: 4px;
 }
 
@@ -1613,7 +1613,7 @@ body.mm-resizing .panel-resize-handle {
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  font: 600 14px/1.2 "Segoe UI", Arial, sans-serif;
+  font: 600 14px/1.2 var(--font-family-base);
 }
 
 .test-btn--primary {
@@ -1633,7 +1633,7 @@ body.mm-resizing .panel-resize-handle {
   background: transparent;
   color: var(--text-faint, #9aa0a6);
   cursor: pointer;
-  font: 400 13px/1.2 "Segoe UI", Arial, sans-serif;
+  font: 400 13px/1.2 var(--font-family-base);
   text-align: center;
 }
 
@@ -1651,7 +1651,7 @@ body.mm-resizing .panel-resize-handle {
 }
 
 .test-result-status {
-  font: 700 22px/1.2 "Segoe UI", Arial, sans-serif;
+  font: 700 22px/1.2 var(--font-family-base);
   margin-bottom: 6px;
 }
 

@@ -7,14 +7,68 @@
  * Тёмная тема (портирована из Figma: dark-theme-design-system) переопределяет
  * те же переменные в блоке :root[data-theme="dark"] — переключение происходит
  * атрибутом data-theme на <html>, который проставляет js/theme.js.
+ *
+ * Шрифт Inter (Figma: Section 2 — Typography) подключён локально из
+ * assets/fonts/ (вариативный woff2, поддержка кириллицы) — приложение
+ * открывается по file:// и не должно зависеть от внешних CDN.
  */
 
+/* Inter Variable — самостоятельный хостинг (@fontsource-variable/inter).
+   Разбит на подмножества (latin / latin-ext / cyrillic), чтобы не тянуть
+   лишние глифы; юникод-диапазоны — как в оригинальном index.css fontsource. */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("../assets/fonts/inter-latin-wght-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2191,
+    U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("../assets/fonts/inter-latin-ext-wght-normal.woff2") format("woff2");
+  unicode-range: U+0100-02AF, U+0304, U+0308, U+0329, U+1E00-1E9F, U+1EF2-1EFF,
+    U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("../assets/fonts/inter-cyrillic-wght-normal.woff2") format("woff2");
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+
 :root {
+  /* Семейства шрифтов (Figma: Section 2 — Typography). Inter — основной,
+     далее системные fallback'и на время загрузки woff2 / для редких глифов. */
+  --font-family-base: "Inter", "Segoe UI", Arial, sans-serif;
+  --font-family-mono: Consolas, "Courier New", monospace;
+
+  /* Типографическая шкала из Figma (Section 2 — Typography).
+     Значения font-shorthand: <weight> <size>/<line-height> <family>. */
+  --type-section-title: 700 24px/1.2 var(--font-family-base); /* Section Title (bold, 24px) */
+  --type-main-node-title: 700 20px/1.3 var(--font-family-base); /* Main Node Title (bold, 20px) */
+  --type-subsection-title: 700 16px/1.2 var(--font-family-base); /* Subsection Title (bold, 16px) */
+  --type-panel-title: 600 16px/1.2 var(--font-family-base); /* Panel Title (semi bold, 16px) */
+  --type-node-label: 500 14px/1.4 var(--font-family-base); /* Node Label (medium, 14px) */
+  --type-link-text: 500 14px/1.4 var(--font-family-base); /* Link Text (medium, 14px) */
+  --type-body: 400 14px/20px var(--font-family-base); /* Body Text (regular, 14px) */
+  --type-button-label: 600 14px/1.2 var(--font-family-base); /* Button Label (semi bold, 14px) */
+  --type-alert-body: 400 13px/1.4 var(--font-family-base); /* Alert Body (regular, 13px) */
+  --type-toolbar-label: 400 13px/1.2 var(--font-family-base); /* Toolbar Label (regular, 13px) */
+  --type-comment: 400 12px/1.4 var(--font-family-base); /* Comment Text (regular, 12px) */
+
   /* Базовый вид узла (портирован из Figma: Section 3 — Node Components) */
   --surface: #ffffff;
   --node-border-color: #6b7280;
   --node-radius: 8px;
-  --node-font: 500 14px/1.4 "Segoe UI", Arial, sans-serif;
+  --node-font: var(--type-node-label);
   --node-padding: 10px 16px;
   --node-text-color: #1f2937;
   --node-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
