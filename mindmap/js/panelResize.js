@@ -19,6 +19,11 @@ var PanelResize = (function () {
   // ручки (а не дрожанием руки при обычном клике) — по аналогии с pan.js.
   var DRAG_THRESHOLD = 3;
 
+  // Минимум ширины рабочей области (#mindmap-root) между панелями. Верхнего
+  // предела ширины у панели нет, но обе панели вместе не должны перекрываться
+  // и выдавливать эту область полностью — иначе с диаграммой нельзя работать.
+  var MIN_MINDMAP_ROOT = 200;
+
   /**
    * Навешивает ресайз на панель.
    * options: {
@@ -27,9 +32,11 @@ var PanelResize = (function () {
    *   edge: 'left' | 'right' — на какой стороне панели рисовать ручку
    *     (та сторона, что граничит с #mindmap-root); также определяет знак
    *     дельты движения мыши при вычислении новой ширины,
-   *   minWidth: минимальная ширина в px,
-   *   maxWidth: максимальная ширина в px
+   *   minWidth: минимальная ширина в px
    * }
+   * Верхнего предела ширины нет: панель можно тянуть сколь угодно широко, пока
+   * вторая панель и минимальная рабочая область (#mindmap-root) помещаются в
+   * окно — панели не перекрываются (см. clampWidth / otherPanelsWidth).
    */
   function attach(options) {
     var panelEl = options.panelEl;
@@ -39,7 +46,6 @@ var PanelResize = (function () {
     var storageKey = options.storageKey;
     var edge = options.edge === 'left' ? 'left' : 'right';
     var minWidth = options.minWidth || 260;
-    var maxWidth = options.maxWidth || 700;
 
     // Якорь для абсолютно позиционированной ручки.
     panelEl.style.position = panelEl.style.position || 'relative';
@@ -72,11 +78,35 @@ var PanelResize = (function () {
       panelEl.style.width = width + 'px';
     }
 
-    // Ограничивает ширину диапазоном [minWidth, maxWidth] и дополнительно
-    // не позволяет панели съесть весь экран — оставляем #mindmap-root не
-    // менее 200px, иначе диаграмма становится непригодной для работы.
+    // Суммарная ширина ДРУГИХ видимых боковых панелей — соседей panelEl по
+    // флекс-строке #work-area (та же строка, что и #mindmap-root). Скрытые
+    // панели (display:none по [hidden]) дают 0. Нужна, чтобы верхняя граница
+    // ширины этой панели учитывала место, уже занятое второй панелью, и они
+    // никогда не перекрывались.
+    function otherPanelsWidth() {
+      var parent = panelEl.parentElement;
+      if (!parent) {
+        return 0;
+      }
+      var total = 0;
+      var kids = parent.children;
+      for (var i = 0; i < kids.length; i++) {
+        var el = kids[i];
+        if (el === panelEl || el.nodeName !== 'ASIDE' || el.hasAttribute('hidden')) {
+          continue;
+        }
+        total += el.getBoundingClientRect().width;
+      }
+      return total;
+    }
+
+    // Ограничивает ширину диапазоном [minWidth, hardMax]. Верхнего фиксированного
+    // предела нет — hardMax это всё свободное место окна за вычетом второй панели
+    // и минимальной рабочей области, поэтому панели не перекрываются. minWidth
+    // всегда в приоритете (в очень узком окне свободного места может не хватить).
     function clampWidth(width) {
-      var hardMax = Math.min(maxWidth, window.innerWidth - 200);
+      var hardMax = window.innerWidth - otherPanelsWidth() - MIN_MINDMAP_ROOT;
+      hardMax = Math.max(hardMax, minWidth);
       return Math.max(minWidth, Math.min(width, hardMax));
     }
 
@@ -170,10 +200,40 @@ var PanelResize = (function () {
       document.body.classList.remove('mm-resizing');
     }
 
+    // Пере-ограничивает текущую ширину, когда меняются внешние условия:
+    // окно уменьшилось или открылась вторая панель. Без этого панель, ставшая
+    // слишком широкой раньше, могла бы перекрыть соседнюю. Во время активного
+    // перетаскивания не вмешиваемся — там ширину ведёт onMouseMove.
+    function reclamp() {
+      if (resizing) {
+        return;
+      }
+      var current = panelEl.getBoundingClientRect().width;
+      if (current <= 0) {
+        return; // панель скрыта — ширину не трогаем
+      }
+      var clamped = clampWidth(current);
+      if (Math.round(clamped) !== Math.round(current)) {
+        applyWidth(clamped);
+      }
+    }
+
     handle.addEventListener('mousedown', onMouseDown);
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
     window.addEventListener('blur', onWindowBlur);
+    window.addEventListener('resize', reclamp);
+
+    // Открытие/закрытие любой боковой панели (переключение атрибута hidden где-то
+    // в #work-area) может изменить свободное место — пересчитываем свою ширину.
+    if (typeof MutationObserver !== 'undefined' && panelEl.parentElement) {
+      var visObserver = new MutationObserver(reclamp);
+      visObserver.observe(panelEl.parentElement, {
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['hidden']
+      });
+    }
 
     restoreWidth();
   }

@@ -34,8 +34,7 @@ document.addEventListener('DOMContentLoaded', function () {
       panelEl: helpPanelEl,
       storageKey: 'mindmap-help-panel-width',
       edge: 'right',
-      minWidth: 260,
-      maxWidth: 700
+      minWidth: 260
     });
   }
 
@@ -49,8 +48,7 @@ document.addEventListener('DOMContentLoaded', function () {
       panelEl: sidePanel,
       storageKey: 'mindmap-side-panel-width',
       edge: 'left',
-      minWidth: 260,
-      maxWidth: 700
+      minWidth: 260
     });
   }
   var notesView = document.getElementById('notes-view');
