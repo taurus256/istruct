@@ -128,8 +128,9 @@ body {
 }
 
 .ribbon-btn__icon--glyph {
+  /* Figma (ribbon-toolbar-ru): значок ">?" — Inter Regular 32px */
   font-size: 32px;
-  font-weight: 300;
+  font-weight: 400;
   color: #0f766e;
   line-height: 1;
 }
