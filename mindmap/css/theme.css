@@ -242,7 +242,8 @@
   border-width: 1.5px;
   padding-left: 10px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-  font-weight: 300;
+  /* Шрифт текста — как у всех узлов: Node Label (--node-font из .node__body),
+     без собственного начертания. */
 }
 
 .node--test::before {
