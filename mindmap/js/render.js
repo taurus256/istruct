@@ -451,10 +451,12 @@ var Render = (function () {
       addBtn.type = 'button';
       addBtn.className = 'node__btn node__btn--add node__btn--add-' + childTypeDef.type;
       addBtn.title = 'Добавить: ' + childTypeDef.label;
-      if (childTypeDef.iconMask) {
-        // Цвет иконки — через CSS mask-image (см. .node__btn__icon-mask в layout.css),
-        // а не зашитый в SVG, чтобы совпадать с акцентным цветом типа в обеих темах.
-        addBtn.innerHTML = '<span class="node__btn__icon-mask"></span>';
+      if (childTypeDef.icon && childTypeDef.iconDark) {
+        // Обе иконки в DOM, нужную показывает CSS по data-theme (см. layout.css).
+        // Обычный <img>, а не mask-image — mask не грузится при открытии по file://.
+        addBtn.innerHTML =
+          '<img class="node__btn__icon--light" src="' + childTypeDef.icon + '" alt="">' +
+          '<img class="node__btn__icon--dark" src="' + childTypeDef.iconDark + '" alt="">';
       } else if (childTypeDef.icon) {
         addBtn.innerHTML = '<img src="' + childTypeDef.icon + '" alt="">';
       } else {

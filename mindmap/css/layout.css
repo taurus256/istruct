@@ -630,37 +630,22 @@ body {
   display: block;
 }
 
-/* Иконки-маски (см. node__btn--iconMask в nodeTypes.js): цвет берётся из
-   CSS-переменной темы (--icon-mask-color), а не зашит в SVG — поэтому в тёмной
-   теме автоматически используется более яркий акцентный оттенок того же типа
-   узла (--test-border-color/--link-border-color), вместо низкоконтрастного
-   светлотемного значения.
-   mask-image задаётся напрямую в правилах ниже (а не через var()): url() в
-   значении CSS-переменной в части браузеров резолвится от документа, из-за чего
-   путь "../assets/..." ломался; прямой url() всегда относителен этому файлу. */
-.node__btn__icon-mask {
-  width: 14px;
-  height: 14px;
+/* Цветные иконки кнопок +Тест/+Ссылка — обычный <img> (CSS mask-image не
+   грузится при открытии приложения по file://). Цвет акцента зашит в SVG, для
+   тёмной темы — отдельный файл в assets/icons/small/dark/ с цветом тёмной
+   палитры (--test-border-color/--link-border-color в режиме dark). В DOM обе
+   иконки, ненужную прячем по data-theme. Селекторы с `.node__btn img`, чтобы
+   перебить общее правило `.node__btn img { display: block }` выше. */
+.node__btn img.node__btn__icon--dark {
+  display: none;
+}
+
+:root[data-theme="dark"] .node__btn img.node__btn__icon--light {
+  display: none;
+}
+
+:root[data-theme="dark"] .node__btn img.node__btn__icon--dark {
   display: block;
-  background-color: var(--icon-mask-color, currentColor);
-  -webkit-mask-size: contain;
-  mask-size: contain;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-position: center;
-  mask-position: center;
-}
-
-.node__btn--add-test .node__btn__icon-mask {
-  -webkit-mask-image: url("../assets/icons/small/test.svg");
-  mask-image: url("../assets/icons/small/test.svg");
-  --icon-mask-color: var(--test-border-color, #0f766e);
-}
-
-.node__btn--add-link .node__btn__icon-mask {
-  -webkit-mask-image: url("../assets/icons/small/link.svg");
-  mask-image: url("../assets/icons/small/link.svg");
-  --icon-mask-color: var(--link-border-color, #0070cb);
 }
 
 .node__btn:hover {
@@ -892,19 +877,80 @@ body.mm-resizing .panel-resize-handle {
   color: var(--text-muted, #6b7280);
 }
 
-.help-article-title {
-  font: 700 20px/1.3 var(--font-family-base);
+/* Текст раздела справки — стиль «Body Text» дизайн-системы (--type-body,
+   400 14px/20px), тот же, что у текста в панели заметок (.notes-visual). */
+.help-article-body {
+  font: var(--type-body);
   color: var(--node-text-color, #1f2937);
 }
 
 .help-article-body p {
   margin: 0 0 12px;
-  line-height: 1.5;
-  color: var(--node-text-color, #1f2937);
 }
 
 .help-article-body p:last-child {
   margin-bottom: 0;
+}
+
+/* Разметка тела раздела справки (генерируется из text.md, см. tools/gen-help.js):
+   списки, инлайновые иконки, скриншот на всю ширину, блоки ```…```. */
+.help-article-body > :last-child {
+  margin-bottom: 0;
+}
+
+.help-article-body ul {
+  margin: 0 0 12px;
+  padding-left: 20px;
+}
+
+.help-article-body li {
+  margin: 4px 0;
+}
+
+.help-article-body img {
+  max-width: 100%;
+}
+
+/* Иконка, вставленная в текст (![…](assets/icons/...)) — по высоте строки. */
+.help-article-icon {
+  height: 1.15em;
+  width: auto;
+  vertical-align: -0.22em;
+  margin-right: 3px;
+}
+
+/* Скриншот на всю ширину колонки (![help_node_popup.png](...)). */
+.help-article-figure {
+  margin: 0 0 12px;
+}
+
+.help-article-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--test-card-border, #e2e5e9);
+  border-radius: var(--radius-ui);
+}
+
+/* Блок из ```…``` в text.md (пример запроса к LLM, предупреждение). */
+.help-article-pre {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  background: var(--hover-tint, rgba(0, 0, 0, 0.06));
+  border: 1px solid var(--test-card-border, #e2e5e9);
+  border-radius: var(--radius-ui);
+  font: 12px/1.5 var(--font-family-mono);
+  color: var(--node-text-color, #1f2937);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Тёмная тема: почти чёрные иконки (#1A1A1A / #323130) сливаются с фоном панели —
+   инвертируем в светлый (тот же приём, что для .node__panel img[src$=...] выше). */
+:root[data-theme="dark"] .help-article-body img[src$="/small/text.svg"],
+:root[data-theme="dark"] .help-article-body img[src$="/small/comment.svg"],
+:root[data-theme="dark"] .help-article-body img[src$="/theme.svg"] {
+  filter: invert(1) brightness(1.7);
 }
 
 /* Акцентный блок-подсказка/пример (жёлтый фон, как в референсном макете Figma). */

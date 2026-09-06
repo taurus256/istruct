@@ -25,6 +25,17 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // Первый запуск приложения в этом браузере — сразу показываем справку
+  // (флаг в localStorage, чисто UI-настройка, как тема/ширина панели).
+  try {
+    if (!localStorage.getItem('mindmap-help-seen')) {
+      Help.open();
+      localStorage.setItem('mindmap-help-seen', '1');
+    }
+  } catch (e) {
+    // localStorage недоступен (приватный режим) — просто не открываем автоматически.
+  }
+
   // Ресайз боковых панелей (перетаскивание ширины мышью) — ширина сохраняется
   // в localStorage, НЕ входит в экспорт/импорт JSON схемы (чисто UI-настройка,
   // как и тема). Единая логика для обеих панелей — см. panelResize.js.

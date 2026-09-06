@@ -10,14 +10,15 @@ var NodeTypeRegistry = (function () {
 
   /**
    * Регистрирует тип узла.
-   * config: { type, label, cssClass, defaultText, canHaveChildren, singletonPerParent, icon, iconMask }
+   * config: { type, label, cssClass, defaultText, canHaveChildren, singletonPerParent, icon, iconDark }
    * singletonPerParent: true — у одного родителя может быть не более одного
    * ребёнка этого типа (используется, например, для комментариев).
    * icon: путь к SVG-иконке (assets/icons/small/*.svg), которая используется вместо
    * текстовой подписи на кнопках добавления всплывающей панели (см. render.js makeAddButtons).
-   * iconMask: true — иконка красится через CSS mask-image акцентным цветом типа
-   * (--test-border-color/--link-border-color и т.п.), а не зашитым в SVG цветом,
-   * чтобы совпадать с цветом узла и оставаться контрастной в тёмной теме.
+   * iconDark: необязательный путь к варианту иконки для тёмной темы
+   * (assets/icons/small/dark/*.svg) с цветом акцента тёмной палитры. Если задан,
+   * makeAddButtons выводит обе иконки, а нужную показывает по data-theme (см. layout.css).
+   * Обычный <img>, а не CSS mask-image — иначе иконка не грузится при открытии по file://.
    */
   function register(config) {
     if (!config || !config.type) {
@@ -33,7 +34,7 @@ var NodeTypeRegistry = (function () {
       // По умолчанию ограничение "один на родителя" не действует
       singletonPerParent: config.singletonPerParent === true,
       icon: config.icon || null,
-      iconMask: config.iconMask === true
+      iconDark: config.iconDark || null
     };
   }
 
@@ -79,7 +80,7 @@ NodeTypeRegistry.register({
   defaultText: 'Новый тест',
   canHaveChildren: true,
   icon: 'assets/icons/small/test.svg',
-  iconMask: true
+  iconDark: 'assets/icons/small/dark/test.svg'
 });
 
 NodeTypeRegistry.register({
@@ -89,5 +90,5 @@ NodeTypeRegistry.register({
   defaultText: 'Новая ссылка',
   canHaveChildren: true,
   icon: 'assets/icons/small/link.svg',
-  iconMask: true
+  iconDark: 'assets/icons/small/dark/link.svg'
 });
