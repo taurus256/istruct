@@ -64,10 +64,19 @@
   --type-toolbar-label: 400 13px/1.2 var(--font-family-base); /* Toolbar Label (regular, 13px) */
   --type-comment: 400 12px/1.4 var(--font-family-base); /* Comment Text (regular, 12px) */
 
+  /* Скругление углов — единая шкала из Figma (Section 3 — Border Radius):
+     --radius-button (2px) — кнопки: тулбар, панели узла, футер/навигация теста,
+       кнопки закрытия/назад в шапках панелей;
+     --radius-ui (4px) — UI-элементы: карточки, поля ввода, варианты ответа,
+       алерты/подсказки, контейнеры панелей, прогресс-бар;
+     --radius-node (8px) — только узлы mind map. */
+  --radius-button: 2px;
+  --radius-ui: 4px;
+  --radius-node: 8px;
+
   /* Базовый вид узла (портирован из Figma: Section 3 — Node Components) */
   --surface: #ffffff;
   --node-border-color: #6b7280;
-  --node-radius: 8px;
   --node-font: var(--type-node-label);
   --node-padding: 10px 16px;
   --node-text-color: #1f2937;
@@ -234,7 +243,7 @@
 .node__body {
   background: var(--surface);
   border: 1px solid var(--node-border-color);
-  border-radius: var(--node-radius);
+  border-radius: var(--radius-node);
   font: var(--node-font);
   padding: var(--node-padding);
   color: var(--node-text-color);

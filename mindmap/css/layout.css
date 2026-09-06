@@ -98,7 +98,7 @@ body {
   padding: 6px 4px 4px;
   background: var(--ribbon-btn-bg, #f5f5f5);
   border: 1px solid var(--ribbon-btn-border, #d2d2d2);
-  border-radius: 4px;
+  border-radius: var(--radius-button);
   cursor: pointer;
   font-family: inherit;
 }
@@ -470,7 +470,7 @@ body {
 .node__text--editing {
   cursor: text;
   background: var(--editing-bg, rgba(255, 255, 255, 0.7));
-  border-radius: 4px;
+  border-radius: var(--radius-ui);
   padding: 0 2px;
   /* .mindmap-root и .node выше выставляют user-select: none, который
      блокировал бы выделение текста во время contentEditable-редактирования. */
@@ -493,7 +493,7 @@ body {
 
 .node__comment--editing {
   outline: 1px solid var(--node-border-color, #4a90d9);
-  border-radius: 4px;
+  border-radius: var(--radius-ui);
   background: var(--editing-bg, rgba(255, 255, 255, 0.85));
   padding: 2px 4px;
   user-select: text;
@@ -510,7 +510,7 @@ body {
   padding: 2px;
   background: var(--panel-bg, rgba(255, 255, 255, 0.95));
   border: 1px solid var(--node-panel-border, rgba(0, 0, 0, 0.12));
-  border-radius: 4px;
+  border-radius: var(--radius-ui);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
   white-space: nowrap;
   opacity: 0;
@@ -616,7 +616,7 @@ body {
   justify-content: center;
   border: 1px solid var(--node-panel-btn-border, rgba(0, 0, 0, 0.15));
   background: var(--node-panel-btn-bg, rgba(255, 255, 255, 0.7));
-  border-radius: 3px;
+  border-radius: var(--radius-button);
   font-size: 12px;
   line-height: 1;
   padding: 3px 6px;
@@ -634,14 +634,15 @@ body {
    CSS-переменной темы (--icon-mask-color), а не зашит в SVG — поэтому в тёмной
    теме автоматически используется более яркий акцентный оттенок того же типа
    узла (--test-border-color/--link-border-color), вместо низкоконтрастного
-   светлотемного значения. */
+   светлотемного значения.
+   mask-image задаётся напрямую в правилах ниже (а не через var()): url() в
+   значении CSS-переменной в части браузеров резолвится от документа, из-за чего
+   путь "../assets/..." ломался; прямой url() всегда относителен этому файлу. */
 .node__btn__icon-mask {
   width: 14px;
   height: 14px;
   display: block;
   background-color: var(--icon-mask-color, currentColor);
-  -webkit-mask-image: var(--icon-mask-image);
-  mask-image: var(--icon-mask-image);
   -webkit-mask-size: contain;
   mask-size: contain;
   -webkit-mask-repeat: no-repeat;
@@ -651,12 +652,14 @@ body {
 }
 
 .node__btn--add-test .node__btn__icon-mask {
-  --icon-mask-image: url("../assets/icons/small/test.svg");
+  -webkit-mask-image: url("../assets/icons/small/test.svg");
+  mask-image: url("../assets/icons/small/test.svg");
   --icon-mask-color: var(--test-border-color, #0f766e);
 }
 
 .node__btn--add-link .node__btn__icon-mask {
-  --icon-mask-image: url("../assets/icons/small/link.svg");
+  -webkit-mask-image: url("../assets/icons/small/link.svg");
+  mask-image: url("../assets/icons/small/link.svg");
   --icon-mask-color: var(--link-border-color, #0070cb);
 }
 
@@ -822,7 +825,7 @@ body.mm-resizing .panel-resize-handle {
   padding: 16px;
   background: var(--surface, #ffffff);
   border: 1px solid var(--test-card-border, #e2e5e9);
-  border-radius: 4px;
+  border-radius: var(--radius-ui);
   font: 600 14px/1.3 var(--font-family-base);
   color: var(--node-text-color, #1f2937);
   cursor: pointer;
@@ -852,7 +855,7 @@ body.mm-resizing .panel-resize-handle {
   padding: 16px;
   background: var(--surface, #ffffff);
   border: 1px solid var(--test-card-border, #e2e5e9);
-  border-radius: 4px;
+  border-radius: var(--radius-ui);
   text-decoration: none;
   color: inherit;
 }
@@ -908,7 +911,7 @@ body.mm-resizing .panel-resize-handle {
 .help-callout {
   background: var(--help-callout-bg, #fdf6e3);
   border: 1px solid var(--help-callout-border, #f0e0a8);
-  border-radius: 8px;
+  border-radius: var(--radius-ui);
   padding: 10px 12px;
   margin: 0 0 12px;
   font-size: 13px;
@@ -956,7 +959,7 @@ body.mm-resizing .panel-resize-handle {
   cursor: pointer;
   color: var(--text-muted, #6b7280);
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-button);
 }
 
 .side-view__close:hover {
@@ -983,7 +986,7 @@ body.mm-resizing .panel-resize-handle {
   background: transparent;
   cursor: pointer;
   padding: 6px;
-  border-radius: 2px;
+  border-radius: var(--radius-button);
   flex: 0 0 auto;
 }
 
@@ -1010,7 +1013,7 @@ body.mm-resizing .panel-resize-handle {
   background: transparent;
   cursor: pointer;
   padding: 6px;
-  border-radius: 2px;
+  border-radius: var(--radius-button);
   flex: 0 0 auto;
 }
 
@@ -1060,7 +1063,7 @@ body.mm-resizing .panel-resize-handle {
   background: transparent;
   cursor: pointer;
   padding: 6px;
-  border-radius: 2px;
+  border-radius: var(--radius-button);
 }
 
 .notes-panel__close img {
@@ -1094,7 +1097,7 @@ body.mm-resizing .panel-resize-handle {
   padding: 6px;
   border: none;
   background: transparent;
-  border-radius: 2px;
+  border-radius: var(--radius-button);
   cursor: pointer;
   font-size: 13px;
   line-height: 1;
@@ -1235,7 +1238,7 @@ body.mm-resizing .panel-resize-handle {
   background: transparent;
   cursor: pointer;
   padding: 6px;
-  border-radius: 2px;
+  border-radius: var(--radius-button);
 }
 
 .notes-panel__close img {
@@ -1276,7 +1279,7 @@ body.mm-resizing .panel-resize-handle {
   padding: 6px;
   border: none;
   background: transparent;
-  border-radius: 2px;
+  border-radius: var(--radius-button);
   font-size: 13px;
   line-height: 1.1;
   cursor: pointer;
@@ -1414,7 +1417,7 @@ body.mm-resizing .panel-resize-handle {
   padding: 12px 14px;
   background: var(--surface, #ffffff);
   border: 1px solid var(--test-card-border, #e2e5e9);
-  border-radius: 8px;
+  border-radius: var(--radius-ui);
   font-weight: 700;
 }
 
@@ -1487,7 +1490,7 @@ body.mm-resizing .panel-resize-handle {
   height: 30px;
   border: 1px solid var(--test-card-border, #e2e5e9);
   background: var(--surface, #fff);
-  border-radius: 6px;
+  border-radius: var(--radius-button);
   cursor: pointer;
 }
 
@@ -1506,7 +1509,7 @@ body.mm-resizing .panel-resize-handle {
 .test-progress {
   height: 6px;
   background: var(--choice-box-bg, #e5e7eb);
-  border-radius: 4px;
+  border-radius: var(--radius-ui);
   overflow: hidden;
   margin-bottom: 16px;
 }
@@ -1522,7 +1525,7 @@ body.mm-resizing .panel-resize-handle {
   padding: 14px;
   background: var(--surface, #ffffff);
   border: 1px solid var(--test-card-border, #e2e5e9);
-  border-radius: 8px;
+  border-radius: var(--radius-ui);
   margin-bottom: 14px;
   /* Figma (Section 2 — Typography): текст вопроса — Body Text (regular, 14px/20px) */
   font: var(--type-body);
@@ -1546,7 +1549,7 @@ body.mm-resizing .panel-resize-handle {
   padding: 12px 14px;
   background: var(--surface, #ffffff);
   border: 1.5px solid var(--test-card-border, #e2e5e9);
-  border-radius: 8px;
+  border-radius: var(--radius-ui);
   cursor: pointer;
 }
 
@@ -1563,7 +1566,7 @@ body.mm-resizing .panel-resize-handle {
 }
 
 .test-choice__box--check {
-  border-radius: 4px;
+  border-radius: var(--radius-ui);
 }
 
 .test-choice__box--radio {
@@ -1609,7 +1612,7 @@ body.mm-resizing .panel-resize-handle {
   width: 100%;
   padding: 11px 14px;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-button);
   cursor: pointer;
   font: 600 14px/1.2 var(--font-family-base);
 }
@@ -1644,7 +1647,7 @@ body.mm-resizing .panel-resize-handle {
   padding: 16px;
   background: var(--surface, #ffffff);
   border: 1px solid var(--test-card-border, #e2e5e9);
-  border-radius: 8px;
+  border-radius: var(--radius-ui);
   margin-bottom: 14px;
 }
 
@@ -1687,7 +1690,7 @@ body.mm-resizing .panel-resize-handle {
   padding: 10px 6px;
   background: var(--surface, #ffffff);
   border: 1px solid var(--test-card-border, #e2e5e9);
-  border-radius: 8px;
+  border-radius: var(--radius-ui);
   text-align: center;
 }
 
@@ -1732,7 +1735,7 @@ body.mm-resizing .panel-resize-handle {
   padding: 12px 14px;
   background: var(--surface, #ffffff);
   border: 1px solid var(--test-card-border, #e2e5e9);
-  border-radius: 8px;
+  border-radius: var(--radius-ui);
 }
 
 .test-wrong-card__q {
@@ -1765,7 +1768,9 @@ body.mm-resizing .panel-resize-handle {
    исходном SVG (зелёный/красный) — в отличие от других иконок в приложении,
    перекрашивать их через CSS mask-image не нужно — просто выводим как обычное изображение. */
 .test-mark__icon {
-  width: 14px;
-  height: 14px;
+  /* check.svg / cross.svg — родной размер холста 24×24, не масштабируем:
+     при уменьшении их тонкая обводка становилась почти невидимой. */
+  width: 24px;
+  height: 24px;
   display: block;
 }
