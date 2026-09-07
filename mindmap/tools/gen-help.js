@@ -22,7 +22,7 @@ var fs = require('fs');
 var path = require('path');
 
 var ROOT = path.join(__dirname, '..', '..');
-var SRC = path.join(ROOT, 'text.md');
+var SRC = path.join(ROOT, 'readme.md');
 var HELP = path.join(__dirname, '..', 'js', 'help.js');
 
 var BEGIN = '/* BEGIN GENERATED SECTIONS';
