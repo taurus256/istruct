@@ -140,6 +140,133 @@ var Render = (function () {
     }
   }
 
+  // Пространственная навигация выделения стрелками клавиатуры.
+  // direction ∈ {'up','down','left','right'} — выбирает ближайший узел,
+  // физически расположенный в этом направлении на экране (по координатам
+  // центров боксов через getBoundingClientRect()), а НЕ по структуре дерева.
+  // Это соответствует радиальному layout: стрелка ведёт туда, куда смотрит
+  // пользователь, независимо от того, кто кому родитель.
+  function moveSelection(direction) {
+    var rootId = Model.getState().rootId;
+
+    // Нет выделения (или выделенный узел исчез из DOM) — выделяем корень.
+    if (selectedId == null || !nodeEls[selectedId]) {
+      if (rootId != null && nodeEls[rootId]) {
+        selectNode(rootId);
+        scrollNodeIntoViewIfNeeded(rootId);
+      }
+      return;
+    }
+
+    var curBox = nodeBodyEls[selectedId];
+    if (!curBox) {
+      return;
+    }
+    var curRect = curBox.getBoundingClientRect();
+    var curX = (curRect.left + curRect.right) / 2;
+    var curY = (curRect.top + curRect.bottom) / 2;
+
+    // Собираем центры всех прочих узлов.
+    var candidates = [];
+    Object.keys(nodeBodyEls).forEach(function (id) {
+      if (id === selectedId) {
+        return;
+      }
+      var el = nodeBodyEls[id];
+      if (!el) {
+        return;
+      }
+      var r = el.getBoundingClientRect();
+      candidates.push({
+        id: id,
+        dx: (r.left + r.right) / 2 - curX,
+        dy: (r.top + r.bottom) / 2 - curY
+      });
+    });
+
+    var EPS = 1;
+    var PERP_WEIGHT = 2;
+
+    // Продольная (along, в сторону direction) и поперечная (perp) составляющие.
+    function along(c) {
+      if (direction === 'right') { return c.dx; }
+      if (direction === 'left') { return -c.dx; }
+      if (direction === 'down') { return c.dy; }
+      return -c.dy; // up
+    }
+    function perp(c) {
+      if (direction === 'right' || direction === 'left') { return Math.abs(c.dy); }
+      return Math.abs(c.dx); // up / down
+    }
+
+    // Двухступенчатый конус: сперва узкий (±45°, perp <= along), если пусто —
+    // расширенный (~±63°, perp <= along*2). Среди годных — минимальный
+    // взвешенный score (предпочитаем узлы «прямо по курсу»).
+    function pick(coneFactor) {
+      var best = null;
+      var bestScore = Infinity;
+      candidates.forEach(function (c) {
+        var a = along(c);
+        if (a <= EPS) {
+          return;
+        }
+        var p = perp(c);
+        if (p > a * coneFactor) {
+          return;
+        }
+        var score = a + PERP_WEIGHT * p;
+        if (score < bestScore) {
+          bestScore = score;
+          best = c;
+        }
+      });
+      return best;
+    }
+
+    var chosen = pick(1) || pick(2);
+    if (chosen) {
+      selectNode(chosen.id);
+      scrollNodeIntoViewIfNeeded(chosen.id);
+    }
+  }
+
+  // Доскроллить #mindmap-root минимально, чтобы узел стал видимым — но только
+  // если он выходит за края видимой области контейнера. Скроллим сам
+  // контейнер (scrollLeft/scrollTop), НЕ используя scrollIntoView, чтобы не
+  // задеть прокрутку страницы/родительских контейнеров. Изменение scrollLeft/
+  // scrollTop триггерит существующий обработчик 'scroll' → пересчёт коннекторов.
+  function scrollNodeIntoViewIfNeeded(id) {
+    if (!container) {
+      return;
+    }
+    var box = nodeBodyEls[id];
+    if (!box) {
+      return;
+    }
+    var nodeRect = box.getBoundingClientRect();
+    var contRect = container.getBoundingClientRect();
+    var dx = 0;
+    var dy = 0;
+
+    if (nodeRect.left < contRect.left) {
+      dx = nodeRect.left - contRect.left;
+    } else if (nodeRect.right > contRect.right) {
+      dx = nodeRect.right - contRect.right;
+    }
+    if (nodeRect.top < contRect.top) {
+      dy = nodeRect.top - contRect.top;
+    } else if (nodeRect.bottom > contRect.bottom) {
+      dy = nodeRect.bottom - contRect.bottom;
+    }
+
+    if (dx !== 0) {
+      container.scrollLeft += dx;
+    }
+    if (dy !== 0) {
+      container.scrollTop += dy;
+    }
+  }
+
   // Необязательный колбэк смены масштаба (регистрируется из app.js) — для
   // индикатора масштаба и кнопки сброса в статус-баре. Вызывается из setZoom,
   // поэтому срабатывает при любом пути изменения зума (колесо, клавиатура,
@@ -850,6 +977,7 @@ var Render = (function () {
     renderAll: renderAll,
     getSelectedId: getSelectedId,
     selectNode: selectNode,
+    moveSelection: moveSelection,
     setOnSelectionChange: setOnSelectionChange,
     setOnZoomChange: setOnZoomChange,
     addChild: addChild,

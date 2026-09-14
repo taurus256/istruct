@@ -277,6 +277,23 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
+    // Навигация между узлами стрелками — только чистые стрелки (без
+    // модификаторов, чтобы не конфликтовать с Alt+«+/-/0» зумом и пр.).
+    // Обрабатываются ДО проверки выделения: при отсутствии выделения
+    // moveSelection() сам выделит корень.
+    if (!e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey) {
+      var arrowDir = null;
+      if (e.key === 'ArrowUp') { arrowDir = 'up'; }
+      else if (e.key === 'ArrowDown') { arrowDir = 'down'; }
+      else if (e.key === 'ArrowLeft') { arrowDir = 'left'; }
+      else if (e.key === 'ArrowRight') { arrowDir = 'right'; }
+      if (arrowDir) {
+        e.preventDefault();
+        Render.moveSelection(arrowDir);
+        return;
+      }
+    }
+
     var selectedId = Render.getSelectedId();
     if (!selectedId) {
       return;
