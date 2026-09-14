@@ -53,10 +53,22 @@ var Model = (function () {
   }
 
   // Полная замена состояния (используется storage.js при load/import).
+  // ВАЖНО: в сериализованном формате (version 6) у узлов НЕТ внутреннего поля
+  // id — идентификатор узла это его КЛЮЧ в объекте nodes. В памяти же весь код
+  // (render.js, dragdrop.js, isDescendant и др.) читает node.id, поэтому здесь
+  // восстанавливаем id из ключа. Ключ — первичный идентификатор: если в старых
+  // данных (version ≤5) у узла было внутреннее id и оно вдруг расходится с
+  // ключом — ключ побеждает (перезаписывает node.id).
   function setState(newState) {
+    var nodes = newState.nodes || {};
+    for (var key in nodes) {
+      if (Object.prototype.hasOwnProperty.call(nodes, key)) {
+        nodes[key].id = key;
+      }
+    }
     state = {
       rootId: newState.rootId,
-      nodes: newState.nodes
+      nodes: nodes
     };
   }
 

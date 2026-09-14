@@ -1,7 +1,12 @@
 /*
  * storage.js — сохранение/загрузка модели в localStorage,
  * экспорт и импорт в формате JSON.
- * Формат файла: { "version": 5, "rootId": "n1", "nodes": { ... } }
+ * Формат файла: { "version": 6, "rootId": "n1", "nodes": { ... } }
+ *
+ * ИДЕНТИФИКАТОР УЗЛА (важно): узел хранится как значение по КЛЮЧУ в объекте
+ * "nodes" — именно ключ и есть идентификатор узла. Внутреннего поля "id" у
+ * объекта узла в сериализованном формате НЕТ (см. version 6 ниже). rootId и
+ * parentId ссылаются на эти ключи.
  *
  * version 2: у узлов в "nodes" может появиться необязательное
  * поле "data.offset": { "dx": number, "dy": number } — ручное смещение узла
@@ -34,16 +39,23 @@
  *       }
  *   См. model.js (get/set/clear Test/TestResult) и test.js.
  *
- * version 5 (текущая): у узлов может появиться необязательное поле
+ * version 5: у узлов может появиться необязательное поле
  * "data.marked" — boolean, чисто визуальная отметка узла (зелёная рамка),
  * переключается кнопкой "Выполнен" тулбара. Отсутствие поля означает
  * «не отмечен». См. model.js (setMarked/isMarked/toggleMarked) и
  * render.js (Render.toggleMarked).
  *
- * Обратная совместимость: файлы version 1–4 (без offset/note/test/marked)
- * читаются без изменений — отсутствие поля трактуется как авто-позиция /
- * «заметки нет» / «теста нет» / «не отмечен» (isValidPayload не требует
- * наличия этих полей).
+ * version 6 (текущая): убрано дублирующее внутреннее поле "id" у узлов —
+ * идентификатор узла теперь ТОЛЬКО его ключ в объекте "nodes" (раньше id
+ * хранился и как ключ, и как поле "id" внутри объекта, и они обязаны были
+ * совпадать). При сериализации поле "id" исключается (см. serializeNodes),
+ * при загрузке восстанавливается в памяти из ключа (см. Model.setState).
+ *
+ * Обратная совместимость: файлы version 1–5 читаются без изменений —
+ * отсутствие поля data.* трактуется как авто-позиция / «заметки нет» /
+ * «теста нет» / «не отмечен»; старое внутреннее поле "id" (если есть)
+ * игнорируется и перезаписывается ключом при загрузке (Model.setState).
+ * isValidPayload не требует наличия внутреннего id.
  */
 
 var Storage = (function () {
@@ -51,10 +63,32 @@ var Storage = (function () {
   var DEBOUNCE_MS = 400;
   var debounceTimer = null;
 
+  // Строит объект nodes для сериализации БЕЗ внутреннего поля "id" у каждого
+  // узла (идентификатор = ключ). Не мутирует in-memory state: приложение
+  // продолжает работать с моделью в памяти, где node.id обязателен (его
+  // массово читают render.js/dragdrop.js/model.js). Копируем каждый узел в
+  // новый объект и убираем у копии поле id.
+  function serializeNodes(nodes) {
+    var out = {};
+    for (var key in nodes) {
+      if (Object.prototype.hasOwnProperty.call(nodes, key)) {
+        var copy = {};
+        var node = nodes[key];
+        for (var prop in node) {
+          if (Object.prototype.hasOwnProperty.call(node, prop) && prop !== 'id') {
+            copy[prop] = node[prop];
+          }
+        }
+        out[key] = copy;
+      }
+    }
+    return out;
+  }
+
   function saveImmediate() {
     try {
       var state = Model.getState();
-      var payload = { version: 5, rootId: state.rootId, nodes: state.nodes };
+      var payload = { version: 6, rootId: state.rootId, nodes: serializeNodes(state.nodes) };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     } catch (e) {
       console.error('Не удалось сохранить mind map в localStorage', e);
@@ -112,7 +146,7 @@ var Storage = (function () {
   // Экспорт текущей модели в файл mindmap.json (Blob + скрытая ссылка-скачивание).
   function exportJSON() {
     var state = Model.getState();
-    var payload = { version: 5, rootId: state.rootId, nodes: state.nodes };
+    var payload = { version: 6, rootId: state.rootId, nodes: serializeNodes(state.nodes) };
     var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     var url = URL.createObjectURL(blob);
 
