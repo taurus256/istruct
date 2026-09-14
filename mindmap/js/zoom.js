@@ -38,6 +38,32 @@ var Zoom = (function () {
     return clamp(val);
   }
 
+  // Применяет масштаб newZoom, сохраняя точку контента под ЯКОРЕМ (viewX, viewY) —
+  // координаты внутри видимой области контейнера (в CSS-пикселях). Общая логика
+  // для зума колесом (якорь = курсор) и с клавиатуры (якорь = центр холста).
+  function applyZoomAt(newZoom, viewX, viewY) {
+    var oldZoom = Render.getZoom();
+    newZoom = clamp(newZoom);
+    if (newZoom === oldZoom) {
+      return; // упёрлись в границу или зум не изменился — ничего не делаем
+    }
+    // Точка контента под якорем в НАТУРАЛЬНЫХ координатах (до масштаба):
+    // видимая координата + скролл, делённые на старый зум. scrollLeft/scrollTop
+    // у zoom-контейнера — в тех же (масштабированных) единицах, что и viewX*zoom,
+    // поэтому деление на oldZoom переводит точку в натуральную систему контента.
+    var contentX = (viewX + container.scrollLeft) / oldZoom;
+    var contentY = (viewY + container.scrollTop) / oldZoom;
+
+    Render.setZoom(newZoom);
+
+    // Корректируем скролл так, чтобы та же точка контента осталась под якорем:
+    // новый scroll = contentX * newZoom - viewX (и аналогично по Y).
+    container.scrollLeft = contentX * newZoom - viewX;
+    container.scrollTop = contentY * newZoom - viewY;
+
+    persist(newZoom);
+  }
+
   function onWheel(e) {
     // Без Ctrl — обычный скролл контейнера, не трогаем.
     if (!e.ctrlKey) {
@@ -47,30 +73,39 @@ var Zoom = (function () {
     e.preventDefault();
 
     var oldZoom = Render.getZoom();
-    var newZoom = clamp(e.deltaY < 0 ? oldZoom * STEP : oldZoom / STEP);
-    if (newZoom === oldZoom) {
-      return; // упёрлись в границу — ничего не делаем
-    }
-
+    var newZoom = e.deltaY < 0 ? oldZoom * STEP : oldZoom / STEP;
     var rect = container.getBoundingClientRect();
-    // Позиция курсора внутри видимой области контейнера (в CSS-пикселях).
-    var viewX = e.clientX - rect.left;
-    var viewY = e.clientY - rect.top;
-    // Точка контента под курсором в НАТУРАЛЬНЫХ координатах (до масштаба):
-    // видимая координата + скролл, делённые на старый зум. scrollLeft/scrollTop
-    // у zoom-контейнера — в тех же (масштабированных) единицах, что и viewX*zoom,
-    // поэтому деление на oldZoom переводит точку в натуральную систему контента.
-    var contentX = (viewX + container.scrollLeft) / oldZoom;
-    var contentY = (viewY + container.scrollTop) / oldZoom;
+    // Якорь — позиция курсора внутри видимой области контейнера.
+    applyZoomAt(newZoom, e.clientX - rect.left, e.clientY - rect.top);
+  }
 
-    Render.setZoom(newZoom);
+  // Клавиатурный зум: якорь в центре видимой области контейнера (позиции
+  // курсора нет), чтобы центр схемы оставался на месте.
+  function zoomFromCenter(newZoom) {
+    applyZoomAt(newZoom, container.clientWidth / 2, container.clientHeight / 2);
+  }
 
-    // Корректируем скролл так, чтобы та же точка контента осталась под курсором:
-    // новый scroll = contentX * newZoom - viewX (и аналогично по Y).
-    container.scrollLeft = contentX * newZoom - viewX;
-    container.scrollTop = contentY * newZoom - viewY;
-
-    persist(newZoom);
+  // Alt+"+" — увеличить, Alt+"-" — уменьшить, Alt+"0" — вернуть 100%.
+  // Используем e.code (физическая клавиша, не зависит от раскладки/Shift) плюс
+  // e.key как фолбэк, чтобы сработало и на основной клавиатуре, и на numpad.
+  function onKeyDown(e) {
+    if (!e.altKey) {
+      return;
+    }
+    var handled = false;
+    if (e.code === 'Equal' || e.code === 'NumpadAdd' || e.key === '+' || e.key === '=') {
+      zoomFromCenter(Render.getZoom() * STEP);
+      handled = true;
+    } else if (e.code === 'Minus' || e.code === 'NumpadSubtract' || e.key === '-') {
+      zoomFromCenter(Render.getZoom() / STEP);
+      handled = true;
+    } else if (e.code === 'Digit0' || e.code === 'Numpad0' || e.key === '0') {
+      zoomFromCenter(1);
+      handled = true;
+    }
+    if (handled) {
+      e.preventDefault();
+    }
   }
 
   function init(rootContainer) {
@@ -80,6 +115,10 @@ var Zoom = (function () {
     // passive:false ОБЯЗАТЕЛЬНО — иначе preventDefault() не сработает и
     // Ctrl+колесо зазумит всю страницу браузера.
     container.addEventListener('wheel', onWheel, { passive: false });
+
+    // Клавиатурные шорткаты зума — глобально на document (не требуют фокуса
+    // на холсте), Alt+"+"/"-"/"0".
+    document.addEventListener('keydown', onKeyDown);
 
     // Восстанавливаем сохранённый уровень зума (Render уже проинициализирован
     // и дерево отрендерено к моменту вызова Zoom.init из app.js).
