@@ -37,7 +37,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 8px 8px 4px;
+  padding: 4px 8px 4px;
   background: var(--toolbar-bg, #f3f3f3);
   border-bottom: 1px solid var(--ribbon-border, #d2d2d2);
   box-shadow: 0 2px 2px rgba(0, 0, 0, 0.03);
@@ -97,7 +97,7 @@ body {
   flex: 0 0 auto;
   padding: 6px 4px 4px;
   background: var(--ribbon-btn-bg, #f5f5f5);
-  border: 1px solid var(--ribbon-btn-border, #d2d2d2);
+  border: 1px solid var(--ribbon-btn-border);
   border-radius: var(--radius-button);
   cursor: pointer;
   font-family: inherit;
@@ -173,7 +173,7 @@ body {
   display: flex;
   align-items: stretch;
   gap: 8px;
-  padding: 6px 16px;
+  padding: 4px 16px;
   background: var(--toolbar-bg, #f3f3f3);
   border-top: 1px solid var(--status-bar-border, #d2d2d2);
   font-size: 12px;
@@ -181,6 +181,12 @@ body {
   white-space: nowrap;
   overflow-x: auto;
 }
+
+#status-bar a {
+  	text-decoration: none;
+  	color: inherit;
+  }
+
 
 /* Справочный текст подсказок — занимает всё оставшееся место слева. */
 .status-bar__hint {
@@ -199,11 +205,12 @@ body {
 
 /* Индикатор масштаба и кнопка сброса — фиксированная ширина 100px,
    текст по центру. */
-.status-bar__zoom {
+.status-bar__label {
   flex: 0 0 100px;
   width: 100px;
   text-align: center;
   align-self: center;
+  cursor: default;
 }
 
 /* Кнопка «По умолчанию». Неактивное состояние (disabled) — текст выглядит
@@ -213,8 +220,8 @@ body {
   flex: 0 0 100px;
   width: 100px;
   align-self: center;
-  padding: 0;
-  border: none;
+  padding: 4px;
+  border: 1px solid transparent;
   background: transparent;
   font-family: inherit;
   font-size: 12px;
@@ -229,10 +236,12 @@ body {
 .status-bar__reset:not(:disabled) {
   color: var(--ribbon-label-color, #323130);
   cursor: pointer;
+  border: 1px solid var(--ribbon-btn-border);
 }
 
 .status-bar__reset:not(:disabled):hover {
-  text-decoration: underline;
+  background: var(--ribbon-btn-hover-bg);
+  border-color: var(--ribbon-btn-hover-border, #b7cbe0);
 }
 
 /* ---------- Радиальный layout ---------- */
