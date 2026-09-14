@@ -11,6 +11,11 @@ document.addEventListener('DOMContentLoaded', function () {
   Render.init(mindmapRoot);
   Render.renderAll();
   Pan.init(mindmapRoot);
+  // Зум схемы колесом при зажатом Ctrl (после Render.init/renderAll — дерево
+  // уже в DOM, можно восстановить сохранённый масштаб).
+  if (typeof Zoom !== 'undefined') {
+    Zoom.init(mindmapRoot);
+  }
   Notes.init();
   TestPanel.init();
 

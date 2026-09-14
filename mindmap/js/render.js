@@ -24,6 +24,14 @@ var Render = (function () {
 
   var container = null;
   var selectedId = null;
+  // Текущий масштаб схемы (зум колесом при зажатом Ctrl, см. zoom.js).
+  // Применяется CSS-свойством zoom к .mm-row-middle (обёртке всего дерева),
+  // что меняет и визуальный, и layout-размер — поэтому scrollWidth/scrollHeight
+  // контейнера растут и прокрутка к увеличенным краям работает без обёрток.
+  var currentZoom = 1;
+  // Ссылка на текущую .mm-row-middle (пересоздаётся в renderAll) — чтобы
+  // переприменять зум после перестроения дерева и не терять масштаб.
+  var rowMiddleEl = null;
   // Реестр DOM-элементов узлов (.node) по id — используется для пересчёта
   // координат SVG-коннекторов после каждого рендера/ресайза.
   var nodeEls = {};
@@ -149,6 +157,12 @@ var Render = (function () {
 
     var rowMiddle = document.createElement('div');
     rowMiddle.className = 'mm-row mm-row-middle';
+    rowMiddleEl = rowMiddle;
+    // Переприменяем текущий масштаб к свежесозданной обёртке дерева —
+    // иначе после renderAll() (добавление/удаление узла и т.п.) зум сбросился бы.
+    if (currentZoom !== 1) {
+      rowMiddle.style.zoom = currentZoom;
+    }
 
     var zoneLeft = document.createElement('div');
     zoneLeft.className = 'mm-zone mm-zone-left';
@@ -780,6 +794,30 @@ var Render = (function () {
     });
   }
 
+  var ZOOM_MIN = 0.2;
+  var ZOOM_MAX = 3.0;
+
+  // Устанавливает масштаб схемы (клампит в [ZOOM_MIN, ZOOM_MAX]), применяет его
+  // к .mm-row-middle через CSS zoom и пересчитывает SVG-связи (ResizeObserver
+  // на #mindmap-root не сработает — размер самого контейнера не меняется).
+  // Возвращает фактически применённый (склампленный) масштаб.
+  function setZoom(z) {
+    var clamped = z;
+    if (!isFinite(clamped)) { clamped = 1; }
+    if (clamped < ZOOM_MIN) { clamped = ZOOM_MIN; }
+    if (clamped > ZOOM_MAX) { clamped = ZOOM_MAX; }
+    currentZoom = clamped;
+    if (rowMiddleEl) {
+      rowMiddleEl.style.zoom = clamped;
+    }
+    scheduleConnectorsUpdate();
+    return clamped;
+  }
+
+  function getZoom() {
+    return currentZoom;
+  }
+
   return {
     init: init,
     renderAll: renderAll,
@@ -788,6 +826,8 @@ var Render = (function () {
     setOnSelectionChange: setOnSelectionChange,
     addChild: addChild,
     deleteNode: deleteNode,
-    toggleMarked: toggleMarked
+    toggleMarked: toggleMarked,
+    setZoom: setZoom,
+    getZoom: getZoom
   };
 })();
