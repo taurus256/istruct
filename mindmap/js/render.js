@@ -140,6 +140,15 @@ var Render = (function () {
     }
   }
 
+  // Необязательный колбэк смены масштаба (регистрируется из app.js) — для
+  // индикатора масштаба и кнопки сброса в статус-баре. Вызывается из setZoom,
+  // поэтому срабатывает при любом пути изменения зума (колесо, клавиатура,
+  // восстановление из localStorage, кнопка сброса).
+  var onZoomChange = null;
+  function setOnZoomChange(fn) {
+    onZoomChange = (typeof fn === 'function') ? fn : null;
+  }
+
   // Полная перерисовка дерева от корня.
   function renderAll() {
     if (!container) {
@@ -826,6 +835,9 @@ var Render = (function () {
       rowMiddleEl.style.zoom = clamped;
     }
     scheduleConnectorsUpdate();
+    if (onZoomChange) {
+      onZoomChange(clamped);
+    }
     return clamped;
   }
 
@@ -839,6 +851,7 @@ var Render = (function () {
     getSelectedId: getSelectedId,
     selectNode: selectNode,
     setOnSelectionChange: setOnSelectionChange,
+    setOnZoomChange: setOnZoomChange,
     addChild: addChild,
     deleteNode: deleteNode,
     toggleMarked: toggleMarked,

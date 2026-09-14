@@ -146,7 +146,13 @@
   </aside>
 </div>
 
-<div id="status-bar">Клик — выделить, двойной клик по тексту — редактировать, Enter — добавить, Delete — удалить, drag&amp;drop — перенести. Наведите на узел — появятся кнопки добавления и редактирования.</div>
+<div id="status-bar">
+  <span id="status-hint" class="status-bar__hint">Клик — выделить, двойной клик по тексту — редактировать, Enter — добавить, Delete — удалить, drag&amp;drop — перенести. Наведите на узел — появятся кнопки добавления и редактирования.</span>
+  <span class="ribbon-divider status-bar__divider"></span>
+  <span id="status-zoom" class="status-bar__zoom">Масштаб: 100%</span>
+  <span class="ribbon-divider status-bar__divider"></span>
+  <button id="btn-zoom-reset" type="button" class="status-bar__reset" disabled>По умолчанию</button>
+</div>
 
 <!-- Порядок подключения важен: каждый следующий файл использует объекты, объявленные предыдущими -->
 <script src="js/theme.js"></script>

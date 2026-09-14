@@ -85,6 +85,12 @@ var Zoom = (function () {
     applyZoomAt(newZoom, container.clientWidth / 2, container.clientHeight / 2);
   }
 
+  // Сброс масштаба к 100% — полный аналог Alt+0 (с коррекцией скролла и
+  // персистом). Используется кнопкой «По умолчанию» в статус-баре (см. app.js).
+  function reset() {
+    zoomFromCenter(1);
+  }
+
   // Alt+"+" — увеличить, Alt+"-" — уменьшить, Alt+"0" — вернуть 100%.
   // Используем e.code (физическая клавиша, не зависит от раскладки/Shift) плюс
   // e.key как фолбэк, чтобы сработало и на основной клавиатуре, и на numpad.
@@ -129,6 +135,7 @@ var Zoom = (function () {
   }
 
   return {
-    init: init
+    init: init,
+    reset: reset
   };
 })();

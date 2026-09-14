@@ -170,6 +170,9 @@ body {
 
 #status-bar {
   flex: 0 0 auto;
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
   padding: 6px 16px;
   background: var(--toolbar-bg, #f3f3f3);
   border-top: 1px solid var(--status-bar-border, #d2d2d2);
@@ -177,6 +180,59 @@ body {
   color: var(--status-bar-color, #777);
   white-space: nowrap;
   overflow-x: auto;
+}
+
+/* Справочный текст подсказок — занимает всё оставшееся место слева. */
+.status-bar__hint {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  align-self: center;
+}
+
+/* Разделители (тот же вид, что ribbon-divider) — вертикальная линия
+   на всю высоту статус-бара (align-items:stretch у #status-bar). */
+.status-bar__divider {
+  align-self: stretch;
+}
+
+/* Индикатор масштаба и кнопка сброса — фиксированная ширина 100px,
+   текст по центру. */
+.status-bar__zoom {
+  flex: 0 0 100px;
+  width: 100px;
+  text-align: center;
+  align-self: center;
+}
+
+/* Кнопка «По умолчанию». Неактивное состояние (disabled) — текст выглядит
+   как обычная надпись статус-бара (как индикатор); активное — стиль
+   ribbon-btn__label (тёмнее, кликабельно). */
+.status-bar__reset {
+  flex: 0 0 100px;
+  width: 100px;
+  align-self: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 12px;
+  text-align: center;
+  color: var(--status-bar-color, #777);
+  cursor: default;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status-bar__reset:not(:disabled) {
+  color: var(--ribbon-label-color, #323130);
+  cursor: pointer;
+}
+
+.status-bar__reset:not(:disabled):hover {
+  text-decoration: underline;
 }
 
 /* ---------- Радиальный layout ---------- */

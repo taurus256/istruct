@@ -19,6 +19,38 @@ document.addEventListener('DOMContentLoaded', function () {
   Notes.init();
   TestPanel.init();
 
+  /* ============ Индикатор масштаба и кнопка сброса в статус-баре ============
+     Индикатор показывает текущий масштаб в %, кнопка «По умолчанию»
+     активна только при масштабе != 100% и сбрасывает его (аналог Alt+0). */
+  var zoomLabel = document.getElementById('status-zoom');
+  var zoomResetBtn = document.getElementById('btn-zoom-reset');
+
+  function updateZoomIndicator(z) {
+    var percent = Math.round(z * 100);
+    if (zoomLabel) {
+      zoomLabel.textContent = 'Масштаб: ' + percent + '%';
+    }
+    if (zoomResetBtn) {
+      zoomResetBtn.disabled = (percent === 100);
+    }
+  }
+
+  if (typeof Render.setOnZoomChange === 'function') {
+    Render.setOnZoomChange(updateZoomIndicator);
+  }
+  // Начальное состояние (учитывает восстановленный из localStorage масштаб).
+  updateZoomIndicator(Render.getZoom());
+
+  if (zoomResetBtn) {
+    zoomResetBtn.addEventListener('click', function () {
+      if (typeof Zoom !== 'undefined' && Zoom.reset) {
+        Zoom.reset();
+      } else {
+        Render.setZoom(1);
+      }
+    });
+  }
+
   // Справка — независимая левая панель (#help-panel), полностью управляется
   // внутри help.js и не взаимодействует с координатором #side-panel ниже —
   // обе панели могут быть открыты одновременно.
