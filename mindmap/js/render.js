@@ -705,6 +705,22 @@ var Render = (function () {
       return;
     }
 
+    // ВАЖНО: сбрасываем размер SVG ДО измерения scrollWidth/scrollHeight.
+    // SVG сам является абсолютным элементом внутри #mindmap-root и его
+    // собственные width/height ВНОСЯТ ВКЛАД в scrollWidth/scrollHeight
+    // контейнера. Если этого не сделать, при уменьшении дерева (zoom out)
+    // scrollWidth не может опуститься ниже размера SVG, зафиксированного на
+    // предыдущем (более крупном) рендере — «храповик»: scrollWidth только
+    // растёт, появляется пустое место справа/снизу, а зум-к-якорю (см.
+    // zoom.js) считает scrollLeft относительно раздутой области и уводит
+    // схему из центра. Обнуление SVG перед чтением scrollWidth даёт
+    // истинный размер контента (только дерево).
+    svg.innerHTML = '';
+    svg.style.width = '0';
+    svg.style.height = '0';
+    svg.setAttribute('width', 0);
+    svg.setAttribute('height', 0);
+
     var containerRect = container.getBoundingClientRect();
     // SVG должен покрывать ВЕСЬ прокручиваемый контент, а не только видимую
     // область: containerRect.width/height (getBoundingClientRect()) — это
@@ -725,7 +741,6 @@ var Render = (function () {
     // 1 CSS-пикселю независимо от CSS-правил в layout.css.
     svg.style.width = contentWidth + 'px';
     svg.style.height = contentHeight + 'px';
-    svg.innerHTML = '';
 
     // Переводит viewport-координату (из getBoundingClientRect()) в систему
     // координат, привязанную к КОНТЕНТУ контейнера (т.е. не зависящую от
