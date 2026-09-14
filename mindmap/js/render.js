@@ -620,6 +620,19 @@ var Render = (function () {
     });
   }
 
+  // Публичный запуск редактирования текста узла по его id (например по
+  // нажатию Enter на выделенном узле — аналогично двойному клику по тексту).
+  function editNode(nodeId) {
+    var bodyEl = nodeBodyEls[nodeId];
+    if (!bodyEl) {
+      return;
+    }
+    var textEl = bodyEl.querySelector('.node__text');
+    if (textEl) {
+      startEditing(textEl, nodeId);
+    }
+  }
+
   // Редактирование текста узла прямо в дереве через contenteditable.
   function startEditing(textEl, nodeId) {
     textEl.contentEditable = 'true';
@@ -981,6 +994,7 @@ var Render = (function () {
     setOnSelectionChange: setOnSelectionChange,
     setOnZoomChange: setOnZoomChange,
     addChild: addChild,
+    editNode: editNode,
     deleteNode: deleteNode,
     toggleMarked: toggleMarked,
     setZoom: setZoom,

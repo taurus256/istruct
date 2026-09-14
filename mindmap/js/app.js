@@ -303,6 +303,11 @@ document.addEventListener('DOMContentLoaded', function () {
       e.preventDefault();
       Render.deleteNode(selectedId);
     } else if (e.key === 'Enter') {
+      // Enter на выделенном узле — редактирование текста (как двойной клик).
+      e.preventDefault();
+      Render.editNode(selectedId);
+    } else if (e.key === 'Insert') {
+      // Insert на выделенном узле — добавление дочернего узла.
       e.preventDefault();
       // Если выделен root, направление ветви не выбирается хоткеем — 'right' по умолчанию.
       var isRootSelected = selectedId === Model.getState().rootId;
