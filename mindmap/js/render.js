@@ -348,6 +348,11 @@ var Render = (function () {
 
     container.appendChild(rowMiddle);
 
+    // Компенсируем «отрицательное» смещение контента от ручных offset'ов
+    // (см. compensateNegativeOffsets) — чтобы узлы, сдвинутые вверх/влево,
+    // оставались достижимы скроллом/панорамированием.
+    compensateNegativeOffsets();
+
     // SVG-оверлей с линиями между узлами — создаём после того, как остальной
     // DOM уже на месте, чтобы он лежал сверху и покрывал весь контейнер.
     var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -821,6 +826,86 @@ var Render = (function () {
     var bodyEl = box && box.querySelector('.node__body');
     if (bodyEl) {
       bodyEl.classList.toggle('node--marked', marked);
+    }
+  }
+
+  // Компенсация «отрицательного» смещения контента: узлы, сдвинутые вручную
+  // (data.offset → transform: translate) далеко вверх/влево, визуально уходят
+  // в координаты < 0 контейнера. transform НЕ участвует в layout и НЕ создаёт
+  // прокручиваемую область, а scrollLeft/scrollTop не могут быть отрицательными,
+  // поэтому такие узлы становятся недостижимы. Измеряем фактические границы
+  // всех узлов и, если минимум по X/Y ушёл в минус, добавляем .mm-row-middle
+  // padding (реальный layout-сдвиг, увеличивающий scrollWidth/scrollHeight — в
+  // отличие от ещё одного transform), возвращая весь контент в положительную
+  // зону + небольшой отступ GUTTER.
+  function compensateNegativeOffsets() {
+    if (!container || !rowMiddleEl) {
+      return;
+    }
+    // Сбрасываем прежнюю компенсацию, чтобы измерить естественные границы.
+    rowMiddleEl.style.paddingLeft = '';
+    rowMiddleEl.style.paddingTop = '';
+
+    if (Object.keys(nodeBodyEls).length === 0) {
+      return;
+    }
+
+    var GUTTER = 24; // небольшой отступ, чтобы узлы не прижимались к краю
+
+    // Измеряет минимальные координаты всех узлов в системе контента.
+    function measureMin() {
+      var cr = container.getBoundingClientRect();
+      var mnX = Infinity;
+      var mnY = Infinity;
+      Object.keys(nodeBodyEls).forEach(function (id) {
+        var el = nodeBodyEls[id];
+        if (!el) {
+          return;
+        }
+        var r = el.getBoundingClientRect();
+        var x = r.left - cr.left + container.scrollLeft;
+        var y = r.top - cr.top + container.scrollTop;
+        if (x < mnX) { mnX = x; }
+        if (y < mnY) { mnY = y; }
+      });
+      return { x: mnX, y: mnY };
+    }
+
+    // Компенсируем ТОЛЬКО реально «ушедший в минус» контент — обычные схемы
+    // (без offset или со смещениями вправо/вниз) имеют minX/minY >= 0 и не
+    // получают лишних отступов. Паддинг задаётся внутри zoom-контекста
+    // .mm-row-middle (CSS-свойство zoom масштабирует и padding), поэтому работаем
+    // с экранными величинами и делим накопленный padding на zoom.
+    //
+    // Итеративно: у .mm-row-middle align-items:center — добавление paddingTop
+    // смещает центрируемый контент НЕ 1:1 (часть «съедается»
+    // вертикальным центрированием), поэтому доводим min до >=0 за
+    // несколько проходов (быстро сходится), накапливая padding.
+    var zoom = currentZoom || 1;
+    var padLeft = 0;
+    var padTop = 0;
+    for (var pass = 0; pass < 5; pass++) {
+      var mn = measureMin();
+      if (!isFinite(mn.x) || !isFinite(mn.y)) {
+        return;
+      }
+      var needMore = false;
+      // Триггер — СТРОГО отрицательный min (контент вылез за 0 и недостижим),
+      // чтобы не трогать обычные схемы (у них верхний/левый узел естественно
+      // стоит на padding контейнера ~24px, min >= 0). Целим в GUTTER для отступа.
+      if (mn.x < 0) {
+        padLeft += (GUTTER - mn.x);
+        rowMiddleEl.style.paddingLeft = (padLeft / zoom) + 'px';
+        needMore = true;
+      }
+      if (mn.y < 0) {
+        padTop += (GUTTER - mn.y);
+        rowMiddleEl.style.paddingTop = (padTop / zoom) + 'px';
+        needMore = true;
+      }
+      if (!needMore) {
+        break;
+      }
     }
   }
 
