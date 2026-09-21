@@ -410,6 +410,13 @@ body {
   display: flex;
   align-items: center;
   gap: 16px;
+  /* pointer-events:none на структурном scaffolding: .mm-node-wrap — большой
+     сплошной flex-прямоугольник (узел + всё поддерево + gap'ы), и при ручном
+     смещении ветви (data.offset через transform) он визуально наезжает на
+     другие узлы. Без этого его пустые области перехватывали бы hover/click у
+     перекрытых узлов (мышь не доходила до узла под наложением, хотя клавиатура
+     работала). Мышь возвращается только на сами узлы через .node ниже. */
+  pointer-events: none;
 }
 
 .mm-node-wrap.mm-dir-right {
@@ -435,6 +442,9 @@ body {
 .mm-children {
   display: flex;
   gap: 14px;
+  /* См. комментарий у .mm-node-wrap: контейнер поддерева тоже прозрачен для
+     мыши, чтобы его пустые области/gap'ы не перехватывали события у узлов. */
+  pointer-events: none;
 }
 
 /* Для left/right дети стоят друг под другом по вертикали */
@@ -506,6 +516,10 @@ body {
   align-items: flex-start; /* комментарий выравнен по левому краю бокса */
   cursor: pointer;
   user-select: none;
+  /* Возвращаем мышь на сам узел и всё его содержимое (.node__body, popup-
+     панели, комментарий, drag&drop) — переопределяет pointer-events:none,
+     унаследованный от scaffolding-контейнеров .mm-node-wrap/.mm-children. */
+  pointer-events: auto;
   /* Однозначно ставит узлы в свой стекинг-контекст выше svg.mm-connectors. */
   position: relative;
   z-index: 1;
