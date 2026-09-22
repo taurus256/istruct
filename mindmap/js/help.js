@@ -140,7 +140,7 @@ var Help = (function () {
         '</svg>' +
         '<span class="help-file-card__text">' +
           '<span class="help-file-card__title">DATA_FORMAT.md</span>' +
-          '<span class="help-file-card__desc">Формат данных для чат-LLM</span>' +
+          '<span class="help-file-card__desc">Описание формата данных для передачи LLM</span>' +
         '</span>' +
       '</a>';
 
