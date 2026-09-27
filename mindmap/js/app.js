@@ -20,8 +20,9 @@ document.addEventListener('DOMContentLoaded', function () {
   TestPanel.init();
 
   /* ============ Индикатор масштаба и кнопка сброса в статус-баре ============
-     Индикатор показывает текущий масштаб в %, кнопка «Вернуть» видна
-     только при масштабе != 100% и сбрасывает его (аналог Alt+0). */
+     Индикатор показывает текущий масштаб в %, кнопка сброса всегда занимает
+     своё место в статус-баре (не скрывается — не дёргает высоту полосы),
+     но при масштабе 100% становится disabled и её текст очищается. */
   var zoomLabel = document.getElementById('status-zoom');
   var zoomResetBtn = document.getElementById('btn-zoom-reset');
 
@@ -33,7 +34,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (zoomResetBtn) {
       var isDefaultZoom = (percent === 100);
       zoomResetBtn.disabled = isDefaultZoom;
-      zoomResetBtn.hidden = isDefaultZoom;
+      zoomResetBtn.textContent = isDefaultZoom ? '' : 'Вернуть';
     }
   }
 
