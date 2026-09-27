@@ -1,7 +1,7 @@
 /*
  * storage.js — сохранение/загрузка модели в localStorage,
  * экспорт и импорт в формате JSON.
- * Формат файла: { "version": 6, "rootId": "n1", "nodes": { ... } }
+ * Формат файла: { "version": 7, "rootId": "n1", "nodes": { ... } }
  *
  * ИДЕНТИФИКАТОР УЗЛА (важно): узел хранится как значение по КЛЮЧУ в объекте
  * "nodes" — именно ключ и есть идентификатор узла. Внутреннего поля "id" у
@@ -45,17 +45,29 @@
  * «не отмечен». См. model.js (setMarked/isMarked/toggleMarked) и
  * render.js (Render.toggleMarked).
  *
- * version 6 (текущая): убрано дублирующее внутреннее поле "id" у узлов —
+ * version 6: убрано дублирующее внутреннее поле "id" у узлов —
  * идентификатор узла теперь ТОЛЬКО его ключ в объекте "nodes" (раньше id
  * хранился и как ключ, и как поле "id" внутри объекта, и они обязаны были
  * совпадать). При сериализации поле "id" исключается (см. serializeNodes),
  * при загрузке восстанавливается в памяти из ключа (см. Model.setState).
  *
- * Обратная совместимость: файлы version 1–5 читаются без изменений —
+ * version 7 (текущая): у вопроса теста (data.test.questions[i], см. version 4
+ * выше) может появиться необязательное поле "type": "choice" | "freeform".
+ * Отсутствие поля равносильно "choice" (старые данные version ≤6 — все
+ * выборочные вопросы читаются без изменений). При "type": "freeform"
+ * поля "options"/"multiple" не используются, вместо них ОБЯЗАТЕЛЬНО поле
+ * "expectedAnswer": string — эталонный ответ. Проверка: введённый пользователем
+ * текст засчитывается верным, только если совпадает с "expectedAnswer" после
+ * обрезки пробелов по краям и приведения к нижнему регистру у обеих строк
+ * (без нечёткого сравнения). См. test.js (isQuestionCorrect/finalize) и
+ * DATA_FORMAT.md §4.1.
+ *
+ * Обратная совместимость: файлы version 1–6 читаются без изменений —
  * отсутствие поля data.* трактуется как авто-позиция / «заметки нет» /
- * «теста нет» / «не отмечен»; старое внутреннее поле "id" (если есть)
- * игнорируется и перезаписывается ключом при загрузке (Model.setState).
- * isValidPayload не требует наличия внутреннего id.
+ * «теста нет» / «не отмечен»; отсутствие "type" у вопроса теста трактуется
+ * как "choice"; старое внутреннее поле "id" (если есть) игнорируется и
+ * перезаписывается ключом при загрузке (Model.setState). isValidPayload не
+ * требует наличия внутреннего id.
  */
 
 var Storage = (function () {
@@ -88,7 +100,7 @@ var Storage = (function () {
   function saveImmediate() {
     try {
       var state = Model.getState();
-      var payload = { version: 6, rootId: state.rootId, nodes: serializeNodes(state.nodes) };
+      var payload = { version: 7, rootId: state.rootId, nodes: serializeNodes(state.nodes) };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     } catch (e) {
       console.error('Не удалось сохранить mind map в localStorage', e);
@@ -146,7 +158,7 @@ var Storage = (function () {
   // Экспорт текущей модели в файл mindmap.json (Blob + скрытая ссылка-скачивание).
   function exportJSON() {
     var state = Model.getState();
-    var payload = { version: 6, rootId: state.rootId, nodes: serializeNodes(state.nodes) };
+    var payload = { version: 7, rootId: state.rootId, nodes: serializeNodes(state.nodes) };
     var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     var url = URL.createObjectURL(blob);
 

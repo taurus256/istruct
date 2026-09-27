@@ -214,13 +214,15 @@ var TestPanel = (function () {
     var test = Model.getTest(nodeId);
     var answers = {};
     test.questions.forEach(function (q) {
-      answers[q.id] = {};
+      // 'freeform' хранит одну строку (введённый текст), 'choice' (или тип
+      // не задан — старые данные до version 7) — map(optionId -> true).
+      answers[q.id] = (q.type === 'freeform') ? '' : {};
     });
     attempt = {
       nodeId: nodeId,
       test: test,
       questions: test.questions,
-      answers: answers,     // qid -> map(optionId -> true)
+      answers: answers,     // qid -> map(optionId -> true) | string (freeform)
       index: 0,
       startTime: Date.now()
     };
@@ -232,17 +234,25 @@ var TestPanel = (function () {
     var total = attempt.questions.length;
     var num = attempt.index + 1;
     var progress = Math.round((num / total) * 100);
-    var selected = attempt.answers[q.id] || {};
+    var isFreeform = q.type === 'freeform';
 
-    var optionsHtml = q.options.map(function (opt) {
-      var isSel = !!selected[opt.id];
-      var boxClass = q.multiple ? 'test-choice__box--check' : 'test-choice__box--radio';
-      return '' +
-        '<label class="test-choice' + (isSel ? ' test-choice--selected' : '') + '" data-opt="' + esc(opt.id) + '">' +
-          '<span class="test-choice__box ' + boxClass + (isSel ? ' test-choice__box--on' : '') + '"></span>' +
-          '<span class="test-choice__text">' + mdInline(opt.text) + '</span>' +
-        '</label>';
-    }).join('');
+    var answerHtml;
+    if (isFreeform) {
+      var typed = attempt.answers[q.id] || '';
+      answerHtml = '<textarea class="test-answer-input" placeholder="Ваш ответ">' + esc(typed) + '</textarea>';
+    } else {
+      var selected = attempt.answers[q.id] || {};
+      var optionsHtml = q.options.map(function (opt) {
+        var isSel = !!selected[opt.id];
+        var boxClass = q.multiple ? 'test-choice__box--check' : 'test-choice__box--radio';
+        return '' +
+          '<label class="test-choice' + (isSel ? ' test-choice--selected' : '') + '" data-opt="' + esc(opt.id) + '">' +
+            '<span class="test-choice__box ' + boxClass + (isSel ? ' test-choice__box--on' : '') + '"></span>' +
+            '<span class="test-choice__text">' + mdInline(opt.text) + '</span>' +
+          '</label>';
+      }).join('');
+      answerHtml = '<div class="test-choices">' + optionsHtml + '</div>';
+    }
 
     viewEl.innerHTML =
       headerHtml('Тест') +
@@ -255,12 +265,23 @@ var TestPanel = (function () {
         '</div>' +
         '<div class="test-progress"><div class="test-progress__bar" style="width:' + progress + '%"></div></div>' +
         '<div class="test-question-card">' + md(q.text) + '</div>' +
-        '<div class="test-choices">' + optionsHtml + '</div>' +
+        answerHtml +
       '</div>' +
       '<div class="test-footer">' +
         '<button type="button" class="test-btn test-btn--primary" data-action="submit">Ответить</button>' +
         '<button type="button" class="test-link" data-action="finish">Завершить тест</button>' +
       '</div>';
+
+    // Textarea обновляет attempt.answers напрямую по 'input', БЕЗ повторного
+    // renderQuestion() — полная перерисовка на каждый символ пересоздала бы
+    // DOM-элемент и сбросила фокус/позицию курсора (см. похожий textarea
+    // #notes-source в notes.js — там по той же причине нет ре-рендера на ввод).
+    if (isFreeform) {
+      var textareaEl = viewEl.querySelector('.test-answer-input');
+      textareaEl.addEventListener('input', function (e) {
+        attempt.answers[q.id] = e.target.value;
+      });
+    }
   }
 
   // Переключение выбора варианта. Для single-выбора — заменяем; для multiple — тогл.
@@ -280,9 +301,18 @@ var TestPanel = (function () {
 
   /* =========================== Подсчёт / финал ========================== */
 
-  // Верно ли отвечен вопрос: множество выбранных == множество correct-вариантов.
-  function isQuestionCorrect(q, selMap) {
-    var selected = Object.keys(selMap || {});
+  // Верно ли отвечен вопрос.
+  // 'choice': множество выбранных == множество correct-вариантов.
+  // 'freeform': введённый текст == expectedAnswer с точностью до обрезки
+  // пробелов по краям и регистра (см. DATA_FORMAT.md §4.1).
+  function isQuestionCorrect(q, answer) {
+    if (q.type === 'freeform') {
+      var typed = String(answer || '').trim().toLowerCase();
+      var expected = String(q.expectedAnswer || '').trim().toLowerCase();
+      return typed !== '' && typed === expected;
+    }
+    var selMap = answer || {};
+    var selected = Object.keys(selMap);
     var correct = q.options.filter(function (o) { return o.correct; })
       .map(function (o) { return o.id; });
     if (selected.length !== correct.length) {
@@ -315,22 +345,35 @@ var TestPanel = (function () {
     var wrong = [];
 
     questions.forEach(function (q, i) {
-      var selMap = attempt.answers[q.id] || {};
-      var selectedIds = Object.keys(selMap);
-      if (selectedIds.length > 0) {
+      var answer = attempt.answers[q.id];
+      var isFreeform = q.type === 'freeform';
+      var answered = isFreeform
+        ? String(answer || '').trim() !== ''
+        : Object.keys(answer || {}).length > 0;
+      if (answered) {
         answeredCount += 1;
       }
-      if (isQuestionCorrect(q, selMap)) {
+      if (isQuestionCorrect(q, answer)) {
         correctCount += 1;
       } else {
-        var yourTexts = optionTextsByIds(q, selectedIds);
-        var correctIds = q.options.filter(function (o) { return o.correct; })
-          .map(function (o) { return o.id; });
+        var yourText, correctText;
+        if (isFreeform) {
+          var typed = String(answer || '').trim();
+          yourText = typed !== '' ? typed : '—';
+          correctText = String(q.expectedAnswer || '');
+        } else {
+          var selectedIds = Object.keys(answer || {});
+          var yourTexts = optionTextsByIds(q, selectedIds);
+          var correctIds = q.options.filter(function (o) { return o.correct; })
+            .map(function (o) { return o.id; });
+          yourText = yourTexts.length ? yourTexts.join(', ') : '—';
+          correctText = optionTextsByIds(q, correctIds).join(', ');
+        }
         wrong.push({
           num: i + 1, // 1-based номер вопроса — для подписи «Вопрос N:» в карточке
           questionText: (typeof Markdown !== 'undefined') ? Markdown.toPlainText(q.text) : String(q.text),
-          yourText: yourTexts.length ? yourTexts.join(', ') : '—',
-          correctText: optionTextsByIds(q, correctIds).join(', ')
+          yourText: yourText,
+          correctText: correctText
         });
       }
     });

@@ -1660,6 +1660,27 @@ body.mm-resizing .panel-resize-handle {
 .test-question-card > :first-child { margin-top: 0; }
 .test-question-card > :last-child { margin-bottom: 0; }
 
+/* Поле свободного ответа (вопрос type:'freeform', см. test.js) — обычный
+   textarea (не contentEditable, как #notes-source в notes.js), стилизован
+   как остальные карточки этой панели (см. .test-question-card выше). */
+.test-answer-input {
+  display: block;
+  width: 100%;
+  min-height: 120px;
+  padding: 12px;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--test-card-border, #e2e5e9);
+  border-radius: var(--radius-ui);
+  font: var(--type-body);
+  color: var(--node-text-color, #1f2937);
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.test-answer-input::placeholder {
+  color: var(--text-faint, #9aa0a6);
+}
+
 /* Варианты ответа. */
 .test-choices {
   display: flex;
