@@ -922,9 +922,28 @@ var Render = (function () {
   // Откладываем пересчёт координат коннекторов на следующий кадр, чтобы
   // браузер успел применить flex-layout и getBoundingClientRect() вернул
   // актуальные координаты.
+  //
+  // ВАЖНО: если обновление уже запланировано — НЕ отменяем и не
+  // перезапускаем его (было так раньше: cancelAnimationFrame + новый rAF).
+  // При частых повторных вызовах за короткое время (например, быстрая
+  // прокрутка колесом с Ctrl — несколько wheel-событий подряд меняют зум
+  // быстрее, чем успевают отработать 2 кадра) такой "debounce" постоянно
+  // откладывал выполнение на ещё 2 кадра вперёд и при определённом стечении
+  // обстоятельств (в частности — throttling rAF в фоновой/неактивной
+  // вкладке) последний запланированный вызов вовсе не срабатывал: линии
+  // коннекторов застывали с координатами ОДНОГО из промежуточных состояний
+  // зума (обычно предпоследнего) и больше никогда не обновлялись — узлы
+  // визуально двигались (CSS zoom/flex-layout пересчитывался браузером
+  // как обычно), а прямые линии коннекторов — нет, пока пользователь не
+  // triggered zoom ещё раз. Ниже — throttle вместо debounce: НЕ отменяем
+  // уже запланированный вызов, просто не добавляем второй; он гарантированно
+  // сработает в течение ближайших ~2 кадров и на момент срабатывания
+  // прочитает АКТУАЛЬНЫЕ (getBoundingClientRect на момент вызова, а не
+  // закэшированные) координаты — то есть всегда отражает последнее
+  // состояние зума/скролла, даже если триггеров было много подряд.
   function scheduleConnectorsUpdate() {
     if (connectorsRaf) {
-      cancelAnimationFrame(connectorsRaf);
+      return;
     }
     // Двойной rAF: первый кадр гарантирует, что браузер уже применил свежий
     // flex-layout (в частности — самый первый рендер сразу после вставки
@@ -934,6 +953,124 @@ var Render = (function () {
       connectorsRaf = requestAnimationFrame(function () {
         connectorsRaf = null;
         renderConnectors();
+        verifyConnectorsSettled(0);
+      });
+    });
+  }
+
+  // Подстраховка сверх двойного rAF (воспроизводится в Chrome, не
+  // воспроизводится в Firefox): у узла со смещением (data.offset) позиция
+  // задаётся через CSS transform на .mm-node-wrap. При быстрых повторных
+  // сменах zoom (например, туда-обратно колесом с Ctrl) Chrome иногда ещё
+  // несколько кадров ПОСЛЕ уже применённого нового zoom продолжает отдавать
+  // из getBoundingClientRect() для такого узла позицию, посчитанную как бы
+  // для ПРЕДЫДУЩЕГО zoom (задержка именно на composited-transform слое —
+  // обычный flex/zoom-layout у getBoundingClientRect() всегда синхронный и
+  // верный). Из-за этого renderConnectors() выше мог отрисовать линию по
+  // ещё неактуальным координатам, и, поскольку линии — статичные значения
+  // (не пересчитываются сами по себе), она застывала неверной насовсем.
+  // Вместо того чтобы гадать, сколько кадров "достаточно", сверяем позиции
+  // смещённых узлов на следующем кадре: если они ещё отличаются от того,
+  // что было мгновение назад — измерения ещё "доезжают", перерисовываем
+  // коннекторы заново и проверяем снова (не более MAX_SETTLE_ATTEMPTS раз,
+  // чтобы гарантированно не зациклиться).
+  var MAX_SETTLE_ATTEMPTS = 8;
+  // Пока идёт проверка (см. verifyConnectorsSettled) — true. Используется
+  // renderConnectors(), чтобы на это время СКРЫВАТЬ (не рисовать видимо)
+  // смещённые узлы и их коннекторы вместо того, чтобы показывать их
+  // "прыжок" от неверной промежуточной позиции к верной — см.
+  // beginConnectorsSettle/endConnectorsSettle и .mm-node-wrap--settling
+  // в layout.css.
+  var connectorsSettling = false;
+
+  function hasOffset(id) {
+    var node = Model.getNode(id);
+    var offset = node && node.data && node.data.offset;
+    return !!(offset && (offset.dx || offset.dy));
+  }
+
+  function offsetNodesFingerprint() {
+    var parts = [];
+    Object.keys(nodeBodyEls).forEach(function (id) {
+      if (!hasOffset(id)) {
+        return;
+      }
+      var r = nodeBodyEls[id].getBoundingClientRect();
+      parts.push(id + ':' + r.left.toFixed(1) + ',' + r.top.toFixed(1));
+    });
+    return parts.join('|');
+  }
+
+  // Скрывает (visibility:hidden — без схлопывания layout, чтобы не сбить
+  // измерения соседей) .mm-node-wrap смещённых узлов на время "доезда"
+  // измерений после смены zoom (см. комментарий у verifyConnectorsSettled
+  // ниже). Их коннекторы скрывает сам renderConnectors() (см. ниже) — он
+  // проверяет connectorsSettling при отрисовке каждой линии.
+  function setOffsetNodesHidden(hidden) {
+    Object.keys(nodeEls).forEach(function (id) {
+      if (!hasOffset(id)) {
+        return;
+      }
+      var wrap = nodeEls[id] && nodeEls[id].parentElement;
+      if (wrap && wrap.classList.contains('mm-node-wrap')) {
+        wrap.classList.toggle('mm-node-wrap--settling', hidden);
+      }
+    });
+  }
+
+  // Начать "затишье": вызывается ТОЛЬКО из setZoom() (не из resize/scroll/
+  // renderAll — там позиции смещённых узлов не "прыгают", прятать нечего),
+  // синхронно, ДО первой отрисовки коннекторов на новом zoom — чтобы
+  // пользователь вообще не увидел неверный промежуточный кадр.
+  function beginConnectorsSettle() {
+    if (!offsetNodesFingerprint()) {
+      return; // в схеме нет смещённых узлов — незачем прятать
+    }
+    connectorsSettling = true;
+    setOffsetNodesHidden(true);
+  }
+
+  function endConnectorsSettle() {
+    if (!connectorsSettling) {
+      return;
+    }
+    connectorsSettling = false;
+    setOffsetNodesHidden(false);
+    renderConnectors(); // перерисовать: коннекторы смещённых узлов теперь видимы
+  }
+
+  // Подстраховка сверх двойного rAF (воспроизводится в Chrome, не
+  // воспроизводится в Firefox): у узла со смещением (data.offset) позиция
+  // задаётся через CSS transform на .mm-node-wrap. При быстрых повторных
+  // сменах zoom (например, туда-обратно колесом с Ctrl) Chrome иногда ещё
+  // несколько кадров ПОСЛЕ уже применённого нового zoom продолжает отдавать
+  // из getBoundingClientRect() для такого узла позицию, посчитанную как бы
+  // для ПРЕДЫДУЩЕГО zoom (задержка именно на composited-transform слое —
+  // обычный flex/zoom-layout у getBoundingClientRect() всегда синхронный и
+  // верный). Пока это не улеглось, смещённые узлы и их коннекторы скрыты
+  // (см. beginConnectorsSettle) — так пользователь видит либо верную
+  // финальную позицию, либо ничего, но никогда неверный промежуточный
+  // "прыжок". Сверяем позиции смещённых узлов на следующем кадре: если они
+  // ещё отличаются от того, что было мгновение назад — измерения ещё
+  // "доезжают", перерисовываем коннекторы заново (по-прежнему скрытыми) и
+  // проверяем снова (не более MAX_SETTLE_ATTEMPTS раз, чтобы гарантированно
+  // не зациклиться и не оставить узлы скрытыми навсегда); как только позиции
+  // стабилизировались (или попытки исчерпаны) — раскрываем.
+  function verifyConnectorsSettled(attempt) {
+    var before = offsetNodesFingerprint();
+    if (!before) {
+      return; // в схеме нет узлов со смещением — баг неприменим, нечего проверять
+    }
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        var after = offsetNodesFingerprint();
+        if (after !== before && attempt < MAX_SETTLE_ATTEMPTS) {
+          renderConnectors();
+          verifyConnectorsSettled(attempt + 1);
+          return;
+        }
+        renderConnectors();
+        endConnectorsSettle();
       });
     });
   }
@@ -1048,7 +1185,16 @@ var Render = (function () {
       line.setAttribute('y1', y1);
       line.setAttribute('x2', x2);
       line.setAttribute('y2', y2);
-      line.setAttribute('class', 'mm-connector-line');
+      // Пока идёт "затишье" после смены zoom (см. connectorsSettling) —
+      // прячем коннектор, если ЛЮБОЙ из его концов принадлежит смещённому
+      // узлу: координаты этого конца ещё могут "доехать" до финальных (см.
+      // verifyConnectorsSettled), и без этого пользователь видел бы, как
+      // линия дёргается вслед за прыгающим узлом.
+      var lineClass = 'mm-connector-line';
+      if (connectorsSettling && (hasOffset(id) || hasOffset(node.parentId))) {
+        lineClass += ' mm-connector-line--settling';
+      }
+      line.setAttribute('class', lineClass);
       svg.appendChild(line);
     });
   }
@@ -1069,6 +1215,10 @@ var Render = (function () {
     if (rowMiddleEl) {
       rowMiddleEl.style.zoom = clamped;
     }
+    // Синхронно, ДО первой перерисовки коннекторов на новом zoom — иначе
+    // пользователь успеет увидеть неверный промежуточный кадр (см.
+    // beginConnectorsSettle).
+    beginConnectorsSettle();
     scheduleConnectorsUpdate();
     if (onZoomChange) {
       onZoomChange(clamped);
