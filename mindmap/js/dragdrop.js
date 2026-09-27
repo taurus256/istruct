@@ -3,14 +3,20 @@
  * Во время dragover заранее проверяем допустимость переноса (циклы,
  * canHaveChildren целевого типа) и подсвечиваем цель зелёным/красным.
  *
- * Один и тот же жест drag&drop обслуживает ДВА разных сценария, различаемых
- * только точкой отпускания мыши:
- *  - drop поверх другого узла (.node)          -> смена иерархии (reparent),
- *    обрабатывается attachHandlers()/onDrop, как и раньше;
- *  - drop на свободном месте контейнера        -> ручное позиционирование
+ * Два разных сценария одного и того же жеста drag&drop различаются тем,
+ * зажат ли Ctrl в момент отпускания (а не тем, отпущено ли поверх узла —
+ * так было раньше, и это путало перемещение позиции с переносом в другого
+ * родителя, если узел просто оказывался визуально над другим узлом):
+ *  - Ctrl зажат + drop поверх другого узла (.node) -> смена иерархии
+ *    (reparent), обрабатывается attachHandlers()/onDrop;
+ *  - Ctrl НЕ зажат (drop где угодно — хоть над узлом, хоть на свободном
+ *    месте)                                        -> ручное позиционирование
  *    (сдвиг узла и всей его ветви), обрабатывается
  *    attachContainerHandlers()/onRepositionDrop на основе смещения курсора
- *    мыши между dragstart и drop.
+ *    мыши между dragstart и drop. Если dragover/drop случились над узлом
+ *    без Ctrl, per-node обработчик в attachHandlers() намеренно НЕ вызывает
+ *    preventDefault()/не глотает событие — оно всплывает к контейнеру и
+ *    обрабатывается там точно так же, как drop на свободном месте.
  */
 
 var DragDrop = (function () {
@@ -52,6 +58,15 @@ var DragDrop = (function () {
       if (!draggedId || draggedId === node.id) {
         return;
       }
+      // Без Ctrl это НЕ смена родителя — намеренно НЕ вызываем
+      // preventDefault() и не трогаем классы подсветки: событие всплывёт к
+      // attachContainerHandlers() на контейнере, который обработает его как
+      // обычное перетаскивание на свободное место (ручное позиционирование),
+      // даже если курсор физически сейчас над этим узлом.
+      if (!e.ctrlKey) {
+        el.classList.remove('drop-valid', 'drop-invalid');
+        return;
+      }
       e.preventDefault(); // обязательно, иначе drop не сработает
 
       var check = canDrop(draggedId, node.id);
@@ -65,6 +80,11 @@ var DragDrop = (function () {
     });
 
     el.addEventListener('drop', function (e) {
+      // См. dragover выше: без Ctrl это не наш сценарий — не глотаем
+      // событие, пусть всплывёт к контейнеру (ручное позиционирование).
+      if (!e.ctrlKey) {
+        return;
+      }
       e.preventDefault();
       el.classList.remove('drop-valid', 'drop-invalid');
       if (!draggedId) {
@@ -113,45 +133,45 @@ var DragDrop = (function () {
   }
 
   /**
-   * Навешивает на контейнер #mindmap-root обработчики drop на СВОБОДНОЕ
-   * место (не на узел) — включают ручное позиционирование перетаскиваемого
-   * узла вместо смены родителя. Должен вызываться один раз для корневого
-   * контейнера, отдельно от attachHandlers() на каждом узле.
+   * Навешивает на контейнер #mindmap-root обработчики drop на ручное
+   * позиционирование — свободное место ИЛИ (без зажатого Ctrl) поверх
+   * другого узла: тогда его собственный dragover/drop из attachHandlers()
+   * намеренно не глотает событие (не вызывает preventDefault), и оно
+   * всплывает сюда же. Должен вызываться один раз для корневого контейнера,
+   * отдельно от attachHandlers() на каждом узле.
    * callbacks.onRepositionDrop(draggedId, dx, dy) — dx/dy в пикселях,
    * смещение курсора мыши между dragstart и drop.
    */
   function attachContainerHandlers(containerEl, callbacks) {
-    containerEl.addEventListener('dragover', function (e) {
-      if (!draggedId) {
-        return;
-      }
+    // Сценарий смены иерархии (Ctrl + drop поверх узла) полностью обрабатывает
+    // сам узел (attachHandlers) — здесь его нужно пропустить, не перехватывая
+    // как ручное позиционирование.
+    function isReparentScenario(e) {
       var overNode = e.target.closest && e.target.closest('.node');
-      if (overNode) {
-        // Цель — узел: логику dropEffect/подсветки уже отработал его
-        // собственный dragover-обработчик из attachHandlers().
+      return !!(overNode && e.ctrlKey);
+    }
+
+    containerEl.addEventListener('dragover', function (e) {
+      if (!draggedId || isReparentScenario(e)) {
         return;
       }
-      e.preventDefault(); // разрешить drop на свободном месте
+      e.preventDefault(); // разрешить drop как ручное позиционирование
       e.dataTransfer.dropEffect = 'move';
       containerEl.classList.add('mm-drop-reposition');
     });
 
     containerEl.addEventListener('dragleave', function (e) {
-      var overNode = e.target.closest && e.target.closest('.node');
-      if (!overNode) {
+      if (!isReparentScenario(e)) {
         containerEl.classList.remove('mm-drop-reposition');
       }
     });
 
     containerEl.addEventListener('drop', function (e) {
       containerEl.classList.remove('mm-drop-reposition');
-      if (!draggedId) {
-        return;
-      }
-      var overNode = e.target.closest && e.target.closest('.node');
-      if (overNode) {
-        // Цель — узел: перенос (reparent) уже обработан drop-обработчиком
-        // самого узла (событие в него попало раньше и всплыло сюда же).
+      if (!draggedId || isReparentScenario(e)) {
+        // Сценарий смены иерархии — перенос (reparent) уже обработан
+        // drop-обработчиком самого узла (событие в него попало раньше и
+        // всплыло сюда же).
         return;
       }
       e.preventDefault();
