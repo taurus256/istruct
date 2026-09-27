@@ -89,7 +89,7 @@
 
   /* Выделение и связи */
   --node-selected-outline: #ff9800;
-  --connector-color: #1a1a1a;
+  --connector-color: #8A8A8A; /* neutral */
 
   /* Комментарий-атрибут (мелкий серый текст под узлом) */
   --comment-color: #8a8a8a;
@@ -123,7 +123,7 @@
   --page-bg: #fafbfc;
 
   /* Тулбар (ribbon-style) */
-  --toolbar-bg: #f3f3f3;
+  --toolbar-bg: #f9f7f6;
   --ribbon-border: #d2d2d2;
   /* Figma-переменная color/toolbar-bg удалена из файла — используем
      color/background (--toolbar-bg) вместо неё. */
@@ -146,7 +146,7 @@
   --status-bar-border: #d2d2d2;
 
   /* Боковая панель (заметки / прохождение теста) */
-  --notes-panel-bg: #f3f3f3;
+  --notes-panel-bg: #f9f7f6;
   --notes-panel-border: #d2d2d2;
   --notes-inner-border: #e5e7eb;
   --notes-toolbar-bg: #ffffff;

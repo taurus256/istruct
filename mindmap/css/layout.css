@@ -316,6 +316,7 @@ body {
      ширине всего дерева), поэтому #mindmap-root получает корректный
      положительный scrollWidth, покрывающий весь контент. */
   align-items: flex-start;
+  scrollbar-width: thin;
 }
 
 .mindmap-root.mm-panning {

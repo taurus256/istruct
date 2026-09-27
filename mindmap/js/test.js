@@ -169,7 +169,7 @@ var TestPanel = (function () {
         '<div class="test-info-cards">' +
           infoCard('list', pluralQuestions(n)) +
           infoCard('clock', '~' + mins + ' минут') +
-          infoCard('check', threshold + '% нужно набрать') +
+          infoCard('check', 'нужно набрать ' + threshold + '%') +
         '</div>' +
         introStatusHtml(nodeId) +
       '</div>' +
