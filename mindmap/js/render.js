@@ -321,13 +321,23 @@ var Render = (function () {
     var rootBox = renderNodeBox(root);
     rootBox.classList.add('mm-root-box');
 
+    // DOM-порядок здесь ВАЖЕН не только для флекс-раскладки: при равном
+    // z-index браузер разрешает наложение элементов в пользу того, кто
+    // ПОЗЖЕ в DOM. Всплывающие панели root'а (кнопки добавления) выходят
+    // за границы его бокса и могут пересекаться с уже существующей веткой
+    // в этом направлении — чтобы root/его панели всегда оказывались НАД
+    // такой веткой (а не наоборот), rootBox добавляется в DOM ПОСЛЕДНИМ
+    // среди соседей по каждому flex-контейнеру. Визуальный порядок
+    // (up/root/down, left/center/right) при этом сохраняется через CSS
+    // order (см. .mm-row-up/.mm-row-down/.mm-root-box и
+    // .mm-zone-left/.mm-zone-right/.mm-center-column в layout.css).
     centerColumn.appendChild(rowUp);
-    centerColumn.appendChild(rootBox);
     centerColumn.appendChild(rowDown);
+    centerColumn.appendChild(rootBox);
 
     rowMiddle.appendChild(zoneLeft);
-    rowMiddle.appendChild(centerColumn);
     rowMiddle.appendChild(zoneRight);
+    rowMiddle.appendChild(centerColumn);
 
     var children = Model.getChildren(root.id);
     children.forEach(function (child) {
