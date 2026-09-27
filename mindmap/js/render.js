@@ -979,8 +979,7 @@ var Render = (function () {
   // renderConnectors(), чтобы на это время СКРЫВАТЬ (не рисовать видимо)
   // смещённые узлы и их коннекторы вместо того, чтобы показывать их
   // "прыжок" от неверной промежуточной позиции к верной — см.
-  // beginConnectorsSettle/endConnectorsSettle и .mm-node-wrap--settling
-  // в layout.css.
+  // beginConnectorsSettle/endConnectorsSettle/setOffsetNodesHidden ниже.
   var connectorsSettling = false;
 
   function hasOffset(id) {
@@ -1006,15 +1005,31 @@ var Render = (function () {
   // измерений после смены zoom (см. комментарий у verifyConnectorsSettled
   // ниже). Их коннекторы скрывает сам renderConnectors() (см. ниже) — он
   // проверяет connectorsSettling при отрисовке каждой линии.
+  //
+  // ПРИНУДИТЕЛЬНО: пишем visibility и transition через ИНЛАЙН-СТИЛЬ (а не
+  // CSS-класс) — это гарантированно перебивает любое другое правило
+  // (специфичность инлайн-стиля максимальна) и применяется немедленно, без
+  // допущений о порядке разбора стилей. transition:none на время скрытия —
+  // отдельная подстраховка: .mm-node-wrap--offset анимирует transform 120мс
+  // (см. layout.css, нужно для плавности при ручном перетаскивании); если
+  // при смене zoom тоже запускается такой переход, обычное сравнение
+  // getBoundingClientRect() в verifyConnectorsSettled может решить, что
+  // позиция "устоялась", уже когда layout посчитал финальное значение, но
+  // ДО того как реально доиграется 120-мс визуальный переход — тогда узел
+  // раскрывается ПРЯМО ПОСЕРЕДИНЕ анимации, и пользователь всё равно видит
+  // "доезд". transition:none на время скрытия убирает саму возможность
+  // такого — раскрытие всегда мгновенный снап на уже верную позицию.
   function setOffsetNodesHidden(hidden) {
     Object.keys(nodeEls).forEach(function (id) {
       if (!hasOffset(id)) {
         return;
       }
       var wrap = nodeEls[id] && nodeEls[id].parentElement;
-      if (wrap && wrap.classList.contains('mm-node-wrap')) {
-        wrap.classList.toggle('mm-node-wrap--settling', hidden);
+      if (!wrap || !wrap.classList.contains('mm-node-wrap')) {
+        return;
       }
+      wrap.style.visibility = hidden ? 'hidden' : '';
+      wrap.style.transition = hidden ? 'none' : '';
     });
   }
 
@@ -1185,16 +1200,17 @@ var Render = (function () {
       line.setAttribute('y1', y1);
       line.setAttribute('x2', x2);
       line.setAttribute('y2', y2);
+      line.setAttribute('class', 'mm-connector-line');
       // Пока идёт "затишье" после смены zoom (см. connectorsSettling) —
-      // прячем коннектор, если ЛЮБОЙ из его концов принадлежит смещённому
-      // узлу: координаты этого конца ещё могут "доехать" до финальных (см.
-      // verifyConnectorsSettled), и без этого пользователь видел бы, как
-      // линия дёргается вслед за прыгающим узлом.
-      var lineClass = 'mm-connector-line';
+      // принудительно прячем коннектор инлайн-стилем (см. комментарий у
+      // setOffsetNodesHidden про инлайн вместо класса), если ЛЮБОЙ из его
+      // концов принадлежит смещённому узлу: координаты этого конца ещё
+      // могут "доехать" до финальных (см. verifyConnectorsSettled), и без
+      // этого пользователь видел бы, как линия дёргается вслед за
+      // прыгающим узлом.
       if (connectorsSettling && (hasOffset(id) || hasOffset(node.parentId))) {
-        lineClass += ' mm-connector-line--settling';
+        line.style.visibility = 'hidden';
       }
-      line.setAttribute('class', lineClass);
       svg.appendChild(line);
     });
   }
