@@ -266,7 +266,9 @@ document.addEventListener('DOMContentLoaded', function () {
     importInput.value = ''; // сброс, чтобы можно было повторно выбрать тот же файл
   });
 
-  // Горячие клавиши: Delete — удалить выделенный узел, Enter — добавить дочерний узел типа main.
+  // Горячие клавиши: Delete — удалить выделенный узел, Enter — добавить
+  // дочерний узел типа main, Alt+Q — панель справки, Alt+W — общая боковая
+  // панель (тест/заметки).
   document.addEventListener('keydown', function (e) {
     var active = document.activeElement;
     // Не перехватываем клавиши во время ввода текста: редактирование текста
@@ -275,6 +277,24 @@ document.addEventListener('DOMContentLoaded', function () {
     if (active && (active.isContentEditable ||
         active.tagName === 'TEXTAREA' || active.tagName === 'INPUT')) {
       return;
+    }
+
+    // Alt+Q/Alt+W — переключение панелей, не зависят от выделения узла.
+    // Проверяем e.code (физическая позиция клавиши), а не e.key — иначе на
+    // нелатинской раскладке (например, русской) Alt+буква может дать другой
+    // символ. Требуем ТОЛЬКО Alt (без Ctrl/Shift/Meta), чтобы не перехватывать
+    // системные сочетания вроде Ctrl+Alt+Q.
+    if (e.altKey && !e.ctrlKey && !e.shiftKey && !e.metaKey) {
+      if (e.code === 'KeyQ') {
+        e.preventDefault();
+        Help.toggle();
+        return;
+      }
+      if (e.code === 'KeyW') {
+        e.preventDefault();
+        togglePanel();
+        return;
+      }
     }
 
     // Навигация между узлами стрелками — только чистые стрелки (без
