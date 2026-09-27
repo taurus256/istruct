@@ -988,6 +988,30 @@ var Render = (function () {
     return !!(offset && (offset.dx || offset.dy));
   }
 
+  // hasOffset(id) проверяет только сам узел — этого достаточно для узлов
+  // (см. setOffsetNodesHidden: скрытие через visibility на .mm-node-wrap
+  // наследуется всеми вложенными потомками автоматически, DOM есть DOM).
+  // Но коннекторы — ОТДЕЛЬНЫЕ SVG-элементы в другой части дерева (сам
+  // .mm-connectors — сосед узлов, а не их потомок), поэтому такое
+  // наследование на них не действует. Если у узла нет СВОЕГО смещения, но
+  // он вложен внутри ветки смещённого предка (чей transform ещё "не
+  // доехал" после смены zoom), сам узел визуально смещается вместе с
+  // предком (обычный layout/nesting), а его коннекторы — нет, если не
+  // проверить всю цепочку родителей. hasOffsetInChain(id) идёт вверх по
+  // parentId и считает узел смещённым, если смещение есть у него самого
+  // или у ЛЮБОГО его предка.
+  function hasOffsetInChain(id) {
+    var current = id;
+    while (current) {
+      if (hasOffset(current)) {
+        return true;
+      }
+      var node = Model.getNode(current);
+      current = node ? node.parentId : null;
+    }
+    return false;
+  }
+
   function offsetNodesFingerprint() {
     var parts = [];
     Object.keys(nodeBodyEls).forEach(function (id) {
@@ -1204,11 +1228,14 @@ var Render = (function () {
       // Пока идёт "затишье" после смены zoom (см. connectorsSettling) —
       // принудительно прячем коннектор инлайн-стилем (см. комментарий у
       // setOffsetNodesHidden про инлайн вместо класса), если ЛЮБОЙ из его
-      // концов принадлежит смещённому узлу: координаты этого конца ещё
-      // могут "доехать" до финальных (см. verifyConnectorsSettled), и без
-      // этого пользователь видел бы, как линия дёргается вслед за
-      // прыгающим узлом.
-      if (connectorsSettling && (hasOffset(id) || hasOffset(node.parentId))) {
+      // концов — сам смещённый узел ИЛИ вложен в ветку смещённого предка
+      // (hasOffsetInChain, а не hasOffset: сам узел в таком случае визуально
+      // "едет" вместе с предком благодаря обычному DOM-вложению, но линия —
+      // отдельный SVG-элемент вне этого поддерева и так не защищена).
+      // Координаты этого конца ещё могут "доехать" до финальных (см.
+      // verifyConnectorsSettled), и без этого пользователь видел бы, как
+      // линия дёргается вслед за прыгающим узлом.
+      if (connectorsSettling && (hasOffsetInChain(id) || hasOffsetInChain(node.parentId))) {
         line.style.visibility = 'hidden';
       }
       svg.appendChild(line);
