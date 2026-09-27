@@ -275,24 +275,20 @@ document.addEventListener('DOMContentLoaded', function () {
   document.addEventListener('keydown', function (e) {
     var active = document.activeElement;
 
-    // Alt+Q/Alt+W — переключение панелей. НАРОЧНО проверяются ДО guard'а
+    // Alt+1/Alt+2 — переключение панелей. НАРОЧНО проверяются ДО guard'а
     // ниже (который отключает хоткеи во время ввода текста) — иначе
     // Alt+W не закрывал бы боковую панель, если курсор стоит в поле
     // заметки/теста внутри НЕЁ ЖЕ САМОЙ (типичный кейс: редактируешь
     // заметку и хочешь тут же свернуть панель, не кликая по крестику).
     // Alt+буква не встречается при обычном наборе текста, конфликтов с
-    // редактированием нет. Проверяем e.code (физическая позиция клавиши),
-    // а не e.key — иначе на нелатинской раскладке (например, русской)
-    // Alt+буква может дать другой символ. Требуем ТОЛЬКО Alt (без
-    // Ctrl/Shift/Meta), чтобы не перехватывать системные сочетания вроде
-    // Ctrl+Alt+Q.
+    // редактированием нет.
     if (e.altKey && !e.ctrlKey && !e.shiftKey && !e.metaKey) {
-      if (e.code === 'KeyQ') {
+      if (e.code === 'Digit1') {
         e.preventDefault();
         Help.toggle();
         return;
       }
-      if (e.code === 'KeyW') {
+      if (e.code === 'Digit2') {
         e.preventDefault();
         togglePanel();
         return;

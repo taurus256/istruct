@@ -42,7 +42,7 @@ var Help = (function () {
     {
       id: 'topic-4',
       title: 'Горячие клавиши',
-      bodyHtml: '<p><strong>Масштаб</strong></p>\n<p><em><strong>Alt + &lt;плюс&gt;</strong></em> увеличить масштаб</p>\n<p><em><strong>Alt + &lt;минус&gt;</strong></em> уменьшить масштаб</p>\n<p><em><strong>Alt + 0</strong></em> масштаб по умолчанию</p>\n<p><strong>Панели</strong></p>\n<p><em><strong>Alt + Q</strong></em> показать/скрыть левую панель (справку)</p>\n<p><em><strong>Alt + W</strong></em> показать/скрыть правую панель (тесты/заметки)</p>\n<p><strong>Использование мыши</strong></p>\n<p><em><strong>Ctrl + &lt;щелчок по ссылке&gt;</strong></em> переход по ссылке</p>\n<p><em><strong>Ctrl + &lt;перемещение узла поверх другого&gt;</strong></em> привязка к другому родительскому узлу</p>\n<p><em><strong>Ctrl + &lt;колесо мыши&gt;</strong></em> изменение масштаба</p>'
+      bodyHtml: '<p><strong>Масштаб</strong></p>\n<p><em><strong>Alt + &lt;плюс&gt;</strong></em> увеличить масштаб</p>\n<p><em><strong>Alt + &lt;минус&gt;</strong></em> уменьшить масштаб</p>\n<p><em><strong>Alt + 0</strong></em> масштаб по умолчанию</p>\n<p><strong>Панели</strong></p>\n<p><em><strong>Alt + 1</strong></em> показать/скрыть левую панель (справку)</p>\n<p><em><strong>Alt + 2</strong></em> показать/скрыть правую панель (тесты/заметки)</p>\n<p><strong>Использование мыши</strong></p>\n<p><em><strong>Ctrl + &lt;щелчок по ссылке&gt;</strong></em> переход по ссылке</p>\n<p><em><strong>Ctrl + &lt;перемещение узла поверх другого&gt;</strong></em> привязка к другому родительскому узлу</p>\n<p><em><strong>Ctrl + &lt;колесо мыши&gt;</strong></em> изменение масштаба</p>'
     },
     {
       id: 'topic-5',
