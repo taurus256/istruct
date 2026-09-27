@@ -1212,13 +1212,16 @@ var Render = (function () {
     if (clamped < ZOOM_MIN) { clamped = ZOOM_MIN; }
     if (clamped > ZOOM_MAX) { clamped = ZOOM_MAX; }
     currentZoom = clamped;
+    // Прячем смещённые узлы ДО применения нового zoom (а не после) — на
+    // случай, если браузер решит отрисовать кадр между сменой style.zoom и
+    // скрытием (в теории обе мутации попадают в один синхронный таск и один
+    // paint, но так мы не полагаемся на это допущение: скрытое состояние
+    // применяется первым и гарантированно действует уже к моменту, когда
+    // zoom меняется). См. beginConnectorsSettle/verifyConnectorsSettled.
+    beginConnectorsSettle();
     if (rowMiddleEl) {
       rowMiddleEl.style.zoom = clamped;
     }
-    // Синхронно, ДО первой перерисовки коннекторов на новом zoom — иначе
-    // пользователь успеет увидеть неверный промежуточный кадр (см.
-    // beginConnectorsSettle).
-    beginConnectorsSettle();
     scheduleConnectorsUpdate();
     if (onZoomChange) {
       onZoomChange(clamped);
