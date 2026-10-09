@@ -308,5 +308,4 @@
 
 .node--selected .node__body {
   outline: 3px solid var(--node-selected-outline);
-  outline-offset: 2px;
 }

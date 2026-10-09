@@ -634,9 +634,6 @@ body {
   gap: 2px;
   padding: 2px;
   background: var(--panel-bg, rgba(255, 255, 255, 0.95));
-  border: 1px solid var(--node-panel-border, rgba(0, 0, 0, 0.12));
-  border-radius: var(--radius-ui);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
   white-space: nowrap;
   opacity: 0;
   visibility: hidden;
