@@ -485,14 +485,6 @@ var Render = (function () {
           makeAddButtons(addGroup, node.id, isRoot ? direction : undefined);
           editPanel.insertBefore(addGroup, editPanel.firstChild);
           editPanel.classList.add('node__panel--merged');
-          // Если у узла есть заметка/тест — встраиваем кнопку открытия
-          // в ту же объединённую панель действий (видна только для выделенного
-          // узла с направлением 'up' — вместо отдельной попап-панели, чтобы не
-          // создавать вторую панель над боксом).
-          var mergedNoteTestBtn = createNoteTestButton(node.id);
-          if (mergedNoteTestBtn) {
-            editPanel.appendChild(mergedNoteTestBtn);
-          }
         } else {
           var panel = document.createElement('span');
           panel.className = 'node__panel node__panel--add node__panel--add-' + direction;
@@ -502,14 +494,25 @@ var Render = (function () {
       });
     }
 
-    // Отдельная попап-панель «открыть заметку/тест» — создаётся всегда,
-    // когда у узла есть note/test (независимо от того, встроена ли кнопка
-    // также в объединённую edit-панель выше, для direction==='up') — взаимное
-    // исключение с editPanel обеспечено CSS (см. layout.css): эта панель видна
-    // только у НЕвыделенного узла (:hover:not(.node--selected)), а editPanel — только у
-    // выделенного (.node--selected), поэтому одновременной видимости обеих не бывает.
-    // Узлы с direction !== 'up' при выделении не показывают кнопку вовсе (осознанный
-    // пробел в ТЗ: встраивание в edit-панель специфицировано только для direction==='up').
+    // Если у корневого узла есть заметка/тест — встраиваем кнопку открытия
+    // в ту же (единственную для root) панель действий — вместо отдельной попап-панели,
+    // чтобы не создавать вторую панель над боксом. Условие строго isRoot (НЕ
+    // направление 'up') — у обычных узлов с унаследованным направлением 'up' кнопка
+    // встраиваться НЕ должна — для них действует только отдельный попап ниже.
+    if (isRoot) {
+      var mergedNoteTestBtn = createNoteTestButton(node.id);
+      if (mergedNoteTestBtn) {
+        editPanel.appendChild(mergedNoteTestBtn);
+      }
+    }
+
+    // Отдельная попап-панель «открыть заметку/тест» — создаётся для ЛЮБОГО узла
+    // (включая root — видна при наведении, пока он не выделен), когда у узла есть
+    // note/test. Взаимное исключение с editPanel обеспечено CSS (см. layout.css): эта панель
+    // видна только у НЕвыделенного узла (:hover:not(.node--selected)), а editPanel —
+    // только у выделенного (.node--selected), поэтому одновременной видимости обеих
+    // не бывает. Обычные узлы (не root) при выделении не показывают кнопку вовсе
+    // (осознанный пробел в ТЗ: встраивание в edit-панель специфицировано только для root).
     var noteTestBtn = createNoteTestButton(node.id);
     if (noteTestBtn) {
       var noteTestPanel = document.createElement('span');
