@@ -178,6 +178,14 @@ document.addEventListener('DOMContentLoaded', function () {
     updateMarkButtonState(id);
   });
 
+  // Клик по кнопке «открыть заметку/тест» на узле (render.js) уже выделил
+  // узел через selectNode() до вызова этого колбэка — routeSelection для него
+  // уже сработал (если панель была открыта — вью уже переключился на новый
+  // узел). Остаётся только гарантировать видимость панели, если она была закрыта.
+  Render.setOnOpenPanelRequest(function () {
+    openPanel();
+  });
+
   if (notesBtn) {
     notesBtn.addEventListener('click', function () {
       togglePanel();

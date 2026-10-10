@@ -627,7 +627,10 @@ body {
 /* ---------- Всплывающие панели узла ---------- */
 
 /* Общее для всех панелей: абсолютно позиционированы относительно
-   .node__body, скрыты по умолчанию, появляются при наведении на узел. */
+   .node__body, скрыты по умолчанию. Видимость у разных панелей разная (см.
+   ниже): edit/add-панели действий показываются только для ВЫДЕЛЕННОго узла
+   (.node--selected), а новая панель-попап заметки/теста (--note-test)
+   остаётся hover-driven и показывается для НЕвыделенных узлов. */
 .node__panel {
   position: absolute;
   display: inline-flex;
@@ -642,7 +645,24 @@ body {
   z-index: 4;
 }
 
-.node:hover .node__panel {
+/* edit и add-по-направлению панели — только для выделенного узла (было по hover
+   для любого узла — изменено по запросу: теперь попап-кнопки создания/удаления
+   видны только у текущего выделенного узла). */
+.node--selected .node__panel--edit,
+.node--selected .node__panel--add-right,
+.node--selected .node__panel--add-left,
+.node--selected .node__panel--add-down {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Новая попап-панель заметки/теста — остаётся hover-driven, НО явно
+   исключается для ВЫДЕЛЕННОго узла (:not(.node--selected)): render.js создаёт
+   эту панель всегда, когда у узла есть note/test (независимо от направления),
+   а статус выделения меняется без renderAll() (selectNode лёгкий) — поэтому
+   разграничение с edit-панелью делается ЧИСТО CSS-селектором. */
+.node:hover:not(.node--selected) .node__panel--note-test {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
@@ -650,6 +670,15 @@ body {
 
 /* Панель редактирования: сверху бокса, привязка к правому краю. */
 .node__panel--edit {
+  bottom: calc(100% + 4px);
+  right: 0;
+}
+
+/* Попап-панель с кнопкой открытия заметки/теста — то же позиционирование,
+   что и у .node__panel--edit (сверху бокса, справа). Оба класса никогда не
+   встречаются одновременно на одном узле (edit — только для selected,
+   note-test — только для неselected). */
+.node__panel--note-test {
   bottom: calc(100% + 4px);
   right: 0;
 }
@@ -700,6 +729,14 @@ body {
 
 /* edit: панель сверху, зазор 4px снизу от неё до узла. */
 .node__panel--edit::before {
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 6px;
+}
+
+/* note-test: та же геометрия моста, что и у edit (идентичное позиционирование). */
+.node__panel--note-test::before {
   top: 100%;
   left: 0;
   right: 0;

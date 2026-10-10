@@ -140,6 +140,15 @@ var Render = (function () {
     }
   }
 
+  // Необязательный колбэк «открыть боковую панель и показать там узел»
+  // (регистрируется из app.js) — дёргается кнопкой открытия заметки/теста
+  // во всплывающей панели узла. render.js не знает о координаторе #side-panel
+  // в app.js — просто уведомляет подписчика, если он есть.
+  var onOpenPanelRequest = null;
+  function setOnOpenPanelRequest(fn) {
+    onOpenPanelRequest = (typeof fn === 'function') ? fn : null;
+  }
+
   // Пространственная навигация выделения стрелками клавиатуры.
   // direction ∈ {'up','down','left','right'} — выбирает ближайший узел,
   // физически расположенный в этом направлении на экране (по координатам
@@ -476,6 +485,14 @@ var Render = (function () {
           makeAddButtons(addGroup, node.id, isRoot ? direction : undefined);
           editPanel.insertBefore(addGroup, editPanel.firstChild);
           editPanel.classList.add('node__panel--merged');
+          // Если у узла есть заметка/тест — встраиваем кнопку открытия
+          // в ту же объединённую панель действий (видна только для выделенного
+          // узла с направлением 'up' — вместо отдельной попап-панели, чтобы не
+          // создавать вторую панель над боксом).
+          var mergedNoteTestBtn = createNoteTestButton(node.id);
+          if (mergedNoteTestBtn) {
+            editPanel.appendChild(mergedNoteTestBtn);
+          }
         } else {
           var panel = document.createElement('span');
           panel.className = 'node__panel node__panel--add node__panel--add-' + direction;
@@ -483,6 +500,22 @@ var Render = (function () {
           bodyEl.appendChild(panel);
         }
       });
+    }
+
+    // Отдельная попап-панель «открыть заметку/тест» — создаётся всегда,
+    // когда у узла есть note/test (независимо от того, встроена ли кнопка
+    // также в объединённую edit-панель выше, для direction==='up') — взаимное
+    // исключение с editPanel обеспечено CSS (см. layout.css): эта панель видна
+    // только у НЕвыделенного узла (:hover:not(.node--selected)), а editPanel — только у
+    // выделенного (.node--selected), поэтому одновременной видимости обеих не бывает.
+    // Узлы с direction !== 'up' при выделении не показывают кнопку вовсе (осознанный
+    // пробел в ТЗ: встраивание в edit-панель специфицировано только для direction==='up').
+    var noteTestBtn = createNoteTestButton(node.id);
+    if (noteTestBtn) {
+      var noteTestPanel = document.createElement('span');
+      noteTestPanel.className = 'node__panel node__panel--note-test';
+      noteTestPanel.appendChild(noteTestBtn);
+      bodyEl.appendChild(noteTestPanel);
     }
 
     bodyEl.appendChild(editPanel);
@@ -604,6 +637,42 @@ var Render = (function () {
     }
 
     return panel;
+  }
+
+  // Создаёт кнопку «открыть заметку/тест» для узла на основе того, ЧТО у него
+  // есть (не от типа узла): есть data.test → иконка теста (приоритетнее заметки);
+  // иначе если есть data.note → иконка заметки; иначе кнопка не нужна (null).
+  // По клику: выделяет узел и просит координатор в app.js открыть боковую
+  // панель (см. setOnOpenPanelRequest) и показать в ней этот узел.
+  function createNoteTestButton(nodeId) {
+    var hasTest = Model.hasTest(nodeId);
+    var hasNote = Model.getNote(nodeId) !== undefined;
+    if (!hasTest && !hasNote) {
+      return null;
+    }
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'node__btn node__btn--note-test';
+    if (hasTest) {
+      btn.title = 'Открыть тест';
+      // Тот же паттерн light/dark, что и у кнопок добавления типа test (makeAddButtons):
+      // обе иконки в DOM, нужную показывает CSS по data-theme.
+      btn.innerHTML =
+        '<img class="node__btn__icon--light" src="assets/icons/small/test.svg" alt="">' +
+        '<img class="node__btn__icon--dark" src="assets/icons/small/dark/test.svg" alt="">';
+    } else {
+      btn.title = 'Открыть заметку';
+      // Для заметки тёмного варианта иконки нет — одинаково в обеих темах.
+      btn.innerHTML = '<img src="assets/icons/small/note.svg" alt="">';
+    }
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      selectNode(nodeId);
+      if (onOpenPanelRequest) {
+        onOpenPanelRequest(nodeId);
+      }
+    });
+    return btn;
   }
 
   // Создаёт кнопки добавления по одной на каждый зарегистрированный тип
@@ -1283,6 +1352,7 @@ var Render = (function () {
     selectNode: selectNode,
     moveSelection: moveSelection,
     setOnSelectionChange: setOnSelectionChange,
+    setOnOpenPanelRequest: setOnOpenPanelRequest,
     setOnZoomChange: setOnZoomChange,
     addChild: addChild,
     editNode: editNode,
