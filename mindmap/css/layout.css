@@ -548,6 +548,9 @@ body {
 .mm-connector-line {
   stroke: var(--connector-color, #b0c4d8);
   stroke-width: 1;
+  /* Теперь это <polyline> (ортогональная ломаная из 3 сегментов), а не <line> —
+     без fill:none браузер заливает замкнутый многоугольник чёрным по умолчанию. */
+  fill: none;
 }
 
 /* ---------- Узел ----------
