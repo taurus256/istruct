@@ -93,6 +93,16 @@ body {
   flex: 0 0 auto;
 }
 
+/* ribbonRenderer.js держит в DOM все вкладки одновременно и переключает
+   их через атрибут hidden. Без этого явного переопределения встроенное
+   правило браузера `[hidden]{display:none}` проигрывает авторскому
+   `.ribbon-tab-content{display:flex}` (равная специфичность, авторское правило идёт
+   позже в каскаде) — все вкладки остаются видимы одновременно (тот же
+   паттерн, что у .side-panel[hidden]/.help-panel[hidden] выше в этом файле). */
+.ribbon-tab-content[hidden] {
+  display: none;
+}
+
 .ribbon-group {
   display: flex;
   align-items: stretch;
