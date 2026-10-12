@@ -4,6 +4,13 @@
  */
 
 document.addEventListener('DOMContentLoaded', function () {
+  // Рендерим ribbon-тулбар по декларативному описанию (RibbonConfig) ПЕРВОЙ
+  // строкой — все остальные обработчики ниже ищут кнопки по id
+  // (document.getElementById), они должны уже существовать в DOM.
+  if (typeof RibbonRenderer !== 'undefined' && typeof RibbonConfig !== 'undefined') {
+    RibbonRenderer.init(document.getElementById('toolbar'), RibbonConfig);
+  }
+
   Theme.init();
   Storage.load();
 
