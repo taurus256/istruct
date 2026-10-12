@@ -51,12 +51,58 @@ body {
   flex: 0 0 auto;
 }
 
-/* Строка вкладок (новое, раньше тулбар состоял сразу из групп). */
+/* Строка, вмещающая вкладки и кнопки Undo/Redo сразу за ними в одной строке (не прижаты к
+   правому краю — без justify-content:space-between, простой flex-поток). */
+.ribbon-tabs-row {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+/* Строка вкладок (раньше тулбар состоял сразу из групп). */
 .ribbon-tabs {
   display: flex;
   gap: 2px;
   padding: 0 8px;
   flex: 0 0 auto;
+}
+
+/* Кнопки Undo/Redo — справа от названий вкладок. Состояние (активна/неактивна —
+   есть ли снапшоты в соответствующем буфере) ⑃ app.js переключает через
+   disabled и src иконки (undo.svg/undo_disable.svg и т.д.). */
+.ribbon-undo-redo {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 8px;
+  flex: 0 0 auto;
+}
+
+.ribbon-undo-redo__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 6px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-button);
+  cursor: pointer;
+}
+
+.ribbon-undo-redo__btn img {
+  width: 24px;
+  height: 24px;
+  display: block;
+}
+
+.ribbon-undo-redo__btn:hover:not(:disabled) {
+  background: var(--ribbon-btn-hover-bg, #eef3fb);
+}
+
+.ribbon-undo-redo__btn:disabled {
+  cursor: default;
 }
 
 .ribbon-tab {

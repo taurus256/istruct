@@ -157,7 +157,16 @@ var Notes = (function () {
       return;
     }
     var md = getEditorMarkdown();
-    if (md.trim() === '') {
+    var trimmed = md.trim();
+    var stored = Model.getNote(currentNodeId);
+    var storedNormalized = (stored === undefined || stored === null) ? '' : String(stored);
+    if (trimmed === storedNormalized.trim() && !(trimmed === '' && storedNormalized !== '')) {
+      // Заметка фактически не изменилась с момента загрузки/последнего сохранения —
+      // не засоряем undo-стек пустым шагом.
+      return;
+    }
+    Undo.push();
+    if (trimmed === '') {
       Model.clearNote(currentNodeId);
     } else {
       Model.setNote(currentNodeId, md);

@@ -125,8 +125,34 @@ var RibbonRenderer = (function () {
     containerEl.innerHTML = '';
     containerEl.classList.add('ribbon-toolbar');
 
+    var tabsRowEl = document.createElement('div');
+    tabsRowEl.className = 'ribbon-tabs-row';
+
     var tabsEl = document.createElement('div');
     tabsEl.className = 'ribbon-tabs';
+
+    // Кнопки Undo/Redo — справа от названий вкладок, в той же строке. Сам
+    // ribbonRenderer ничего не знает про Undo — только создаёт кнопки с фиксированными
+    // id (как и все остальные кнопки ribbon) — логику (состояние/клик)
+    // навешивает app.js.
+    var undoRedoEl = document.createElement('div');
+    undoRedoEl.className = 'ribbon-undo-redo';
+
+    var undoBtn = document.createElement('button');
+    undoBtn.type = 'button';
+    undoBtn.id = 'btn-undo';
+    undoBtn.className = 'ribbon-undo-redo__btn';
+    undoBtn.title = 'Отменить (Ctrl+Z)';
+    undoBtn.innerHTML = '<img src="assets/icons/small/undo_disable.svg" alt="">';
+    undoRedoEl.appendChild(undoBtn);
+
+    var redoBtn = document.createElement('button');
+    redoBtn.type = 'button';
+    redoBtn.id = 'btn-redo';
+    redoBtn.className = 'ribbon-undo-redo__btn';
+    redoBtn.title = 'Повторить (Ctrl+Y)';
+    redoBtn.innerHTML = '<img src="assets/icons/small/redo_disable.svg" alt="">';
+    undoRedoEl.appendChild(redoBtn);
 
     var tabButtons = [];
     // ВАЖНО: содержимое ВСЕХ вкладок рендерится СРАЗУ и остаётся в DOM постоянно
@@ -160,7 +186,9 @@ var RibbonRenderer = (function () {
       tabContents.push(renderTabContent(tab));
     });
 
-    containerEl.appendChild(tabsEl);
+    tabsRowEl.appendChild(tabsEl);
+    tabsRowEl.appendChild(undoRedoEl);
+    containerEl.appendChild(tabsRowEl);
     tabContents.forEach(function (el) {
       containerEl.appendChild(el);
     });

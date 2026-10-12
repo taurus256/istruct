@@ -48,6 +48,49 @@ document.addEventListener('DOMContentLoaded', function () {
   if (typeof Render.setOnZoomChange === 'function') {
     Render.setOnZoomChange(updateZoomIndicator);
   }
+
+  /* ============ Кнопки Undo/Redo на тулбаре (справа от вкладок) ============
+     Активность/иконка отражают наличие снапшотов в соответствующем буфере
+     (Undo.canUndo()/canRedo()). Обновляется при любом изменении стеков через
+     Undo.setOnChange — не требует дублирования вызова в каждом из множества мест,
+     откуда вызывается Undo.push() (render.js/notes.js). */
+  var undoBtn = document.getElementById('btn-undo');
+  var redoBtn = document.getElementById('btn-redo');
+
+  function updateUndoRedoButtons() {
+    if (typeof Undo === 'undefined') {
+      return;
+    }
+    if (undoBtn) {
+      var canUndo = Undo.canUndo();
+      undoBtn.disabled = !canUndo;
+      undoBtn.querySelector('img').src = canUndo
+        ? 'assets/icons/small/undo.svg'
+        : 'assets/icons/small/undo_disable.svg';
+    }
+    if (redoBtn) {
+      var canRedo = Undo.canRedo();
+      redoBtn.disabled = !canRedo;
+      redoBtn.querySelector('img').src = canRedo
+        ? 'assets/icons/small/redo.svg'
+        : 'assets/icons/small/redo_disable.svg';
+    }
+  }
+
+  if (typeof Undo !== 'undefined') {
+    if (undoBtn) {
+      undoBtn.addEventListener('click', function () {
+        Undo.undo();
+      });
+    }
+    if (redoBtn) {
+      redoBtn.addEventListener('click', function () {
+        Undo.redo();
+      });
+    }
+    Undo.setOnChange(updateUndoRedoButtons);
+    updateUndoRedoButtons();
+  }
   // Начальное состояние (учитывает восстановленный из localStorage масштаб).
   updateZoomIndicator(Render.getZoom());
 
@@ -317,6 +360,25 @@ document.addEventListener('DOMContentLoaded', function () {
     if (active && (active.isContentEditable ||
         active.tagName === 'TEXTAREA' || active.tagName === 'INPUT')) {
       return;
+    }
+
+    // Undo/Redo узлов схемы: Ctrl+Z — отмена, Ctrl+Y или Ctrl+Shift+Z —
+    // повтор. СТРОГО ПОСЛЕ guard'а выше (не до него, как Alt+1/Alt+2) —
+    // если фокус в текстоом поле (редактирование текста узла, textarea
+    // заметки) — Ctrl+Z должен достаться браузеру (собственный undo этого
+    // конкретного поля) — это уже обеспечивает guard выше. Используем
+    // e.code (не e.key), чтобы хоткей работал независимо от раскладки клавиатуры.
+    if (e.ctrlKey && !e.altKey && !e.metaKey && typeof Undo !== 'undefined') {
+      if (!e.shiftKey && e.code === 'KeyZ') {
+        e.preventDefault();
+        Undo.undo();
+        return;
+      }
+      if (e.code === 'KeyY' || (e.shiftKey && e.code === 'KeyZ')) {
+        e.preventDefault();
+        Undo.redo();
+        return;
+      }
     }
 
     // Навигация между узлами стрелками — только чистые стрелки (без

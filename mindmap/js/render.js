@@ -89,6 +89,7 @@ var Render = (function () {
         if (dx === 0 && dy === 0) {
           return; // отпустили практически на месте — ничего не меняем
         }
+        Undo.push();
         var moved = Model.addOffset(draggedId, dx, dy);
         if (moved) {
           Storage.save();
@@ -138,6 +139,16 @@ var Render = (function () {
     if (onSelectionChange) {
       onSelectionChange(selectedId);
     }
+  }
+
+  // Публичный форс-вызов уведомления о текущем выделении БЕЗ его изменения —
+  // нужен undo.js:restore() после renderAll(): если узел, выделенный до
+  // undo/redo, пережил восстановление состояния, `selectedId` не меняется
+  // (renderNodeBox сама проставила класс node--selected при перестроении дерева),
+  // поэтому обычный selectNode(selectedId) был бы no-op и не дал бы панели
+  // заметок/теста шанс перезагрузить восстановленное содержимое узла.
+  function refreshSelection() {
+    notifySelectionChanged();
   }
 
   // Необязательный колбэк «открыть боковую панель и показать там узел»
@@ -572,6 +583,11 @@ var Render = (function () {
 
     DragDrop.attachHandlers(box, node, {
       onDrop: function (draggedId, targetId) {
+        // Контейнер вызывает onDrop только после успешной canDrop() (см. dragdrop.js),
+        // поэтому Model.moveNode ниже практически всегда успешен (проверки
+        // дублируются); push до вызова на случай, если result.ok всё же окажется
+        // false — лишний шаг в истории безвреден (undo на него просто ничего видимо не меняет).
+        Undo.push();
         var result = Model.moveNode(draggedId, targetId);
         if (!result.ok) {
           console.warn('Перенос узла отклонён: ' + result.reason);
@@ -619,6 +635,7 @@ var Render = (function () {
       resetBtn.innerHTML = '<img src="assets/icons/small/undo-2.svg" alt="">';
       resetBtn.addEventListener('click', function (e) {
         e.stopPropagation();
+        Undo.push();
         Model.clearOffset(node.id);
         Storage.save();
         renderAll();
@@ -745,9 +762,12 @@ var Render = (function () {
       }
       var typeDef = NodeTypeRegistry.get(node.type);
       var newText = textEl.textContent.trim() || (typeDef ? typeDef.defaultText : '');
-      Model.updateNodeText(nodeId, newText);
-      Storage.save();
-      renderAll();
+      if (newText !== node.text) {
+        Undo.push();
+        Model.updateNodeText(nodeId, newText);
+        Storage.save();
+        renderAll();
+      }
     }
 
     function onKeyDown(e) {
@@ -813,14 +833,18 @@ var Render = (function () {
       commentEl.classList.remove('node__comment--editing');
 
       var newText = commentEl.textContent.replace(/\s+$/, '');
-      if (newText === '') {
-        // Пустой комментарий — удаляем атрибут целиком («комментария нет»).
-        Model.clearComment(nodeId);
-      } else {
-        Model.setComment(nodeId, newText);
+      var oldText = Model.getComment(nodeId);
+      if (newText !== (oldText === undefined ? '' : oldText)) {
+        Undo.push();
+        if (newText === '') {
+          // Пустой комментарий — удаляем атрибут целиком («комментария нет»).
+          Model.clearComment(nodeId);
+        } else {
+          Model.setComment(nodeId, newText);
+        }
+        Storage.save();
+        renderAll();
       }
-      Storage.save();
-      renderAll();
     }
 
     function onKeyDown(e) {
@@ -849,6 +873,7 @@ var Render = (function () {
   // для остальных случаев Model.createNode сама решит, нужен ли фолбэк.
   function addChild(parentId, type, direction) {
     try {
+      Undo.push();
       var newNode = Model.createNode(type, parentId, null, direction);
 
       // Узел типа "ссылка": сразу запрашиваем URL и кладём его в комментарий
@@ -883,6 +908,7 @@ var Render = (function () {
     }
     var newSelection = node.parentId; // после удаления выделяем родителя
 
+    Undo.push();
     var removed = Model.removeNode(id);
     if (removed) {
       Storage.save();
@@ -899,6 +925,7 @@ var Render = (function () {
     if (id == null || id === Model.getState().rootId) {
       return; // root не отмечается — он и так выделен сильнее всех узлов
     }
+    Undo.push();
     var marked = Model.toggleMarked(id);
     if (marked === null) {
       return;
@@ -1353,6 +1380,7 @@ var Render = (function () {
     renderAll: renderAll,
     getSelectedId: getSelectedId,
     selectNode: selectNode,
+    refreshSelection: refreshSelection,
     moveSelection: moveSelection,
     setOnSelectionChange: setOnSelectionChange,
     setOnOpenPanelRequest: setOnOpenPanelRequest,
