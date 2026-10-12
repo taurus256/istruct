@@ -150,7 +150,7 @@ var Help = (function () {
       '</a>';
 
     panelEl.innerHTML =
-      headerHtml('Справка', false) +
+      headerHtml('СПРАВКА', false) +
       '<div class="test-body">' +
         '<div class="help-card-list">' + cardsHtml + '</div>' +
         '<div class="help-card-list help-card-list--files">' + filesHtml + '</div>' +

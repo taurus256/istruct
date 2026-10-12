@@ -29,41 +29,52 @@
 var RibbonConfig = {
   tabs: [
     {
+       name: 'СХЕМА',
+       groups: [
+         {
+           name: 'Схема',
+           content: [
+             { type: 'button', id: 'btn-import', name: 'Импорт JSON', icon: 'assets/icons/arrow-down.svg' },
+             { type: 'button', id: 'btn-export', name: 'Экспорт JSON', icon: 'assets/icons/arrow-up.svg' },
+             { type: 'button', id: 'btn-clear-scheme', name: 'Очистить', icon: 'assets/icons/eracer.svg' }
+           ]
+         }
+       ]
+     },
+    {
       name: 'УЗЛЫ',
       groups: [
         {
-          name: 'Узлы',
+          name: 'Добавить',
           content: [
             { type: 'button', id: 'btn-add-node', name: 'Текст', icon: 'assets/icons/type.svg', iconNeutral: true },
             { type: 'button', id: 'btn-add-test', name: 'Тест', icon: 'assets/icons/small/test.svg' },
-            { type: 'smallbutton', id: 'btn-add-link', name: 'Ссылка', icon: 'assets/icons/link.svg' },
-            { type: 'smallbutton', id: 'btn-mark-node', name: 'Отметить', icon: 'assets/icons/check.svg' },
-            { type: 'smallbutton', id: 'btn-remove-node', name: 'Удалить', icon: 'assets/icons/trash.svg' }
+            { type: 'button', id: 'btn-add-link', name: 'Ссылка', icon: 'assets/icons/link.svg' }
+          ]
+        },
+         {
+          name: 'Действия',
+          content: [
+            { type: 'button', id: 'btn-mark-node', name: 'Отметить', icon: 'assets/icons/check.svg' },
+            { type: 'button', id: 'btn-remove-node', name: 'Удалить', icon: 'assets/icons/trash.svg' }
           ]
         }
       ]
     },
     {
-      name: 'СВЕДЕНИЯ',
+      name: 'ВИД',
       groups: [
         {
-          name: 'Сведения',
+          name: 'Показать',
           content: [
             { type: 'button', id: 'btn-help-docs', name: 'Справка', icon: 'assets/icons/book.svg' },
-            { type: 'button', id: 'btn-notes', name: 'Панель', icon: 'assets/icons/panel.svg' }
+            { type: 'button', id: 'btn-notes', name: 'Панель', icon: 'assets/icons/panel.svg' },
           ]
-        }
-      ]
-    },
-    {
-      name: 'СХЕМА',
-      groups: [
+        },
         {
-          name: 'Схема',
+          name: 'Инструменты',
           content: [
-            { type: 'button', id: 'btn-import', name: 'Импорт JSON', icon: 'assets/icons/arrow-down.svg' },
-            { type: 'button', id: 'btn-export', name: 'Экспорт JSON', icon: 'assets/icons/arrow-up.svg' },
-            { type: 'button', id: 'btn-clear-scheme', name: 'Очистить', icon: 'assets/icons/eracer.svg' }
+            { type: 'button', id: 'btn-theme', name: 'Тема', icon: 'assets/icons/theme.svg', iconNeutral: true }
           ]
         }
       ]

@@ -135,7 +135,7 @@ var TestPanel = (function () {
   function renderEmpty(nodeId) {
     var title = (nodeId != null) ? nodeTitle(nodeId) : '';
     viewEl.innerHTML =
-      headerHtml('Тест') +
+      headerHtml('ТЕСТ') +
       '<div class="test-body">' +
         '<div class="test-node-title">' + esc(title) + '</div>' +
         '<div class="test-divider"></div>' +
@@ -159,7 +159,7 @@ var TestPanel = (function () {
     var threshold = test.passThreshold;
 
     viewEl.innerHTML =
-      headerHtml('Тест') +
+      headerHtml('ТЕСТ') +
       '<div class="test-body">' +
         '<div class="test-node-title">' + esc(nodeTitle(nodeId)) + '</div>' +
         '<div class="test-divider"></div>' +
@@ -255,7 +255,7 @@ var TestPanel = (function () {
     }
 
     viewEl.innerHTML =
-      headerHtml('Тест') +
+      headerHtml('ТЕСТ') +
       '<div class="test-body">' +
         '<div class="test-node-title test-node-title--upper">' + esc(nodeTitle(attempt.nodeId)) + '</div>' +
         '<div class="test-nav">' +
