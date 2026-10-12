@@ -1247,104 +1247,70 @@ var Render = (function () {
       return clientY - containerRect.top + container.scrollTop;
     }
 
-    // Группировка детей по parentId (органайзерный эффект «шины»): все дети
-    // одного родителя (растущие в одном направлении) должны получить
-    // ОДНУ и ТУ ЖЕ координату точки излома (BUS), чтобы их перпендикулярные
-    // сегменты визуально сливались в единую линию.
-    var BUS_OFFSET = 20;
-    var validChildIds = Object.keys(nodeEls).filter(function (id) {
+    Object.keys(nodeEls).forEach(function (id) {
       var node = Model.getNode(id);
       if (!node || !node.parentId) {
-        return false;
+        return; // у root нет родителя — линию рисовать не от чего
       }
-      return !!(nodeBodyEls[node.parentId] && nodeBodyEls[id]);
-    });
-
-    var childrenByParent = {};
-    validChildIds.forEach(function (id) {
-      var node = Model.getNode(id);
-      if (!childrenByParent[node.parentId]) {
-        childrenByParent[node.parentId] = [];
-      }
-      childrenByParent[node.parentId].push(id);
-    });
-
-    var busByParent = {};
-    Object.keys(childrenByParent).forEach(function (parentId) {
-      var ids = childrenByParent[parentId];
-      var parentBox = nodeBodyEls[parentId];
-      if (!parentBox) {
-        return;
-      }
-      var direction = Model.getDirection(ids[0]) || 'right';
-      var p = parentBox.getBoundingClientRect();
-      var bus;
-      if (direction === 'right') {
-        bus = toContentX(p.right) + BUS_OFFSET;
-      } else if (direction === 'left') {
-        bus = toContentX(p.left) - BUS_OFFSET;
-      } else if (direction === 'down') {
-        bus = toContentY(p.bottom) + BUS_OFFSET;
-      } else { // up — "вверх" на экране = уменьшение Y
-        bus = toContentY(p.top) - BUS_OFFSET;
-      }
-      busByParent[parentId] = { direction: direction, bus: bus };
-    });
-
-    validChildIds.forEach(function (id) {
-      var node = Model.getNode(id);
+      // Коннекторы привязываем к видимому боксу (.node__body), а не к внешнему
+      // .node, который может включать комментарий под боксом и исказить
+      // точку присоединения линии.
       var parentBox = nodeBodyEls[node.parentId];
       var childBox = nodeBodyEls[id];
+      if (!parentBox || !childBox) {
+        return;
+      }
 
-      var groupInfo = busByParent[node.parentId];
-      var direction = groupInfo ? groupInfo.direction : (Model.getDirection(id) || 'right');
+      var direction = Model.getDirection(id) || 'right';
       var p = parentBox.getBoundingClientRect();
       var c = childBox.getBoundingClientRect();
 
-      // Ортогональная ломаная из 4 точек (3 сегмента): выход из родителя
-      // строго вертикально/горизонтально → соединительный сегмент по общей для
-      // группы BUS-координате → вход в ребёнка.
-      var points;
+      // Координаты пересчитываем относительно контента контейнера (не
+      // видимой области), соединяя ближний к родителю край с ближним к
+      // ребёнку краем.
+      var x1, y1, x2, y2;
       if (direction === 'right') {
-        var x1 = toContentX(p.right);
-        var y1 = toContentY(p.top + p.height / 2);
-        var yAtChild = toContentY(c.top + c.height / 2);
-        var x2 = toContentX(c.left);
-        var busX = groupInfo ? groupInfo.bus : x1 + BUS_OFFSET;
-        points = [[x1, y1], [busX, y1], [busX, yAtChild], [x2, yAtChild]];
+        x1 = toContentX(p.right);
+        y1 = toContentY(p.top + p.height / 2);
+        x2 = toContentX(c.left);
+        y2 = toContentY(c.top + c.height / 2);
       } else if (direction === 'left') {
-        var x1l = toContentX(p.left);
-        var y1l = toContentY(p.top + p.height / 2);
-        var yAtChildL = toContentY(c.top + c.height / 2);
-        var x2l = toContentX(c.right);
-        var busXl = groupInfo ? groupInfo.bus : x1l - BUS_OFFSET;
-        points = [[x1l, y1l], [busXl, y1l], [busXl, yAtChildL], [x2l, yAtChildL]];
+        x1 = toContentX(p.left);
+        y1 = toContentY(p.top + p.height / 2);
+        x2 = toContentX(c.right);
+        y2 = toContentY(c.top + c.height / 2);
       } else if (direction === 'up') {
-        var x1u = toContentX(p.left + p.width / 2);
-        var y1u = toContentY(p.top);
-        var xAtChildU = toContentX(c.left + c.width / 2);
-        var y2u = toContentY(c.bottom);
-        var busYu = groupInfo ? groupInfo.bus : y1u - BUS_OFFSET;
-        points = [[x1u, y1u], [x1u, busYu], [xAtChildU, busYu], [xAtChildU, y2u]];
+        x1 = toContentX(p.left + p.width / 2);
+        y1 = toContentY(p.top);
+        x2 = toContentX(c.left + c.width / 2);
+        y2 = toContentY(c.bottom);
       } else { // down
-        var x1d = toContentX(p.left + p.width / 2);
-        var y1d = toContentY(p.bottom);
-        var xAtChildD = toContentX(c.left + c.width / 2);
-        var y2d = toContentY(c.top);
-        var busYd = groupInfo ? groupInfo.bus : y1d + BUS_OFFSET;
-        points = [[x1d, y1d], [x1d, busYd], [xAtChildD, busYd], [xAtChildD, y2d]];
+        x1 = toContentX(p.left + p.width / 2);
+        y1 = toContentY(p.bottom);
+        x2 = toContentX(c.left + c.width / 2);
+        y2 = toContentY(c.top);
       }
 
-      var poly = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-      poly.setAttribute('points', points.map(function (pt) { return pt[0] + ',' + pt[1]; }).join(' '));
-      poly.setAttribute('class', 'mm-connector-line');
+      var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', x1);
+      line.setAttribute('y1', y1);
+      line.setAttribute('x2', x2);
+      line.setAttribute('y2', y2);
+      line.setAttribute('class', 'mm-connector-line');
       // Пока идёт "затишье" после смены zoom (см. connectorsSettling) —
-      // принудительно прячем коннектор инлайн-стилем, если ЛЮБОЙ из его
-      // концов — сам смещённый узел ИЛИ вложен в ветку смещённого предка.
+      // принудительно прячем коннектор инлайн-стилем (см. комментарий у
+      // setOffsetNodesHidden про инлайн вместо класса), если ЛЮБОЙ из его
+      // концов — сам смещённый узел ИЛИ вложен в ветку смещённого предка
+      // (hasOffsetInChain, а не hasOffset: сам узел в таком случае визуально
+      // "едет" вместе с предком благодаря обычному DOM-вложению, но линия —
+      // отдельный SVG-элемент вне этого поддерева и так не защищена).
+      // Координаты этого конца ещё могут "доехать" до финальных (см.
+      // verifyConnectorsSettled), и без этого пользователь видел бы, как
+      // линия дёргается вслед за прыгающим узлом.
       if (connectorsSettling && (hasOffsetInChain(id) || hasOffsetInChain(node.parentId))) {
-        poly.style.visibility = 'hidden';
+        line.style.visibility = 'hidden';
       }
-      svg.appendChild(poly);
+      svg.appendChild(line);
     });
   }
 
