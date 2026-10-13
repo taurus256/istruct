@@ -128,11 +128,11 @@
   /* Figma-переменная color/toolbar-bg удалена из файла — используем
      color/background (--toolbar-bg) вместо неё. */
   --ribbon-btn-bg: var(--toolbar-bg);
+  --ribbon-btn-hover-border: var(--attention);
   --ribbon-btn-border: transparent;
-  --ribbon-btn-hover-bg: #eef3fb;
-  --ribbon-btn-hover-border: #b7cbe0;
+  --ribbon-btn-hover-bg: var(--toolbar-bg);
   --ribbon-btn-selected-bg: #e1f0f9;
-  --ribbon-btn-selected-border: #005fb8;
+  --ribbon-btn-selected-border: var(--attention);
   --ribbon-label-color: #323130;
   --ribbon-group-label-color: #7a7a7a;
   --ribbon-divider-color: #d2d2d2;
@@ -205,7 +205,6 @@
   --ribbon-btn-bg: transparent;
   --ribbon-btn-border: transparent;
   --ribbon-btn-hover-bg: rgba(255, 255, 255, 0.06);
-  --ribbon-btn-hover-border: rgba(255, 255, 255, 0.16);
   --ribbon-btn-selected-bg: #1e293b;
   --ribbon-btn-selected-border: #60cdff;
   --ribbon-label-color: #ffffff;
