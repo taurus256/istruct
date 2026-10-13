@@ -48,7 +48,7 @@ var RibbonConfig = {
           name: 'Добавить',
           content: [
             { type: 'button', id: 'btn-add-node', name: 'Текст', icon: 'assets/icons/type.svg', iconNeutral: true },
-            { type: 'button', id: 'btn-add-test', name: 'Тест', icon: 'assets/icons/small/test.svg' },
+            { type: 'button', id: 'btn-add-test', name: 'Тест', icon: 'assets/icons/test.svg' },
             { type: 'button', id: 'btn-add-link', name: 'Ссылка', icon: 'assets/icons/link.svg' }
           ]
         },

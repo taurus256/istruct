@@ -95,11 +95,6 @@ var RibbonRenderer = (function () {
     inner.className = 'ribbon-group__content';
     inner.appendChild(renderGroupRow(group.content));
 
-    var label = document.createElement('span');
-    label.className = 'ribbon-group__label';
-    label.textContent = group.name;
-    inner.appendChild(label);
-
     wrap.appendChild(inner);
     return wrap;
   }
