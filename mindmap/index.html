@@ -26,6 +26,29 @@
 <body>
 <div id="toolbar" class="ribbon-toolbar"></div>
 <input id="input-import" type="file" accept="application/json,.json" hidden>
+<!-- Отдельный input для "Импортировать с компьютера" панели ФАЙЛ: семантика
+     другая (создаёт НОВУЮ схему, а не перезаписывает активную — см.
+     Storage.importAsNewScheme в filesPanel.js), поэтому не переиспользуем
+     #input-import, у которого уже есть свой обработчик с другой семантикой. -->
+<input id="input-import-new-scheme" type="file" accept="application/json,.json" hidden>
+
+<!-- Панель выбора схемы (#files-panel): ОВЕРЛЕЙ слева поверх ribbon-group и
+     канвы, открывается вкладкой "ФАЙЛ" (см. filesPanel.js). Намеренно НЕ
+     внутри #work-area — в отличие от #help-panel/#side-panel (flex-соседи,
+     сжимающие канву), эта панель не должна влиять на раскладку канвы. -->
+<aside id="files-panel" class="files-panel" hidden>
+  <div class="files-panel__actions">
+    <button id="btn-files-create" type="button" class="files-panel__btn files-panel__btn--primary">
+      <span class="files-panel__btn-icon files-panel__btn-icon--plus" aria-hidden="true"></span>
+      Создать новую схему
+    </button>
+    <button id="btn-files-import" type="button" class="files-panel__btn files-panel__btn--secondary">
+      <img src="assets/icons/arrow-down.svg" alt="" class="files-panel__btn-icon">
+      Импортировать с компьютера
+    </button>
+  </div>
+  <div id="files-panel-list" class="files-panel__list"></div>
+</aside>
 
 <div id="work-area">
   <!-- Панель справки: независимая от #side-panel, слева; наполняется динамически из help.js -->
@@ -93,6 +116,7 @@
 <script src="js/panelResize.js"></script>
 <script src="js/pan.js"></script>
 <script src="js/zoom.js"></script>
+<script src="js/filesPanel.js"></script>
 <script src="js/ribbonConfig.js"></script>
 <script src="js/ribbonRenderer.js"></script>
 <script src="js/app.js"></script>

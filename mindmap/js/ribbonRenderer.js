@@ -172,9 +172,33 @@ var RibbonRenderer = (function () {
       tabBtn.type = 'button';
       tabBtn.className = 'ribbon-tab';
       tabBtn.textContent = tab.name;
-      tabBtn.addEventListener('click', function () {
-        activateTab(index);
-      });
+      // data-tab-name — generic hook (не завязан на конкретное имя вкладки),
+      // по которому внешний код (app.js) может найти свою кнопку вкладки,
+      // не трогая внутренности рендерера (см. nonSwitching ниже).
+      tabBtn.dataset.tabName = tab.name;
+      if (tab.nonSwitching) {
+        // Визуально такая вкладка — не "обычная" переключаемая (светлый
+        // подсвет + подчёркивание при активности), а постоянно залитая
+        // акцентным цветом кнопка-меню (как классическая "Файл" в Office) —
+        // см. .ribbon-tab--menu в layout.css. Класс не снимается/не
+        // переключается ribbon-tab--active, он есть ВСЕГДА у nonSwitching-вкладок.
+        tabBtn.classList.add('ribbon-tab--menu');
+        // Вкладка не переключает ribbon-контент (см. комментарий поля
+        // nonSwitching в ribbonConfig.js) — вместо activateTab рассылаем
+        // событие, на которое снаружи подписывается свой обработчик
+        // (app.js/filesPanel.js). "Реальная" активная вкладка под ней
+        // остаётся как была.
+        tabBtn.addEventListener('click', function () {
+          tabBtn.dispatchEvent(new CustomEvent('ribbon:nonswitching-tab-click', {
+            bubbles: true,
+            detail: { tabName: tab.name }
+          }));
+        });
+      } else {
+        tabBtn.addEventListener('click', function () {
+          activateTab(index);
+        });
+      }
       tabButtons.push(tabBtn);
       tabsEl.appendChild(tabBtn);
 
@@ -188,7 +212,17 @@ var RibbonRenderer = (function () {
       containerEl.appendChild(el);
     });
 
-    activateTab(0);
+    // По умолчанию активна первая "обычная" (не nonSwitching) вкладка —
+    // nonSwitching-вкладки (ФАЙЛ) никогда не становятся вкладкой по
+    // умолчанию, у них нет переключаемого контента.
+    var defaultIndex = 0;
+    for (var i = 0; i < config.tabs.length; i++) {
+      if (!config.tabs[i].nonSwitching) {
+        defaultIndex = i;
+        break;
+      }
+    }
+    activateTab(defaultIndex);
   }
 
   return {

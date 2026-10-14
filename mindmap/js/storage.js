@@ -68,12 +68,46 @@
  * как "choice"; старое внутреннее поле "id" (если есть) игнорируется и
  * перезаписывается ключом при загрузке (Model.setState). isValidPayload не
  * требует наличия внутреннего id.
+ *
+ * НЕСКОЛЬКО СХЕМ (многофайловость): формат ПОЛЕЗНОЙ НАГРУЗКИ одной схемы
+ * (версия 7 выше) не изменился — файл, полученный через exportJSON(), и
+ * сегодня, и раньше имеет один и тот же вид. Изменилось только то, ГДЕ и
+ * СКОЛЬКО таких payload'ов хранится в localStorage:
+ *
+ *   'mindmap.schemes.v1'   — ИНДЕКС: { version, activeId, schemes: [
+ *                              { id, modifiedAt, savedAt }, ... ] }.
+ *                            Имя схемы НЕ хранится в индексе — это всегда
+ *                            text корневого узла самой схемы (см.
+ *                            getSchemeName), поэтому переименование корня
+ *                            никогда не требует синхронизации индекса.
+ *   'mindmap.scheme.<id>'  — payload ОДНОЙ схемы, формат как раньше у
+ *                            'mindmap.model.v1' ({version, rootId, nodes}).
+ *
+ * modifiedAt обновляется при каждом автосохранении (saveImmediate) —
+ * отражает момент последнего изменения. savedAt обновляется ТОЛЬКО при
+ * exportJSON() (экспорт в файл сейчас — единственное действие, которое
+ * считается «сохранением»; в будущем сюда добавится онлайн-синхронизация).
+ *
+ * Миграция: при первом запуске после этого изменения, если индекса ещё нет,
+ * а старый единственный ключ 'mindmap.model.v1' существует — он становится
+ * payload'ом первой схемы, строится индекс из одной записи, старый ключ
+ * удаляется (см. migrateLegacyIfNeeded).
  */
 
 var Storage = (function () {
-  var STORAGE_KEY = 'mindmap.model.v1';
+  var LEGACY_KEY = 'mindmap.model.v1';
+  var INDEX_KEY = 'mindmap.schemes.v1';
+  var SCHEME_KEY_PREFIX = 'mindmap.scheme.';
   var DEBOUNCE_MS = 400;
   var debounceTimer = null;
+  var idCounter = 0;
+
+  // Простой генератор уникальных id схем (независимый от Model.generateId,
+  // который приватен и предназначен для узлов, а не схем).
+  function generateSchemeId() {
+    idCounter += 1;
+    return 's' + Date.now().toString(36) + idCounter.toString(36);
+  }
 
   // Строит объект nodes для сериализации БЕЗ внутреннего поля "id" у каждого
   // узла (идентификатор = ключ). Не мутирует in-memory state: приложение
@@ -97,11 +131,148 @@ var Storage = (function () {
     return out;
   }
 
+  // Минимальная валидация структуры payload'а ОДНОЙ схемы перед тем, как
+  // доверять данным (используется и для localStorage, и для импорта файлов).
+  function isValidPayload(payload) {
+    return !!payload &&
+      typeof payload === 'object' &&
+      'version' in payload &&
+      typeof payload.rootId === 'string' &&
+      !!payload.nodes && typeof payload.nodes === 'object' &&
+      !!payload.nodes[payload.rootId];
+  }
+
+  function schemeKey(id) {
+    return SCHEME_KEY_PREFIX + id;
+  }
+
+  function readIndex() {
+    try {
+      var raw = localStorage.getItem(INDEX_KEY);
+      if (!raw) {
+        return null;
+      }
+      var idx = JSON.parse(raw);
+      if (!idx || typeof idx !== 'object' || !Array.isArray(idx.schemes)) {
+        return null;
+      }
+      return idx;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function writeIndex(idx) {
+    try {
+      localStorage.setItem(INDEX_KEY, JSON.stringify(idx));
+    } catch (e) {
+      console.error('Не удалось сохранить индекс схем в localStorage', e);
+    }
+  }
+
+  function readSchemePayload(id) {
+    try {
+      var raw = localStorage.getItem(schemeKey(id));
+      if (!raw) {
+        return null;
+      }
+      var payload = JSON.parse(raw);
+      return isValidPayload(payload) ? payload : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function writeSchemePayload(id, payload) {
+    try {
+      localStorage.setItem(schemeKey(id), JSON.stringify(payload));
+    } catch (e) {
+      console.error('Не удалось сохранить схему в localStorage', e);
+    }
+  }
+
+  function findSchemeEntry(idx, id) {
+    for (var i = 0; i < idx.schemes.length; i++) {
+      if (idx.schemes[i].id === id) {
+        return idx.schemes[i];
+      }
+    }
+    return null;
+  }
+
+  // modifiedAt — момент последнего автосохранения (живое редактирование).
+  function touchModified(id) {
+    var idx = readIndex();
+    var entry = idx && findSchemeEntry(idx, id);
+    if (entry) {
+      entry.modifiedAt = Date.now();
+      writeIndex(idx);
+    }
+  }
+
+  // savedAt — момент последнего ЯВНОГО «сохранения» (сегодня это только
+  // экспорт в JSON-файл, см. комментарий НЕСКОЛЬКО СХЕМ в шапке файла).
+  // Экспорт означает, что текущее состояние памяти теперь зафиксировано
+  // во внешнем файле, поэтому заодно обновляем и modifiedAt.
+  function touchSaved(id) {
+    var idx = readIndex();
+    var entry = idx && findSchemeEntry(idx, id);
+    if (entry) {
+      var now = Date.now();
+      entry.savedAt = now;
+      entry.modifiedAt = now;
+      writeIndex(idx);
+    }
+  }
+
+  // Регистрирует payload как новую схему в индексе и делает её активной.
+  function registerScheme(id, payload, now) {
+    writeSchemePayload(id, payload);
+    var idx = readIndex() || { version: 1, activeId: null, schemes: [] };
+    idx.schemes.push({ id: id, modifiedAt: now, savedAt: now });
+    idx.activeId = id;
+    writeIndex(idx);
+  }
+
+  // Одноразовая миграция со старого единственного ключа 'mindmap.model.v1'
+  // на индекс + per-scheme ключи. Не делает ничего, если индекс уже есть
+  // (уже мигрировано) или старого ключа нет (чистая установка).
+  function migrateLegacyIfNeeded() {
+    if (localStorage.getItem(INDEX_KEY)) {
+      return;
+    }
+    var legacyRaw = null;
+    try {
+      legacyRaw = localStorage.getItem(LEGACY_KEY);
+    } catch (e) {
+      legacyRaw = null;
+    }
+    if (!legacyRaw) {
+      return;
+    }
+    try {
+      var payload = JSON.parse(legacyRaw);
+      if (!isValidPayload(payload)) {
+        return;
+      }
+      registerScheme(generateSchemeId(), payload, Date.now());
+      localStorage.removeItem(LEGACY_KEY);
+    } catch (e) {
+      console.warn('Не удалось мигрировать старые данные mindmap.model.v1', e);
+    }
+  }
+
+  // Сохраняет ТЕКУЩУЮ модель (Model.getState()) в payload АКТИВНОЙ схемы.
   function saveImmediate() {
+    var idx = readIndex();
+    if (!idx || !idx.activeId) {
+      return; // активной схемы нет — сохранять некуда (не должно случаться после load())
+    }
     try {
       var state = Model.getState();
       var payload = { version: 7, rootId: state.rootId, nodes: serializeNodes(state.nodes) };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      writeSchemePayload(idx.activeId, payload);
+      touchModified(idx.activeId);
     } catch (e) {
       console.error('Не удалось сохранить mind map в localStorage', e);
     }
@@ -119,43 +290,30 @@ var Storage = (function () {
     debounceTimer = setTimeout(saveImmediate, DEBOUNCE_MS);
   }
 
-  // Минимальная валидация структуры перед тем, как доверять данным.
-  function isValidPayload(payload) {
-    return !!payload &&
-      typeof payload === 'object' &&
-      'version' in payload &&
-      typeof payload.rootId === 'string' &&
-      !!payload.nodes && typeof payload.nodes === 'object' &&
-      !!payload.nodes[payload.rootId];
-  }
-
-  // Загружает модель при старте приложения.
+  // Загружает активную схему при старте приложения: мигрирует старые данные
+  // при необходимости, затем читает индекс и payload активной схемы. Если
+  // схем ещё нет вообще (первый запуск) или активная схема повреждена —
+  // создаёт пустое дерево и сразу регистрирует его как первую схему.
   function load() {
-    var raw = null;
-    try {
-      raw = localStorage.getItem(STORAGE_KEY);
-    } catch (e) {
-      raw = null;
-    }
+    migrateLegacyIfNeeded();
 
-    if (raw) {
-      try {
-        var payload = JSON.parse(raw);
-        if (isValidPayload(payload)) {
-          Model.setState({ rootId: payload.rootId, nodes: payload.nodes });
-          return;
-        }
-        console.warn('Данные в localStorage не прошли валидацию, создаём новое дерево');
-      } catch (e) {
-        console.warn('Повреждённые данные в localStorage, создаём новое дерево', e);
+    var idx = readIndex();
+    if (idx && idx.activeId) {
+      var payload = readSchemePayload(idx.activeId);
+      if (payload) {
+        Model.setState({ rootId: payload.rootId, nodes: payload.nodes });
+        return;
       }
+      console.warn('Активная схема повреждена или отсутствует, создаём новую');
     }
 
-    // Нет данных или они повреждены — создаём дерево с одним root-узлом.
     Model.initEmpty();
+    createScheme();
   }
 
   // Экспорт текущей модели в файл mindmap.json (Blob + скрытая ссылка-скачивание).
+  // Экспорт — это единственное сегодня действие, которое считается
+  // «сохранением» (см. шапку файла) — помечаем savedAt активной схемы.
   function exportJSON() {
     var state = Model.getState();
     var payload = { version: 7, rootId: state.rootId, nodes: serializeNodes(state.nodes) };
@@ -169,11 +327,17 @@ var Storage = (function () {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+
+    var activeId = getActiveId();
+    if (activeId) {
+      touchSaved(activeId);
+    }
   }
 
   /**
-   * Импорт JSON из выбранного файла.
-   * При ошибке структуры/парсинга показывает alert и НЕ трогает текущее состояние.
+   * Импорт JSON из выбранного файла — ПЕРЕЗАПИСЫВАЕТ АКТИВНУЮ схему на месте
+   * (используется кнопкой "Импорт JSON" вкладки СХЕМА). При ошибке
+   * структуры/парсинга показывает alert и НЕ трогает текущее состояние.
    * onSuccess вызывается после успешного применения импортированных данных.
    */
   function importJSON(file, onSuccess) {
@@ -208,11 +372,148 @@ var Storage = (function () {
     reader.readAsText(file);
   }
 
+  /**
+   * Импорт JSON из файла КАК НОВОЙ схемы — используется панелью "ФАЙЛ"
+   * (кнопка "Импортировать с компьютера"), НЕ трогает активную схему до
+   * успешного парсинга. При ошибке — alert, ничего не меняется. onSuccess(id)
+   * вызывается с id новой схемы ПОСЛЕ того, как она создана и зарегистрирована
+   * активной в индексе — загрузку payload'а в Model (loadScheme(id)) выполняет
+   * вызывающий код (см. filesPanel.js), как и явный flush исходящей схемы
+   * перед переключением.
+   */
+  function importAsNewScheme(file, onSuccess) {
+    if (!file) {
+      return;
+    }
+
+    var reader = new FileReader();
+    reader.onload = function (event) {
+      var payload;
+      try {
+        payload = JSON.parse(event.target.result);
+      } catch (e) {
+        alert('Не удалось прочитать файл: некорректный JSON.');
+        return;
+      }
+
+      if (!isValidPayload(payload)) {
+        alert('Файл повреждён или имеет неверный формат: ожидаются поля version, rootId, nodes.');
+        return;
+      }
+
+      saveImmediate(); // flush исходящей (текущей активной) схемы перед переключением
+
+      var id = generateSchemeId();
+      registerScheme(id, payload, Date.now());
+
+      if (typeof onSuccess === 'function') {
+        onSuccess(id);
+      }
+    };
+    reader.onerror = function () {
+      alert('Ошибка чтения файла.');
+    };
+    reader.readAsText(file);
+  }
+
+  // Загружает payload схемы id в Model. НЕ трогает индекс/активную схему —
+  // это забота вызывающего (см. switchScheme).
+  function loadScheme(id) {
+    var payload = readSchemePayload(id);
+    if (!payload) {
+      return false;
+    }
+    Model.setState({ rootId: payload.rootId, nodes: payload.nodes });
+    return true;
+  }
+
+  // Переключение на другую схему: сначала flush'ит исходящую схему в
+  // localStorage (иначе последние ~400мс несохранённых правок из-за
+  // debounce потерялись бы), затем загружает выбранную схему и делает её
+  // активной.
+  function switchScheme(id) {
+    saveImmediate();
+    if (!loadScheme(id)) {
+      return false;
+    }
+    var idx = readIndex();
+    if (idx) {
+      idx.activeId = id;
+      writeIndex(idx);
+    }
+    return true;
+  }
+
+  function getActiveId() {
+    var idx = readIndex();
+    return (idx && idx.activeId) || null;
+  }
+
+  // Имя схемы = live text её корневого узла. Читает из payload'а в
+  // localStorage (используется для НЕактивных схем — см. listSchemes).
+  function getSchemeName(id) {
+    var payload = readSchemePayload(id);
+    if (payload && payload.nodes && payload.nodes[payload.rootId]) {
+      return payload.nodes[payload.rootId].text || 'Без названия';
+    }
+    return 'Без названия';
+  }
+
+  // Создаёt новую схему ИЗ ТЕКУЩЕГО состояния Model — вызывающий код сам
+  // готовит нужное состояние (обычно Model.initEmpty() непосредственно перед
+  // вызовом). Регистрирует её в индексе, делает активной. Возвращает id.
+  function createScheme() {
+    var id = generateSchemeId();
+    var state = Model.getState();
+    var payload = { version: 7, rootId: state.rootId, nodes: serializeNodes(state.nodes) };
+    registerScheme(id, payload, Date.now());
+    return id;
+  }
+
+  // Список всех схем для панели "ФАЙЛ". Для активной схемы имя читается
+  // напрямую из Model (in-memory) — там оно гарантированно актуально, даже
+  // если автосохранение (debounce) ещё не долетело до localStorage; для
+  // остальных схем — из их сохранённого payload'а (getSchemeName).
+  function listSchemes() {
+    var idx = readIndex();
+    if (!idx) {
+      return [];
+    }
+    var activeId = idx.activeId;
+    var result = [];
+    for (var i = 0; i < idx.schemes.length; i++) {
+      var entry = idx.schemes[i];
+      var isActive = entry.id === activeId;
+      var name;
+      if (isActive) {
+        var root = Model.getRoot();
+        name = (root && root.text) || 'Без названия';
+      } else {
+        name = getSchemeName(entry.id);
+      }
+      result.push({
+        id: entry.id,
+        name: name,
+        modifiedAt: entry.modifiedAt,
+        savedAt: entry.savedAt,
+        isActive: isActive
+      });
+    }
+    return result;
+  }
+
   return {
     save: save,
     saveImmediate: saveImmediate,
     load: load,
     exportJSON: exportJSON,
-    importJSON: importJSON
+    importJSON: importJSON,
+    importAsNewScheme: importAsNewScheme,
+    loadScheme: loadScheme,
+    switchScheme: switchScheme,
+    createScheme: createScheme,
+    getActiveId: getActiveId,
+    getSchemeName: getSchemeName,
+    listSchemes: listSchemes
   };
 })();

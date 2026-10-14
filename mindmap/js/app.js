@@ -104,6 +104,28 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // Панель выбора схемы (#files-panel) — открывается вкладкой "ФАЙЛ"
+  // ribbon-тулбара. Вкладка помечена nonSwitching: true (ribbonConfig.js) —
+  // ribbonRenderer.js не переключает на неё ribbon-контент сама, а
+  // рассылает событие 'ribbon:nonswitching-tab-click' с именем вкладки,
+  // на которое мы здесь подписываемся. Должно идти ДО Storage.load()/
+  // Render.init() ниже? Нет — наоборот, FilesPanel.render() (внутри open())
+  // читает Storage.listSchemes()/Model.getRoot() только когда панель
+  // реально открывают (по клику), а не при инициализации — порядок
+  // относительно Storage.load()/Render.init() не важен, важно только что
+  // сама RibbonRenderer.init() выше уже отрисовала кнопку вкладки.
+  if (typeof FilesPanel !== 'undefined') {
+    var filesTabBtn = document.querySelector('.ribbon-tab[data-tab-name="ФАЙЛ"]');
+    if (filesTabBtn) {
+      FilesPanel.init({ tabBtnEl: filesTabBtn });
+      document.addEventListener('ribbon:nonswitching-tab-click', function (e) {
+        if (e.detail && e.detail.tabName === 'ФАЙЛ') {
+          FilesPanel.toggle();
+        }
+      });
+    }
+  }
+
   // Справка — независимая левая панель (#help-panel), полностью управляется
   // внутри help.js и не взаимодействует с координатором #side-panel ниже —
   // обе панели могут быть открыты одновременно.
@@ -349,6 +371,11 @@ document.addEventListener('DOMContentLoaded', function () {
       if (e.code === 'Digit2') {
         e.preventDefault();
         togglePanel();
+        return;
+      }
+      if (e.code === 'Digit3' && typeof FilesPanel !== 'undefined') {
+        e.preventDefault();
+        FilesPanel.toggle();
         return;
       }
     }

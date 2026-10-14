@@ -125,6 +125,29 @@ body {
   background: var(--toolbar-bg, #f3f3f3);
 }
 
+/* Вкладка-меню (nonSwitching в ribbonConfig.js, напр. "ФАЙЛ"): НЕ переключает
+   ribbon-контент, а открывает оверлей-панель (#files-panel) — это другое
+   действие, не "сейчас просматриваемая вкладка", поэтому НЕ использует стиль
+   .ribbon-tab--active (светлый подсвет + подчёркивание). Вместо этого —
+   постоянная заливка акцентным цветом, как классическая кнопка "Файл" в
+   Office: видно сразу, что это не контентная вкладка, а кнопка-меню. */
+.ribbon-tab--menu {
+  background: var(--test-accent-blue, #005fb8);
+  color: var(--test-accent-text, #ffffff);
+}
+
+.ribbon-tab--menu:hover {
+  background: var(--test-accent-blue-hover, #0a4f95);
+  color: var(--test-accent-text, #ffffff);
+}
+
+/* Модификатор "сейчас открыта" (переключается filesPanel.js) — чуть темнее,
+   как нажатое состояние; сама заливка остаётся — не пропадает и не сменяется
+   на обычный активный стиль. */
+.ribbon-tab--menu.ribbon-tab--menu-open {
+  background: var(--test-accent-blue-hover, #0a4f95);
+}
+
 /* Строка содержимого активной вкладки — то, что раньше было самим
    .ribbon-toolbar как flex-контейнером групп напрямую. */
 .ribbon-tab-content {
@@ -1114,6 +1137,189 @@ body.mm-resizing .panel-resize-handle {
 
 .help-panel[hidden] {
   display: none;
+}
+
+/* ---------- Панель выбора схемы (#files-panel) — ОВЕРЛЕЙ, НЕ flex-сосед ---------- */
+
+/* В ОТЛИЧИЕ от .side-panel/.help-panel выше (flex-соседи #work-area,
+   сжимающие #mindmap-root при открытии) — #files-panel фиксированным
+   позиционированием перекрывает ribbon-group и канву, не влияя на их
+   раскладку (открытие/закрытие не двигает канву). top выставляется
+   программно в filesPanel.js (measured по фактической высоте #toolbar,
+   см. positionPanel) — здесь 0 только как запасное значение до первого
+   измерения. */
+.files-panel {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 412px;
+  z-index: 20; /* выше .ribbon-toolbar (z-index: 10) */
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  background: var(--notes-panel-bg, #f3f3f3);
+  border-right: 1px solid var(--notes-panel-border, #d2d2d2);
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.12);
+  overflow-y: auto;
+}
+
+.files-panel[hidden] {
+  display: none;
+}
+
+.files-panel__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.files-panel__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 37px;
+  border-radius: var(--radius-ui);
+  font: var(--type-button-label);
+  cursor: pointer;
+}
+
+.files-panel__btn--primary {
+  background: var(--test-accent-blue, #005fb8);
+  color: var(--test-accent-text, #ffffff);
+  border: none;
+}
+
+.files-panel__btn--primary:hover {
+  background: var(--test-accent-blue-hover, #0a4f95);
+}
+
+.files-panel__btn--secondary {
+  background: var(--surface, #ffffff);
+  color: var(--test-accent-blue, #005fb8);
+  border: 1px solid var(--test-card-border, #e2e5e9);
+}
+
+.files-panel__btn--secondary:hover {
+  background: var(--hover-tint, rgba(0, 0, 0, 0.06));
+}
+
+.files-panel__btn-icon {
+  width: 16px;
+  height: 16px;
+  display: block;
+  flex: 0 0 auto;
+}
+
+/* "+" кнопки "Создать новую схему" — готовой иконки в assets/icons нет,
+   рисуем крестик чистым CSS (две полосы псевдоэлементами), не заводя новый
+   SVG-файл ради одного глифа. Белый — кнопка всегда на синем фоне. */
+.files-panel__btn-icon--plus {
+  position: relative;
+}
+
+.files-panel__btn-icon--plus::before,
+.files-panel__btn-icon--plus::after {
+  content: '';
+  position: absolute;
+  background: var(--test-accent-text, #ffffff);
+  border-radius: 1px;
+}
+
+.files-panel__btn-icon--plus::before {
+  left: 7px;
+  top: 2px;
+  width: 2px;
+  height: 12px;
+}
+
+.files-panel__btn-icon--plus::after {
+  left: 2px;
+  top: 7px;
+  width: 12px;
+  height: 2px;
+}
+
+.files-panel__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.scheme-card {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  width: 100%;
+  padding: 14px;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--test-card-border, #e2e5e9);
+  border-radius: var(--radius-ui);
+  cursor: pointer;
+  text-align: left;
+}
+
+.scheme-card:hover {
+  background: var(--hover-tint, rgba(0, 0, 0, 0.06));
+}
+
+/* Активная (сейчас открытая) схема — рамка цвета выделения узла
+   (--node-selected-outline — тот же токен, что обводка выбранного узла на
+   канве). padding уменьшен на 1px, чтобы карточка не "прыгала" при смене
+   толщины рамки 1px -> 2px относительно обычных карточек. */
+.scheme-card--active {
+  border: 2px solid var(--node-selected-outline, #ff9800);
+  padding: 13px;
+}
+
+.scheme-card__icon {
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-ui);
+  color: var(--test-accent-text, #ffffff);
+  font: 700 16px/1 var(--font-family-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Фоллбэк (плоский цвет) для браузеров без color-mix() — отдельное
+     объявление ДО градиента: если следующий background целиком невалиден
+     (неизвестная функция color-mix), парсер отбрасывает его целиком и
+     оставляет это значение в силе. */
+  background: var(--test-accent-blue, #005fb8);
+  background: linear-gradient(135deg,
+    var(--test-accent-blue, #005fb8) 55%,
+    color-mix(in srgb, var(--test-accent-blue, #005fb8) 60%, white 40%) 55%,
+    color-mix(in srgb, var(--test-accent-blue, #005fb8) 60%, white 40%) 65%,
+    var(--test-accent-blue, #005fb8) 65%);
+}
+
+.scheme-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.scheme-card__name {
+  font: var(--type-button-label);
+  color: var(--notes-title-color, #1a1a1a);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scheme-card__meta {
+  font: var(--type-comment);
+  color: var(--text-muted, #6b7280);
 }
 
 .help-card-list {
