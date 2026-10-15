@@ -1144,10 +1144,12 @@ body.mm-resizing .panel-resize-handle {
 /* В ОТЛИЧИЕ от .side-panel/.help-panel выше (flex-соседи #work-area,
    сжимающие #mindmap-root при открытии) — #files-panel фиксированным
    позиционированием перекрывает ribbon-group и канву, не влияя на их
-   раскладку (открытие/закрытие не двигает канву). top выставляется
-   программно в filesPanel.js (measured по фактической высоте #toolbar,
-   см. positionPanel) — здесь 0 только как запасное значение до первого
-   измерения. */
+   раскладку (открытие/закрытие не двигает канву). top/bottom выставляются
+   программно в filesPanel.js (measured по фактической высоте #toolbar и
+   #status-bar, см. positionPanel) — здесь 0 только запасные значения до
+   первого измерения. ВАЖНО: bottom НЕ должен оставаться 0 после измерения —
+   иначе панель перекрывает #status-bar (лого/подсказку/масштаб) снизу,
+   т.к. position:fixed считает bottom от края вьюпорта, а не от статус-бара. */
 .files-panel {
   position: fixed;
   left: 0;

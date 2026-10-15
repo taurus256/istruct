@@ -63,8 +63,11 @@ var FilesPanel = (function () {
   // А НЕ под всем тулбаром целиком — т.е. она намеренно перекрывает собой
   // строку групп/кнопок активной вкладки ниже (см. Figma: node 451:2607
   // начинается на y=36, ровно на высоту .ribbon-tabs-row, поверх ribbon-group).
-  // Высота строки вкладок не захардкожена — измеряем фактическую высоту
-  // отрисованного .ribbon-tabs-row, чтобы не зависеть от метрик шрифта/ОС.
+  // И заканчиваться ДО #status-bar снизу (а не bottom:0 до самого низа
+  // вьюпорта, как было раньше — это перекрывало статус-бар: логотип и
+  // начало строки подсказки оказывались НЕДОСТУПНЫ под панелью). Обе границы
+  // не захардкожены — измеряем фактические высоты .ribbon-tabs-row/#status-bar,
+  // чтобы не зависеть от метрик шрифта/ОС.
   function positionPanel() {
     if (!panelEl) {
       return;
@@ -72,6 +75,10 @@ var FilesPanel = (function () {
     var tabsRowEl = document.querySelector('.ribbon-tabs-row');
     var top = tabsRowEl ? tabsRowEl.getBoundingClientRect().bottom : 0;
     panelEl.style.top = top + 'px';
+
+    var statusBarEl = document.getElementById('status-bar');
+    var bottom = statusBarEl ? (window.innerHeight - statusBarEl.getBoundingClientRect().top) : 0;
+    panelEl.style.bottom = bottom + 'px';
   }
 
   /* ============================ Открытие/закрытие ========================= */
