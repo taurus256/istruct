@@ -1,54 +1,74 @@
 /*
  * ribbonRenderer.js — десктопный рендерер ribbon-тулбара по декларативному
- * описанию (см. ribbonConfig.js). Содержит ТОЛЬКО логику отображения —
- * не знает о конкретных кнопках/обработчиках/теме; просто строит DOM по
- * переданной структуре { tabs: [...] }. app.js затем находит созданные
- * кнопки по id и навешивает обработчики — ribbonRenderer в это не
- * вмешивается.
+ * описанию (см. uiConfig.js). Содержит ТОЛЬКО логику отображения — не знает
+ * о конкретных кнопках/обработчиках/теме; просто строит DOM по переданной
+ * структуре { tabs: [...] }. app.js затем находит созданные кнопки по id и
+ * навешивает обработчики — ribbonRenderer в это не вмешивается.
+ *
+ * Имя/иконка кнопки больше не хранятся в самом content-элементе — они
+ * разрешаются из реестра действий (actions.js) по item.action (см.
+ * resolveAction ниже). Если action не найден — кнопка всё равно рендерится
+ * (чтобы не ломать весь ribbon целиком из-за одной опечатки), но с пустыми
+ * именем/иконкой и предупреждением в консоль.
  */
 var RibbonRenderer = (function () {
   'use strict';
 
   var SMALL_GROUP_SIZE = 3;
 
-  function createIconEl(item) {
+  // item.action -> Action (actions.js). Отсутствие действия — не фатально
+  // для всего рендера (см. шапку файла), только для этой одной кнопки.
+  function resolveAction(item) {
+    var action = typeof getAction === 'function' ? getAction(item.action) : null;
+    if (!action) {
+      console.warn('RibbonRenderer: действие не найдено для кнопки', item.id, '— action:', item.action);
+      return { name: '', icon: '', iconNeutral: false };
+    }
+    return action;
+  }
+
+  function createIconEl(action) {
     var icon = document.createElement('span');
-    icon.className = 'ribbon-btn__icon' + (item.iconNeutral ? ' ribbon-btn__icon--neutral' : '');
+    icon.className = 'ribbon-btn__icon' + (action.iconNeutral ? ' ribbon-btn__icon--neutral' : '');
     var img = document.createElement('img');
-    img.src = item.icon;
+    img.src = action.icon;
     img.alt = '';
     icon.appendChild(img);
     return icon;
   }
 
   function createButton(item) {
+    var action = resolveAction(item);
     var btn = document.createElement('button');
     btn.type = 'button';
     btn.id = item.id;
     btn.className = 'ribbon-btn';
-    btn.appendChild(createIconEl(item));
+    btn.dataset.action = item.action;
+    btn.appendChild(createIconEl(action));
     var label = document.createElement('span');
     label.className = 'ribbon-btn__label';
-    label.textContent = item.name;
+    label.textContent = action.name;
     btn.appendChild(label);
     return btn;
   }
 
   function createSmallButton(item) {
+    var action = resolveAction(item);
     var btn = document.createElement('button');
     btn.type = 'button';
     btn.id = item.id;
     btn.className = 'ribbon-small-btn';
+    btn.dataset.action = item.action;
     var icon = document.createElement('span');
     icon.className = 'ribbon-small-btn__icon';
     var img = document.createElement('img');
-    img.src = item.icon;
+    img.src = action.icon;
     img.alt = '';
     icon.appendChild(img);
     btn.appendChild(icon);
     var label = document.createElement('span');
     label.className = 'ribbon-small-btn__label';
-    label.textContent = item.name;
+    label.textContent = action.name;
     btn.appendChild(label);
     return btn;
   }
@@ -184,7 +204,7 @@ var RibbonRenderer = (function () {
         // переключается ribbon-tab--active, он есть ВСЕГДА у nonSwitching-вкладок.
         tabBtn.classList.add('ribbon-tab--menu');
         // Вкладка не переключает ribbon-контент (см. комментарий поля
-        // nonSwitching в ribbonConfig.js) — вместо activateTab рассылаем
+        // nonSwitching в uiConfig.js) — вместо activateTab рассылаем
         // событие, на которое снаружи подписывается свой обработчик
         // (app.js/filesPanel.js). "Реальная" активная вкладка под ней
         // остаётся как была.

@@ -34,7 +34,7 @@ body {
 
 /* Тулбар теперь двухуровневый: строка вкладок (.ribbon-tabs) сверху,
    под ней содержимое активной вкладки (.ribbon-tab-content, строка групп) —
-   обе строит динамически ribbonRenderer.js по RibbonConfig. Сам контейнер
+   обе строит динамически ribbonRenderer.js по UIConfig. Сам контейнер
    теперь flex-column (ряды друг над другом), структурные свойства
    (sticky/z-index/фон/тень) остались на нём же. */
 .ribbon-toolbar {
@@ -125,7 +125,7 @@ body {
   background: var(--toolbar-bg, #f3f3f3);
 }
 
-/* Вкладка-меню (nonSwitching в ribbonConfig.js, напр. "ФАЙЛ"): НЕ переключает
+/* Вкладка-меню (nonSwitching в uiConfig.js, напр. "ФАЙЛ"): НЕ переключает
    ribbon-контент, а открывает оверлей-панель (#files-panel) — это другое
    действие, не "сейчас просматриваемая вкладка", поэтому НЕ использует стиль
    .ribbon-tab--active (светлый подсвет + подчёркивание). Вместо этого —
@@ -1272,15 +1272,6 @@ body.mm-resizing .panel-resize-handle {
   background: var(--hover-tint, rgba(0, 0, 0, 0.06));
 }
 
-/* Активная (сейчас открытая) схема — рамка цвета выделения узла
-   (--node-selected-outline — тот же токен, что обводка выбранного узла на
-   канве). padding уменьшен на 1px, чтобы карточка не "прыгала" при смене
-   толщины рамки 1px -> 2px относительно обычных карточек. */
-.scheme-card--active {
-  border: 2px solid var(--node-selected-outline, #ff9800);
-  padding: 13px;
-}
-
 .scheme-card__icon {
   flex: 0 0 48px;
   width: 48px;
@@ -1322,6 +1313,155 @@ body.mm-resizing .panel-resize-handle {
 .scheme-card__meta {
   font: var(--type-comment);
   color: var(--text-muted, #6b7280);
+}
+
+/* ---------- Кнопка-триггер "ещё действия" у карточки схемы ---------- */
+
+/* Полоска во всю высоту карточки у правого края (см. Figma-референс:
+   node-id=501-3214 "More actions — open") — отдельная от .scheme-card
+   кликабельная зона со стрелкой вниз, открывающая всплывающее меню
+   (см. filesPanel.js: Popups.fileCard / PopupMenu.open). Карточка и эта
+   кнопка — соседние элементы одной строки (не вложенные), поэтому клик по
+   кнопке не всплывает в обработчик клика по самой карточке. */
+.scheme-card-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+
+.scheme-card-row .scheme-card {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.scheme-card__more {
+  flex: 0 0 28px;
+  width: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--test-card-border, #e2e5e9);
+  border-left: none;
+  border-top-right-radius: var(--radius-ui);
+  border-bottom-right-radius: var(--radius-ui);
+  cursor: pointer;
+}
+
+.scheme-card__more:hover,
+.scheme-card__more--open {
+  background: var(--hover-tint, rgba(0, 0, 0, 0.06));
+}
+
+/* Выделение активной схемы должно охватывать карточку И кнопку-триггер как
+   единый блок (card/more — соседние, не вложенные элементы, см. выше), без
+   видимого шва ВНЕШНЕГО контура между ними. Поэтому внешняя рамка (цвет
+   --node-selected-outline — тот же токен, что обводка выбранного узла на
+   канве) рисуется на САМОЙ строке .scheme-card-row, а не на card/more по
+   отдельности — один непрерывный контур вместо двух соседних рамок со швом
+   на стыке снаружи. overflow:hidden подрезает прямые углы card/more под
+   скругление строки.
+   Внутренняя же тонкая вертикальная линия между карточкой и кнопкой (та же,
+   что у НЕвыделенных карточек — обычная border-right карточки) должна
+   остаться видимой и здесь, иначе выделенная карточка визуально отличается
+   от остальных не только цветом рамки. Поэтому убираем только border, что
+   дублирует/даёт внешний контур, но возвращаем card тот же border-right. */
+.scheme-card-row--active {
+  border: 2px solid var(--node-selected-outline, #ff9800);
+  border-radius: var(--radius-ui);
+  overflow: hidden;
+}
+
+.scheme-card-row--active .scheme-card {
+  border: none;
+  border-right: 1px solid var(--test-card-border, #e2e5e9);
+}
+
+.scheme-card-row--active .scheme-card__more {
+  border: none;
+}
+
+.scheme-card__more img {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+/* ---------- Всплывающее меню (popupMenu.js) ---------- */
+
+/* Корневой узел и каждый flyout submenu — отдельные .popup-menu,
+   позиционируются JS-ом (position:fixed + left/top, см. positionNear/
+   positionFlyout в popupMenu.js) поверх всего остального интерфейса. */
+.popup-menu {
+  position: fixed;
+  z-index: 50; /* выше .files-panel (20) и .ribbon-toolbar (10) */
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+  padding: 6px 0;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--test-card-border, #e2e5e9);
+  border-radius: var(--radius-ui);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+}
+
+.popup-menu[hidden] {
+  display: none;
+}
+
+.popup-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  font: var(--type-body);
+  color: var(--notes-title-color, #1a1a1a);
+  text-align: left;
+  cursor: pointer;
+}
+
+.popup-menu__item:hover,
+.popup-menu__item--open {
+  background: var(--hover-tint, rgba(0, 0, 0, 0.06));
+}
+
+.popup-menu__icon {
+  flex: 0 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.popup-menu__icon img {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+.popup-menu__label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.popup-menu__chevron {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+}
+
+.popup-menu__separator {
+  padding: 4px 8px;
+}
+
+.popup-menu__separator-line {
+  height: 1px;
+  background: var(--test-card-border, #e2e5e9);
 }
 
 .help-card-list {

@@ -1,10 +1,16 @@
 /*
- * ribbonConfig.js — декларативное описание содержимого ribbon-тулбара:
- * вкладки, группы, кнопки. ЧИСТЫЕ ДАННЫЕ, без логики отображения (см.
+ * uiConfig.js — декларативное описание содержимого ribbon-тулбара: вкладки,
+ * группы, кнопки. ЧИСТЫЕ ДАННЫЕ, без логики отображения (см.
  * ribbonRenderer.js — он рендерит DOM по этой структуре; десктопный
  * рендерер сейчас единственный, но формат данных не завязан на конкретный
- * способ отображения — в будущем по тому же RibbonConfig можно построить
- * и мобильный рендерер).
+ * способ отображения — в будущем по тому же UIConfig можно построить и
+ * мобильный рендерер).
+ *
+ * Переименовано из ribbonConfig.js/RibbonConfig: теперь это не только
+ * ribbon, но и общее место декларативного описания UI — определения
+ * всплывающих меню вынесены в отдельный файл popups.js (чтобы не раздувать
+ * этот файл и держать ribbon/меню как независимые, самостоятельно читаемые
+ * списки), но оба ссылаются на общий реестр действий (см. actions.js).
  *
  * Обычный <script> (НЕ fetch отдельного .json) — при открытии приложения
  * через file:// локальные JSON-файлы недоступны через сетевые запросы
@@ -19,12 +25,16 @@
  *            ожидает app.js (document.getElementById(id).addEventListener(...)) —
  *            это ключевой приём интеграции: вся существующая логика
  *            обработчиков продолжает работать без изменений, т.к. не знает,
- *            что кнопки теперь создаются динамически.
- *   name   — подпись кнопки.
- *   icon   — путь к SVG-иконке (относительно index.html).
- *   iconNeutral — (опционально, true) помечает "нейтральную" (не акцентно
- *            цветную) иконку, которая в тёмной теме инвертируется в белый
- *            цвет (см. .ribbon-btn__icon--neutral в layout.css).
+ *            что кнопки теперь создаются динамически. Это ОТДЕЛЬНЫЙ от
+ *            action id идентификатор: одно действие (например
+ *            theme_toggle) может стоять за НЕСКОЛЬКИМИ кнопками в разных
+ *            вкладках, и у каждой — свой уникальный DOM id (см. btn-theme/
+ *            btn-theme-tools ниже — раньше у них был ОДИН И ТОТ ЖЕ id
+ *            'btn-theme', что было ошибкой: document.getElementById
+ *            находит только первый элемент, поэтому кнопка "Тема" во
+ *            вкладке ИНСТРУМЕНТЫ была нерабочей "мёртвой кнопкой").
+ *   action — id действия из реестра Actions (actions.js) — имя и иконка
+ *            кнопки берутся оттуда (см. getAction() в ribbonRenderer.js).
  *
  * Поле вкладки (элемента tabs):
  *   nonSwitching — (опционально, true) вкладка НЕ переключает контент
@@ -35,7 +45,7 @@
  *            groups при этом может быть пустым массивом — контент-панель
  *            такой вкладки никогда не показывается.
  */
-var RibbonConfig = {
+var UIConfig = {
   tabs: [
     {
       name: 'ФАЙЛ',
@@ -48,9 +58,9 @@ var RibbonConfig = {
          {
            name: 'Схема',
            content: [
-             { type: 'button', id: 'btn-import', name: 'Импорт JSON', icon: 'assets/icons/arrow-down.svg' },
-             { type: 'button', id: 'btn-export', name: 'Экспорт JSON', icon: 'assets/icons/arrow-up.svg' },
-             { type: 'button', id: 'btn-clear-scheme', name: 'Очистить', icon: 'assets/icons/eracer.svg' }
+             { type: 'button', id: 'btn-import', action: 'scheme_import' },
+             { type: 'button', id: 'btn-export', action: 'scheme_export' },
+             { type: 'button', id: 'btn-clear-scheme', action: 'scheme_clear' }
            ]
          }
        ]
@@ -61,16 +71,16 @@ var RibbonConfig = {
         {
           name: 'Добавить',
           content: [
-            { type: 'button', id: 'btn-add-node', name: 'Текст', icon: 'assets/icons/type.svg', iconNeutral: true },
-            { type: 'button', id: 'btn-add-test', name: 'Тест', icon: 'assets/icons/test.svg' },
-            { type: 'button', id: 'btn-add-link', name: 'Ссылка', icon: 'assets/icons/link.svg' }
+            { type: 'button', id: 'btn-add-node', action: 'node_add_text' },
+            { type: 'button', id: 'btn-add-test', action: 'node_add_test' },
+            { type: 'button', id: 'btn-add-link', action: 'node_add_link' }
           ]
         },
          {
           name: 'Действия',
           content: [
-            { type: 'button', id: 'btn-mark-node', name: 'Отметить', icon: 'assets/icons/check.svg' },
-            { type: 'button', id: 'btn-remove-node', name: 'Удалить', icon: 'assets/icons/trash.svg' }
+            { type: 'button', id: 'btn-mark-node', action: 'node_mark' },
+            { type: 'button', id: 'btn-remove-node', action: 'node_remove' }
           ]
         }
       ]
@@ -81,14 +91,14 @@ var RibbonConfig = {
         {
           name: 'Показать',
           content: [
-            { type: 'button', id: 'btn-help-docs', name: 'Справка', icon: 'assets/icons/book.svg' },
-            { type: 'button', id: 'btn-notes', name: 'Панель', icon: 'assets/icons/panel.svg' },
+            { type: 'button', id: 'btn-help-docs', action: 'help_docs' },
+            { type: 'button', id: 'btn-notes', action: 'notes_panel' },
           ]
         },
         {
           name: 'Инструменты',
           content: [
-            { type: 'button', id: 'btn-theme', name: 'Тема', icon: 'assets/icons/theme.svg', iconNeutral: true }
+            { type: 'button', id: 'btn-theme', action: 'theme_toggle' }
           ]
         }
       ]
@@ -99,7 +109,7 @@ var RibbonConfig = {
         {
           name: 'Инструменты',
           content: [
-            { type: 'button', id: 'btn-theme', name: 'Тема', icon: 'assets/icons/theme.svg', iconNeutral: true }
+            { type: 'button', id: 'btn-theme-tools', action: 'theme_toggle' }
           ]
         }
       ]

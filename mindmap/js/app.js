@@ -3,12 +3,31 @@
  * горячие клавиши.
  */
 
+// ActionHandlers — обработчики действий для пунктов всплывающих меню (см.
+// popupMenu.js: клик по 'menuitem' вызывает ActionHandlers[action.id](context)).
+// Кнопки ribbon'а сюда НЕ входят — они по-прежнему привязываются напрямую по
+// DOM id внутри DOMContentLoaded ниже (этот устоявшийся паттерн не менялся).
+var ActionHandlers = {
+  file_delete: function (schemeId) {
+    FilesPanel.deleteScheme(schemeId);
+  },
+  file_import_json: function (schemeId) {
+    FilesPanel.requestImportIntoScheme(schemeId);
+  },
+  file_import_md: function () {
+    // Импорт схемы из Markdown — пока не реализован (нет ни формата, ни
+    // парсера, см. анализ перед этим шагом). Пункт меню намеренно оставлен
+    // видимым, но неактивным — заглушка вместо тихого no-op.
+    alert('Импорт MD — в разработке');
+  }
+};
+
 document.addEventListener('DOMContentLoaded', function () {
-  // Рендерим ribbon-тулбар по декларативному описанию (RibbonConfig) ПЕРВОЙ
+  // Рендерим ribbon-тулбар по декларативному описанию (UIConfig) ПЕРВОЙ
   // строкой — все остальные обработчики ниже ищут кнопки по id
   // (document.getElementById), они должны уже существовать в DOM.
-  if (typeof RibbonRenderer !== 'undefined' && typeof RibbonConfig !== 'undefined') {
-    RibbonRenderer.init(document.getElementById('toolbar'), RibbonConfig);
+  if (typeof RibbonRenderer !== 'undefined' && typeof UIConfig !== 'undefined') {
+    RibbonRenderer.init(document.getElementById('toolbar'), UIConfig);
   }
 
   Theme.init();
@@ -105,7 +124,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // Панель выбора схемы (#files-panel) — открывается вкладкой "ФАЙЛ"
-  // ribbon-тулбара. Вкладка помечена nonSwitching: true (ribbonConfig.js) —
+  // ribbon-тулбара. Вкладка помечена nonSwitching: true (uiConfig.js) —
   // ribbonRenderer.js не переключает на неё ribbon-контент сама, а
   // рассылает событие 'ribbon:nonswitching-tab-click' с именем вкладки,
   // на которое мы здесь подписываемся. Должно идти ДО Storage.load()/

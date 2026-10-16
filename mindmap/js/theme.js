@@ -25,17 +25,28 @@ var Theme = (function () {
   }
 
   function init() {
-    var btn = document.getElementById('btn-theme');
-    if (!btn) { return; }
+    // Кнопка "Тема" встречается в НЕСКОЛЬКИХ вкладках ribbon'а (ВИД и
+    // ИНСТРУМЕНТЫ — см. uiConfig.js) как один и тот же action theme_toggle
+    // под разными DOM id (btn-theme/btn-theme-tools). Раньше это были ДВЕ
+    // кнопки с ОДНИМ И ТЕМ ЖЕ id='btn-theme' — document.getElementById
+    // находил только первую, вторая была нерабочей "мёртвой кнопкой".
+    // Находим все такие кнопки через общий data-action хук (простав-
+    // ляется ribbonRenderer.js) и навешиваем обработчик на каждую.
+    var btns = document.querySelectorAll('[data-action="theme_toggle"]');
+    if (!btns.length) { return; }
 
     function sync() {
-      btn.classList.toggle('ribbon-btn--selected', current() === 'dark');
+      btns.forEach(function (btn) {
+        btn.classList.toggle('ribbon-btn--selected', current() === 'dark');
+      });
     }
 
     sync();
-    btn.addEventListener('click', function () {
-      toggle();
-      sync();
+    btns.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        toggle();
+        sync();
+      });
     });
   }
 

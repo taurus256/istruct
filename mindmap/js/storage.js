@@ -502,6 +502,96 @@ var Storage = (function () {
     return result;
   }
 
+  /**
+   * Удаляет схему id целиком (payload + запись в индексе). НЕ трогает
+   * Model/активную схему напрямую (как и importAsNewScheme — Storage
+   * остаётся чистым слоем хранения, см. комментарий в шапке файла про эту
+   * асимметрию) — вызывающий код (ActionHandlers.file_delete в app.js)
+   * сам решает, что делать дальше, по возвращаемому значению:
+   *   { deleted: boolean, wasActive: boolean, newActiveId: string|null }
+   * Если wasActive=true и newActiveId задан — вызывающий должен
+   * Storage.loadScheme(newActiveId) + Undo.reset() + Render.renderAll().
+   * Если wasActive=true и newActiveId=null — схем больше не осталось,
+   * вызывающий должен создать новую (Model.initEmpty() + Storage.createScheme()),
+   * как при полностью пустом хранилище (см. load()).
+   */
+  function deleteScheme(id) {
+    var idx = readIndex();
+    if (!idx) {
+      return { deleted: false, wasActive: false, newActiveId: null };
+    }
+    var entryIndex = -1;
+    for (var i = 0; i < idx.schemes.length; i++) {
+      if (idx.schemes[i].id === id) { entryIndex = i; break; }
+    }
+    if (entryIndex === -1) {
+      return { deleted: false, wasActive: false, newActiveId: null };
+    }
+
+    var wasActive = idx.activeId === id;
+    idx.schemes.splice(entryIndex, 1);
+
+    var newActiveId = null;
+    if (wasActive) {
+      newActiveId = idx.schemes.length > 0 ? idx.schemes[0].id : null;
+      idx.activeId = newActiveId;
+    }
+    writeIndex(idx);
+
+    try {
+      localStorage.removeItem(schemeKey(id));
+    } catch (e) {
+      console.error('Не удалось удалить схему из localStorage', e);
+    }
+
+    return { deleted: true, wasActive: wasActive, newActiveId: newActiveId };
+  }
+
+  /**
+   * Импорт JSON из файла В СУЩЕСТВУЮЩУЮ схему id (перезаписывает именно
+   * ЕЁ payload, НЕ обязательно активную — в отличие от importJSON, который
+   * всегда перезаписывает активную). Используется меню "ещё действия" у
+   * карточки схемы (см. ActionHandlers.file_import_json в app.js) — там
+   * можно выбрать импорт в ЛЮБУЮ карточку, не только в открытую сейчас.
+   * НЕ трогает Model напрямую (та же асимметрия, что и у importAsNewScheme/
+   * deleteScheme) — если id совпадает с активной схемой, вызывающий код сам
+   * обязан Storage.loadScheme(id) + Undo.reset() + Render.renderAll(), иначе
+   * canvas будет показывать устаревшее содержимое. При ошибке — alert,
+   * ничего не меняется. onSuccess() вызывается после успешного применения.
+   */
+  function importIntoScheme(id, file, onSuccess) {
+    if (!file) {
+      return;
+    }
+
+    var reader = new FileReader();
+    reader.onload = function (event) {
+      var payload;
+      try {
+        payload = JSON.parse(event.target.result);
+      } catch (e) {
+        alert('Не удалось прочитать файл: некорректный JSON.');
+        return;
+      }
+
+      if (!isValidPayload(payload)) {
+        alert('Файл повреждён или имеет неверный формат: ожидаются поля version, rootId, nodes.');
+        return;
+      }
+
+      writeSchemePayload(id, payload);
+      touchModified(id);
+
+      if (typeof onSuccess === 'function') {
+        onSuccess();
+      }
+    };
+    reader.onerror = function () {
+      alert('Ошибка чтения файла.');
+    };
+    reader.readAsText(file);
+  }
+
   return {
     save: save,
     saveImmediate: saveImmediate,
@@ -509,9 +599,11 @@ var Storage = (function () {
     exportJSON: exportJSON,
     importJSON: importJSON,
     importAsNewScheme: importAsNewScheme,
+    importIntoScheme: importIntoScheme,
     loadScheme: loadScheme,
     switchScheme: switchScheme,
     createScheme: createScheme,
+    deleteScheme: deleteScheme,
     getActiveId: getActiveId,
     getSchemeName: getSchemeName,
     listSchemes: listSchemes

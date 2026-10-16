@@ -1,6 +1,6 @@
 /*
  * filesPanel.js — панель выбора схемы (#files-panel), открывается вкладкой
- * "ФАЙЛ" ribbon-тулбара (см. ribbonConfig.js: tab.nonSwitching — вкладка не
+ * "ФАЙЛ" ribbon-тулбара (см. uiConfig.js: tab.nonSwitching — вкладка не
  * переключает ribbon-контент, вместо этого app.js подписывается на событие
  * 'ribbon:nonswitching-tab-click' и вызывает FilesPanel.toggle()).
  *
@@ -21,6 +21,8 @@ var FilesPanel = (function () {
   var createBtn = null;    // #btn-files-create
   var importBtn = null;    // #btn-files-import
   var importInput = null;  // #input-import-new-scheme
+  var importIntoInput = null;   // #input-import-into-scheme (меню карточки, см. requestImportIntoScheme)
+  var importIntoSchemeId = null; // id схемы — цель следующего выбора файла в importIntoInput
   var tabBtnEl = null;     // кнопка вкладки "ФАЙЛ" (передаётся из app.js)
   var active = false;
 
@@ -32,6 +34,7 @@ var FilesPanel = (function () {
     createBtn = document.getElementById('btn-files-create');
     importBtn = document.getElementById('btn-files-import');
     importInput = document.getElementById('input-import-new-scheme');
+    importIntoInput = document.getElementById('input-import-into-scheme');
     tabBtnEl = options && options.tabBtnEl;
 
     if (!panelEl || !listEl) {
@@ -49,6 +52,9 @@ var FilesPanel = (function () {
         importInput.click();
       });
       importInput.addEventListener('change', onImportFileChosen);
+    }
+    if (importIntoInput) {
+      importIntoInput.addEventListener('change', onImportIntoFileChosen);
     }
 
     // Закрытие по клику вне панели (и вне самой кнопки вкладки ФАЙЛ — её
@@ -171,6 +177,73 @@ var FilesPanel = (function () {
     afterSchemeSwitch();
   }
 
+  /* ===================== Действия меню карточки ("ещё действия") ===================
+     Вызываются из ActionHandlers (app.js) — см. Popups.fileCard (popups.js):
+     file_delete -> deleteScheme, file_import_json -> requestImportIntoScheme. */
+
+  // Удаляет схему id. Если она была активной — переключается на следующую
+  // оставшуюся (или создаёт новую, если схем больше не осталось) и закрывает
+  // панель, как при обычном переключении (afterSchemeSwitch). Если НЕ была
+  // активной — просто перестраивает список карточек, панель остаётся открытой.
+  function deleteScheme(id) {
+    var name = Storage.getSchemeName(id);
+    var confirmed = window.confirm('Удалить схему «' + name + '»? Это необратимо.');
+    if (!confirmed) {
+      return;
+    }
+
+    var result = Storage.deleteScheme(id);
+    if (!result.deleted) {
+      return;
+    }
+
+    if (result.wasActive) {
+      if (result.newActiveId) {
+        Storage.loadScheme(result.newActiveId);
+      } else {
+        // Схем больше не осталось — создаём новую, как при полностью
+        // пустом хранилище (см. Storage.load()).
+        Model.initEmpty();
+        Storage.createScheme();
+      }
+      afterSchemeSwitch();
+    } else {
+      refreshList();
+    }
+  }
+
+  // Запрашивает у пользователя файл и перезаписывает им схему schemeId (НЕ
+  // обязательно активную — см. Storage.importIntoScheme). Открытие file-picker'а
+  // асинхронно, поэтому id цели запоминается в importIntoSchemeId до момента
+  // выбора файла (onImportIntoFileChosen).
+  function requestImportIntoScheme(schemeId) {
+    if (!importIntoInput) {
+      return;
+    }
+    importIntoSchemeId = schemeId;
+    importIntoInput.click();
+  }
+
+  function onImportIntoFileChosen(e) {
+    var file = e.target.files[0];
+    var schemeId = importIntoSchemeId;
+    importIntoSchemeId = null;
+    importIntoInput.value = ''; // сброс, чтобы можно было повторно выбрать тот же файл
+
+    if (!schemeId || !file) {
+      return;
+    }
+
+    Storage.importIntoScheme(schemeId, file, function () {
+      if (schemeId === Storage.getActiveId()) {
+        Storage.loadScheme(schemeId);
+        afterSchemeSwitch();
+      } else {
+        refreshList();
+      }
+    });
+  }
+
   /* ================================ Рендер =================================== */
 
   function pad2(n) {
@@ -188,10 +261,44 @@ var FilesPanel = (function () {
       ', ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
   }
 
+  // Кнопка-триггер "ещё действия" (стрелка вниз) у правого края карточки —
+  // отдельный от самой карточки элемент (соседняя кнопка, не вложенная),
+  // поэтому клик по ней НЕ всплывает в обработчик клика по карточке (им
+  // незачем знать друг о друге). Открывает Popups.fileCard через
+  // PopupMenu.open — см. actions.js/popups.js/popupMenu.js.
+  function buildMoreButton(scheme) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'scheme-card__more';
+    btn.title = 'Ещё действия';
+    var img = document.createElement('img');
+    img.src = 'assets/icons/small/chevron-down.svg';
+    img.alt = '';
+    btn.appendChild(img);
+
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (typeof PopupMenu === 'undefined') {
+        return;
+      }
+      btn.classList.add('scheme-card__more--open');
+      PopupMenu.open('fileCard', btn, scheme.id, {
+        onClose: function () {
+          btn.classList.remove('scheme-card__more--open');
+        }
+      });
+    });
+
+    return btn;
+  }
+
   function buildCard(scheme) {
     var card = document.createElement('button');
     card.type = 'button';
-    card.className = 'scheme-card' + (scheme.isActive ? ' scheme-card--active' : '');
+    // Рамка активной схемы рисуется на .scheme-card-row--active (см. CSS и
+    // render() ниже) — охватывает и карточку, и кнопку-триггер как единое
+    // целое, поэтому самой карточке класс "--active" не нужен.
+    card.className = 'scheme-card';
     card.dataset.schemeId = scheme.id;
 
     var icon = document.createElement('span');
@@ -230,18 +337,42 @@ var FilesPanel = (function () {
     if (!listEl) {
       return;
     }
+    if (typeof PopupMenu !== 'undefined') {
+      PopupMenu.close(); // список перестраивается — старые узлы-триггеры исчезнут
+    }
     listEl.innerHTML = '';
     var schemes = Storage.listSchemes();
     schemes.forEach(function (scheme) {
-      listEl.appendChild(buildCard(scheme));
+      var row = document.createElement('div');
+      // scheme-card-row--active нужен ОТДЕЛЬНО от scheme-card--active: оранжевая
+      // рамка выделения должна охватывать карточку И кнопку-триггер как единое
+      // целое (см. CSS), а card/more — несвязанные соседние элементы.
+      row.className = 'scheme-card-row' + (scheme.isActive ? ' scheme-card-row--active' : '');
+      row.appendChild(buildCard(scheme));
+      row.appendChild(buildMoreButton(scheme));
+      listEl.appendChild(row);
     });
+  }
+
+  // Перестроить список карточек НЕ закрывая панель — используется после
+  // действий, которые не меняют активную схему (например, удаление
+  // НЕактивной схемы через меню "ещё действия", см. ActionHandlers.file_delete
+  // в app.js). Для действий, которые меняют активную схему, используется
+  // afterSchemeSwitch() (закрывает панель, как и при обычном переключении).
+  function refreshList() {
+    if (active) {
+      render();
+    }
   }
 
   return {
     init: init,
     open: open,
     close: close,
+    refreshList: refreshList,
     toggle: toggle,
-    isActive: isActive
+    isActive: isActive,
+    deleteScheme: deleteScheme,
+    requestImportIntoScheme: requestImportIntoScheme
   };
 })();
