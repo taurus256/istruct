@@ -396,7 +396,31 @@ var TestPanel = (function () {
 
     var nodeId = attempt.nodeId;
     Model.setTestResult(nodeId, result);
+
+    // Автоматическая отметка "Выполнен" (data.marked) — проставляется при
+    // успешном прохождении (passed) и СНИМАЕТСЯ при провале повторной
+    // попытки (иначе зелёная рамка годами показывала бы устаревший
+    // результат); прерванная попытка (aborted) отметку не трогает. Смена
+    // отметки может каскадно "завершить"/"расзавершить" предков — см.
+    // Model.recomputeAncestorMarks.
+    var marksChanged = false;
+    if (status !== 'aborted') {
+      var testNode = Model.getNode(nodeId);
+      if (Model.isMarked(nodeId) !== passed) {
+        Model.setMarked(nodeId, passed);
+        marksChanged = true;
+      }
+      if (testNode && Model.recomputeAncestorMarks(testNode.parentId).length > 0) {
+        marksChanged = true;
+      }
+    }
     Storage.save();
+    // Отражаем изменение отметки на холсте mind map (сам узел и, возможно,
+    // предков) — test.js работает только с боковой панелью, Render.renderAll()
+    // уже к этому моменту определён (test.js подключается после render.js).
+    if (marksChanged && typeof Render !== 'undefined') {
+      Render.renderAll();
+    }
 
     // Попытка завершена.
     attempt = null;

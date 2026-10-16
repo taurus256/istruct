@@ -29,9 +29,14 @@
  * clearTest и setTestResult/getTestResult/clearTestResult ниже, а также test.js.
  *
  * data.marked — необязательный АТРИБУТ-отметка узла (boolean, версия формата 5):
- * чисто визуальный маркер (зелёная рамка), переключается кнопкой "Выполнен"
- * тулбара. Отсутствие поля равнозначно false. Корневой узел не отмечается
- * (см. Render.toggleMarked). См. setMarked/isMarked/toggleMarked ниже.
+ * визуальный маркер (зелёная рамка + "вкладка" слева, см. theme.css), который
+ * может быть установлен тремя способами: вручную кнопкой "Выполнен" тулбара
+ * (toggleMarked), автоматически при успешном прохождении теста (test.js —
+ * см. data.test/data.testResult выше) либо автоматически для узла-родителя,
+ * когда ВСЕ его дети отмечены (см. recomputeAncestorMarks — "все дети
+ * выполнены ⇒ родитель выполнен"). Отсутствие поля равнозначно false.
+ * Корневой узел не отмечается (см. Render.toggleMarked).
+ * См. setMarked/isMarked/toggleMarked/recomputeAncestorMarks ниже.
  */
 
 var Model = (function () {
@@ -378,6 +383,48 @@ var Model = (function () {
   }
 
   /**
+   * Пересчитывает "производную" отметку узлов с детьми по правилу: узел,
+   * имеющий детей, считается выполненным (marked), когда отметку имеют ВСЕ
+   * его дети — иначе отметка снимается. Поднимается от startId вверх по
+   * цепочке родителей, пока отметка предка реально меняется (дальше по
+   * цепочке, если отметка не поменялась, пересчёт тоже ничего не даст).
+   * Корневой узел никогда не получает отметку (см. комментарий к data.marked
+   * выше) — цепочка останавливается, до него не доходя.
+   *
+   * Вызывается ПОСЛЕ любого изменения, способного повлиять на "завершённость"
+   * родителя: ручной toggleMarked, авто-отметка теста (см. setTestResult в
+   * test.js) и структурные изменения — добавление/удаление/перенос узла
+   * (см. render.js: addChild/deleteNode/onDrop). Листовые узлы (без детей)
+   * не трогает — у них отметка не производная (ручная или от теста).
+   *
+   * Возвращает массив id узлов, чья отметка реально изменилась (вызывающий
+   * код использует его, чтобы точечно обновить DOM без полного renderAll()
+   * там, где это уместно — см. Render.toggleMarked).
+   */
+  function recomputeAncestorMarks(startId) {
+    var changed = [];
+    var id = startId;
+    while (id != null && id !== state.rootId) {
+      var node = getNode(id);
+      if (!node) {
+        break;
+      }
+      var children = getChildren(id);
+      var allChildrenMarked = children.length > 0 && children.every(function (child) {
+        return !!(child.data && child.data.marked);
+      });
+      var wasMarked = isMarked(id);
+      if (allChildrenMarked === wasMarked) {
+        break; // выше по цепочке ничего не изменится
+      }
+      setMarked(id, allChildrenMarked);
+      changed.push(id);
+      id = node.parentId;
+    }
+    return changed;
+  }
+
+  /**
    * Заметка — необязательный атрибут любого узла (node.data.note): текст в
    * формате Markdown. Хранится только когда задана. Пустая/whitespace-строка
    * трактуется как «заметки нет» (setNote при пустом значении удаляет поле).
@@ -500,6 +547,7 @@ var Model = (function () {
     setMarked: setMarked,
     isMarked: isMarked,
     toggleMarked: toggleMarked,
+    recomputeAncestorMarks: recomputeAncestorMarks,
     setNote: setNote,
     getNote: getNote,
     clearNote: clearNote,

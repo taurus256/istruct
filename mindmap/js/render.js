@@ -588,10 +588,19 @@ var Render = (function () {
         // дублируются); push до вызова на случай, если result.ok всё же окажется
         // false — лишний шаг в истории безвреден (undo на него просто ничего видимо не меняет).
         Undo.push();
+        var draggedNode = Model.getNode(draggedId);
+        var oldParentId = draggedNode && draggedNode.parentId;
         var result = Model.moveNode(draggedId, targetId);
         if (!result.ok) {
           console.warn('Перенос узла отклонён: ' + result.reason);
         } else {
+          // Перенос меняет набор детей и у старого, и у нового родителя —
+          // "завершённость" обоих могла поменяться в любую сторону (см.
+          // Model.recomputeAncestorMarks).
+          Model.recomputeAncestorMarks(targetId);
+          if (oldParentId) {
+            Model.recomputeAncestorMarks(oldParentId);
+          }
           Storage.save();
         }
         renderAll();
@@ -886,6 +895,11 @@ var Render = (function () {
         }
       }
 
+      // Новый узел не отмечен — родитель (и его предки), ранее помеченный
+      // как "выполнен" из-за того, что ВСЕ дети были отмечены, перестаёт им
+      // быть (см. Model.recomputeAncestorMarks). До Storage.save(), чтобы
+      // пересчитанная отметка тоже сохранилась.
+      Model.recomputeAncestorMarks(newNode.parentId);
       Storage.save();
       // Структурное изменение модели: новый узел ещё не существует в DOM,
       // поэтому нужен полный renderAll() (не полагаемся на побочный эффект
@@ -911,6 +925,10 @@ var Render = (function () {
     Undo.push();
     var removed = Model.removeNode(id);
     if (removed) {
+      // Удаление узла могло оставить у родителя только отмеченных детей —
+      // пересчитываем "завершённость" родителя и его предков (см.
+      // Model.recomputeAncestorMarks), до Storage.save().
+      Model.recomputeAncestorMarks(newSelection);
       Storage.save();
       selectedId = newSelection;
       renderAll();
@@ -919,23 +937,38 @@ var Render = (function () {
   }
 
   // Переключает отметку узла (data.marked, кнопка "Выполнен" тулбара).
-  // Лёгкое обновление, как selectNode(): DOM-класс переключается точечно,
-  // без renderAll() — структура дерева не меняется.
+  // Лёгкое обновление, как selectNode(): DOM-классы переключаются точечно,
+  // без renderAll() — структура дерева не меняется. Переключение может
+  // каскадно повлиять на предков (см. Model.recomputeAncestorMarks — "все
+  // дети отмечены ⇒ родитель тоже отмечен"), поэтому точечно обновляем
+  // класс и у них, если их отметка реально изменилась.
   function toggleMarked(id) {
     if (id == null || id === Model.getState().rootId) {
       return; // root не отмечается — он и так выделен сильнее всех узлов
+    }
+    var node = Model.getNode(id);
+    if (!node) {
+      return;
     }
     Undo.push();
     var marked = Model.toggleMarked(id);
     if (marked === null) {
       return;
     }
+    var changedAncestors = Model.recomputeAncestorMarks(node.parentId);
     Storage.save();
     var box = nodeEls[id];
     var bodyEl = box && box.querySelector('.node__body');
     if (bodyEl) {
       bodyEl.classList.toggle('node--marked', marked);
     }
+    changedAncestors.forEach(function (ancestorId) {
+      var ancestorBox = nodeEls[ancestorId];
+      var ancestorBodyEl = ancestorBox && ancestorBox.querySelector('.node__body');
+      if (ancestorBodyEl) {
+        ancestorBodyEl.classList.toggle('node--marked', Model.isMarked(ancestorId));
+      }
+    });
   }
 
   // Компенсация «отрицательного» смещения контента: узлы, сдвинутые вручную

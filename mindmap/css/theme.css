@@ -286,12 +286,42 @@
   text-decoration-color: var(--link-border-color, #0070cb);
 }
 
-/* Отметка узла (кнопка "Выполнен" тулбара) — зелёная рамка поверх цвета
-   рамки любого типа узла. Правило идёт после .node--test/.node--link,
-   чтобы побеждать в каскаде при равной специфичности у отмеченных узлов
-   любого типа. Корневой узел не отмечается (см. Render.toggleMarked). */
+/* Отметка узла (кнопка "Выполнен" тулбара, либо авто-простановка — при
+   прохождении теста, см. test.js, или когда отмечены ВСЕ дети узла, см.
+   Model.recomputeAncestorMarks) — зелёная рамка поверх цвета рамки любого
+   типа узла, плюс зелёная "вкладка" слева (Figma: node-id=408:2514).
+   Правило идёт после .node--test/.node--link, чтобы побеждать в каскаде при
+   равной специфичности у отмеченных узлов любого типа. Класс добавляется
+   на ТОТ ЖЕ элемент .node__body (не на предка — см. render.js), поэтому
+   ::after навешивается прямо на .node--marked, а не через потомка.
+   Корневой узел не отмечается (см. Render.toggleMarked). */
 .node--marked {
   border-color: var(--marked-border-color, #0f7b0f);
+}
+
+/* Вкладка-маркер — ::after (не ::before: он уже занят значком типа узла,
+   ">?" у .node--test / цепочка у .node--link). left/top:-1px и
+   height:calc(100% + 2px) — перекрывает 1px рамку бокса по всем трём
+   сторонам вкладки, border-radius только у левых углов — совпадает со
+   скруглением самого узла (--radius-node), повторяя Figma 1:1. */
+.node--marked::after {
+  content: '';
+  position: absolute;
+  left: -1px;
+  top: -1px;
+  width: 11px;
+  height: calc(100% + 2px);
+  background: var(--marked-border-color, #0f7b0f);
+  border-top-left-radius: var(--radius-node);
+  border-bottom-left-radius: var(--radius-node);
+  pointer-events: none;
+}
+
+/* .node--test уменьшает padding-left до 10px под свой значок ">?" (::before) —
+   при отметке возвращаем обычный отступ (16px, как у остальных типов),
+   иначе значок/текст наезжают на вкладку маркера. */
+.node--test.node--marked {
+  padding-left: 16px;
 }
 
 /* Корневой узел — единственный на дереве, визуально выделяется сильнее всех */
@@ -303,6 +333,14 @@
   font-size: 20px;
   font-weight: 700;
   box-shadow: var(--root-shadow);
+}
+
+/* Защита инварианта "корневой узел не отмечается" (см. data.marked в
+   model.js) и на случай, если data.marked у root всё же окажется true —
+   например, в легаси/вручную отредактированном JSON. Render.toggleMarked
+   блокирует это в UI, но CSS не должен полагаться только на вызывающий код. */
+.node--root.node--marked::after {
+  display: none;
 }
 
 .node--selected .node__body {
