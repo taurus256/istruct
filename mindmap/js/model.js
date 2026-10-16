@@ -37,6 +37,15 @@
  * выполнены ⇒ родитель выполнен"). Отсутствие поля равнозначно false.
  * Корневой узел не отмечается (см. Render.toggleMarked).
  * См. setMarked/isMarked/toggleMarked/recomputeAncestorMarks ниже.
+ *
+ * data.color — необязательный АТРИБУТ цвета фона узла (строка, версия
+ * формата 8): один из NODE_COLORS ("yellow"|"gray"|"green"|"pink"|"blue"),
+ * переключается кнопками группы "Цвета" тулбара (вкладка УЗЛЫ). Отсутствие
+ * поля (или значение не из NODE_COLORS) равнозначно «цвет не задан» —
+ * нейтральный фон по умолчанию. Независим от data.marked: оба атрибута
+ * могут быть установлены одновременно (цвет красит фон, отметка — рамку).
+ * Корневой узел не окрашивается (см. Render.setNodeColor).
+ * См. NODE_COLORS/setColor/getColor/clearColor ниже.
  */
 
 var Model = (function () {
@@ -425,6 +434,41 @@ var Model = (function () {
   }
 
   /**
+   * Цвет фона — необязательный атрибут любого узла (node.data.color): один
+   * из NODE_COLORS. Чисто визуальный, не влияет на структуру/логику дерева.
+   * Хранится только когда задан допустимым значением — отсутствие поля
+   * равнозначно «цвет не задан» (setColor с недопустимым/пустым значением
+   * ведёт себя как clearColor).
+   */
+  var NODE_COLORS = ['yellow', 'gray', 'green', 'pink', 'blue'];
+
+  function setColor(id, colorKey) {
+    var node = getNode(id);
+    if (!node) {
+      return false;
+    }
+    if (NODE_COLORS.indexOf(colorKey) === -1) {
+      return clearColor(id);
+    }
+    node.data.color = colorKey;
+    return true;
+  }
+
+  function getColor(id) {
+    var node = getNode(id);
+    return (node && node.data) ? node.data.color : undefined;
+  }
+
+  function clearColor(id) {
+    var node = getNode(id);
+    if (!node || node.data.color === undefined) {
+      return false;
+    }
+    delete node.data.color;
+    return true;
+  }
+
+  /**
    * Заметка — необязательный атрибут любого узла (node.data.note): текст в
    * формате Markdown. Хранится только когда задана. Пустая/whitespace-строка
    * трактуется как «заметки нет» (setNote при пустом значении удаляет поле).
@@ -548,6 +592,10 @@ var Model = (function () {
     isMarked: isMarked,
     toggleMarked: toggleMarked,
     recomputeAncestorMarks: recomputeAncestorMarks,
+    NODE_COLORS: NODE_COLORS,
+    setColor: setColor,
+    getColor: getColor,
+    clearColor: clearColor,
     setNote: setNote,
     getNote: getNote,
     clearNote: clearNote,

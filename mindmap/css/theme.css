@@ -108,6 +108,17 @@
      цвета рамки любого типа узла */
   --marked-border-color: #0f7b0f;
 
+  /* Цвет фона узла (группа "Цвета" тулбара, вкладка УЗЛЫ) — пастельные
+     заливки из Figma (node-id=405:2495), не из общей цветовой палитры
+     (--test-border-color и т.д.) — это 5 ФИКСИРОВАННЫХ пользовательских
+     цветов, а не токены темы. Рамка узла при этом НЕ меняется (см.
+     .node--color-* в разделе ниже) — только background. */
+  --node-color-yellow-bg: #f9f1d4;
+  --node-color-gray-bg: #e6e6e6;
+  --node-color-green-bg: #d2f9d2;
+  --node-color-pink-bg: #f9d6d2;
+  --node-color-blue-bg: #d2e6f9;
+
   /* Drag & drop */
   --drop-valid-color: #4caf50;
   --drop-invalid-color: #e53935;
@@ -191,6 +202,16 @@
   --test-border-color: #6ccb5f;
   --link-border-color: #60cdff;
   --marked-border-color: #6ccb5f;
+
+  /* Figma задаёт эти 5 цветов только для светлой темы (node-id=405:2495) —
+     тёмные варианты ниже не из макета, а подобраны здесь: та же цветовая
+     семья, но затемнённая настолько, чтобы светлый --node-text-color
+     (#e5e5e5) оставался читаемым поверх заливки. */
+  --node-color-yellow-bg: #4a3f1f;
+  --node-color-gray-bg: #3a3a3a;
+  --node-color-green-bg: #203f26;
+  --node-color-pink-bg: #442a27;
+  --node-color-blue-bg: #203a4a;
 
   --panel-bg: rgba(28, 28, 28, 0.97);
   --node-panel-border: rgba(255, 255, 255, 0.14);
@@ -324,6 +345,18 @@
   padding-left: 16px;
 }
 
+/* Цвет фона узла (группа "Цвета" тулбара) — независим от data.marked: красит
+   ТОЛЬКО background, рамка/тип/отметка не меняются (см. Render.setNodeColor).
+   Класс на том же элементе .node__body, что и остальные модификаторы узла —
+   см. renderNodeBox в render.js. Правило после .node--test/.node--link (той
+   же специфичности), но background у них не задан, так что порядок здесь
+   не принципиален — приведено для единообразия с .node--marked выше. */
+.node--color-yellow { background: var(--node-color-yellow-bg); }
+.node--color-gray   { background: var(--node-color-gray-bg); }
+.node--color-green  { background: var(--node-color-green-bg); }
+.node--color-pink   { background: var(--node-color-pink-bg); }
+.node--color-blue   { background: var(--node-color-blue-bg); }
+
 /* Корневой узел — единственный на дереве, визуально выделяется сильнее всех */
 .node--root {
   background: var(--root-bg);
@@ -341,6 +374,16 @@
    блокирует это в UI, но CSS не должен полагаться только на вызывающий код. */
 .node--root.node--marked::after {
   display: none;
+}
+
+/* Та же защита для цвета фона — корневой узел не окрашивается (см. data.color
+   в model.js) даже если data.color у root всё же окажется задан. */
+.node--root.node--color-yellow,
+.node--root.node--color-gray,
+.node--root.node--color-green,
+.node--root.node--color-pink,
+.node--root.node--color-blue {
+  background: var(--root-bg);
 }
 
 .node--selected .node__body {

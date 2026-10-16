@@ -34,7 +34,7 @@ body {
 
 /* Тулбар теперь двухуровневый: строка вкладок (.ribbon-tabs) сверху,
    под ней содержимое активной вкладки (.ribbon-tab-content, строка групп) —
-   обе строит динамически ribbonRenderer.js по UIConfig. Сам контейнер
+   обе строит динамически ribbonRenderer.js по RibbonConfig. Сам контейнер
    теперь flex-column (ряды друг над другом), структурные свойства
    (sticky/z-index/фон/тень) остались на нём же. */
 .ribbon-toolbar {
@@ -125,7 +125,7 @@ body {
   background: var(--toolbar-bg, #f3f3f3);
 }
 
-/* Вкладка-меню (nonSwitching в uiConfig.js, напр. "ФАЙЛ"): НЕ переключает
+/* Вкладка-меню (nonSwitching в ribbonConfig.js, напр. "ФАЙЛ"): НЕ переключает
    ribbon-контент, а открывает оверлей-панель (#files-panel) — это другое
    действие, не "сейчас просматриваемая вкладка", поэтому НЕ использует стиль
    .ribbon-tab--active (светлый подсвет + подчёркивание). Вместо этого —
@@ -323,6 +323,14 @@ body {
 .ribbon-small-btn:hover {
   background: var(--ribbon-btn-hover-bg, #eef3fb);
   border-color: var(--ribbon-btn-hover-border, #b7cbe0);
+}
+
+/* Отражает состояние (не нажатие) — см. .ribbon-btn--selected выше; та же
+   пара токенов, подсвечивает, например, текущий цвет выделенного узла
+   (группа "Цвета", см. updateColorButtonsState в app.js). */
+.ribbon-small-btn--selected {
+  background: var(--ribbon-btn-selected-bg, #e1f0f9);
+  border-color: var(--ribbon-btn-selected-border, #005fb8);
 }
 
 .ribbon-small-btn__icon {

@@ -23,11 +23,11 @@ var ActionHandlers = {
 };
 
 document.addEventListener('DOMContentLoaded', function () {
-  // Рендерим ribbon-тулбар по декларативному описанию (UIConfig) ПЕРВОЙ
+  // Рендерим ribbon-тулбар по декларативному описанию (RibbonConfig) ПЕРВОЙ
   // строкой — все остальные обработчики ниже ищут кнопки по id
   // (document.getElementById), они должны уже существовать в DOM.
-  if (typeof RibbonRenderer !== 'undefined' && typeof UIConfig !== 'undefined') {
-    RibbonRenderer.init(document.getElementById('toolbar'), UIConfig);
+  if (typeof RibbonRenderer !== 'undefined' && typeof RibbonConfig !== 'undefined') {
+    RibbonRenderer.init(document.getElementById('toolbar'), RibbonConfig);
   }
 
   Theme.init();
@@ -124,7 +124,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // Панель выбора схемы (#files-panel) — открывается вкладкой "ФАЙЛ"
-  // ribbon-тулбара. Вкладка помечена nonSwitching: true (uiConfig.js) —
+  // ribbon-тулбара. Вкладка помечена nonSwitching: true (ribbonConfig.js) —
   // ribbonRenderer.js не переключает на неё ribbon-контент сама, а
   // рассылает событие 'ribbon:nonswitching-tab-click' с именем вкладки,
   // на которое мы здесь подписываемся. Должно идти ДО Storage.load()/
@@ -263,10 +263,11 @@ document.addEventListener('DOMContentLoaded', function () {
   TestPanel.setOnCloseRequest(closePanel);
 
   // Единая регистрация хука смены выделения — маршрутизирует в нужный вью
-  // и обновляет состояние модальной кнопки "Выполнен".
+  // и обновляет состояние модальных кнопок "Выполнен"/"Цвета".
   Render.setOnSelectionChange(function (id) {
     routeSelection(id);
     updateMarkButtonState(id);
+    updateColorButtonsState(id);
   });
 
   // Клик по кнопке «открыть заметку/тест» на узле (render.js) уже выделил
@@ -288,6 +289,17 @@ document.addEventListener('DOMContentLoaded', function () {
   var addLinkBtn = document.getElementById('btn-add-link');
   var markBtn = document.getElementById('btn-mark-node');
   var removeBtn = document.getElementById('btn-remove-node');
+  // Группа "Цвета" — ключ data.color (см. Model.NODE_COLORS) -> DOM-кнопка.
+  // 'reset' не входит в NODE_COLORS (это отдельная кнопка-сброс), обрабатывается
+  // отдельно ниже, а не через этот объект.
+  var colorButtons = {
+    yellow: document.getElementById('btn-color-yellow'),
+    gray: document.getElementById('btn-color-gray'),
+    green: document.getElementById('btn-color-green'),
+    pink: document.getElementById('btn-color-pink'),
+    blue: document.getElementById('btn-color-blue')
+  };
+  var colorResetBtn = document.getElementById('btn-color-reset');
   var exportBtn = document.getElementById('btn-export');
   var importBtn = document.getElementById('btn-import');
   var importInput = document.getElementById('input-import');
@@ -332,6 +344,46 @@ document.addEventListener('DOMContentLoaded', function () {
       Render.deleteNode(selectedId);
     }
   });
+
+  // Группа "Цвета" — то же "модальная кнопка отражает состояние узла", что и
+  // у markBtn выше, но тут подсвечивается РОВНО одна из 6 кнопок (цвет —
+  // не независимый boolean-флаг, а один из взаимоисключающих вариантов).
+  function updateColorButtonsState(id) {
+    var current = id ? Model.getColor(id) : undefined;
+    Model.NODE_COLORS.forEach(function (key) {
+      var btn = colorButtons[key];
+      if (btn) {
+        btn.classList.toggle('ribbon-small-btn--selected', !!id && current === key);
+      }
+    });
+    if (colorResetBtn) {
+      colorResetBtn.classList.toggle('ribbon-small-btn--selected', !!id && !current);
+    }
+  }
+
+  Model.NODE_COLORS.forEach(function (key) {
+    var btn = colorButtons[key];
+    if (!btn) {
+      return;
+    }
+    btn.addEventListener('click', function () {
+      var selectedId = Render.getSelectedId();
+      if (selectedId) {
+        Render.setNodeColor(selectedId, key);
+        updateColorButtonsState(selectedId);
+      }
+    });
+  });
+
+  if (colorResetBtn) {
+    colorResetBtn.addEventListener('click', function () {
+      var selectedId = Render.getSelectedId();
+      if (selectedId) {
+        Render.setNodeColor(selectedId, null);
+        updateColorButtonsState(selectedId);
+      }
+    });
+  }
 
   exportBtn.addEventListener('click', function () {
     Storage.exportJSON();

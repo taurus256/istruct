@@ -1,7 +1,7 @@
 /*
  * actions.js — реестр "действий" (Action): операция как таковая — системный
  * идентификатор, подпись для пользователя, обычная и малая иконки.
- * ЧИСТЫЕ ДАННЫЕ, без логики (как и uiConfig.js/popups.js). Один Action может
+ * ЧИСТЫЕ ДАННЫЕ, без логики (как и ribbonConfig.js/popups.js). Один Action может
  * переиспользоваться в нескольких местах интерфейса (ribbon-кнопка И пункт
  * всплывающего меню и т.д.) — тогда имя/иконка редактируются один раз.
  *
@@ -29,6 +29,17 @@ var Actions = [
   { id: 'node_add_link', name: 'Ссылка', icon: 'assets/icons/link.svg' },
   { id: 'node_mark', name: 'Отметить', icon: 'assets/icons/check.svg' },
   { id: 'node_remove', name: 'Удалить', icon: 'assets/icons/trash.svg' },
+
+  // ---- Цвет фона узла (группа "Цвета", вкладка УЗЛЫ) — см. Model.setColor/
+  // Render.setNodeColor. Иконки — цветные квадраты-образцы (Figma: node-id
+  // 405:2495), smallicon намеренно не задан: эти действия используются
+  // ТОЛЬКО как smallbutton (24px), icon у них и есть нужный размер.
+  { id: 'node_color_yellow', name: 'Желтый', icon: 'assets/icons/node-color-yellow.svg' },
+  { id: 'node_color_gray', name: 'Серый', icon: 'assets/icons/node-color-gray.svg' },
+  { id: 'node_color_green', name: 'Зелёный', icon: 'assets/icons/node-color-green.svg' },
+  { id: 'node_color_pink', name: 'Розовый', icon: 'assets/icons/node-color-pink.svg' },
+  { id: 'node_color_blue', name: 'Голубой', icon: 'assets/icons/node-color-blue.svg' },
+  { id: 'node_color_reset', name: 'Сбросить', icon: 'assets/icons/node-color-reset.svg' },
   { id: 'help_docs', name: 'Справка', icon: 'assets/icons/book.svg' },
   { id: 'notes_panel', name: 'Панель', icon: 'assets/icons/panel.svg' },
   { id: 'theme_toggle', name: 'Тема', icon: 'assets/icons/theme.svg', iconNeutral: true },

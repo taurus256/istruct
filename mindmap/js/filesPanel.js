@@ -1,6 +1,6 @@
 /*
  * filesPanel.js — панель выбора схемы (#files-panel), открывается вкладкой
- * "ФАЙЛ" ribbon-тулбара (см. uiConfig.js: tab.nonSwitching — вкладка не
+ * "ФАЙЛ" ribbon-тулбара (см. ribbonConfig.js: tab.nonSwitching — вкладка не
  * переключает ribbon-контент, вместо этого app.js подписывается на событие
  * 'ribbon:nonswitching-tab-click' и вызывает FilesPanel.toggle()).
  *

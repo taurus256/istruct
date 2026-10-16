@@ -467,6 +467,9 @@ var Render = (function () {
     if (node.data && node.data.marked) {
       bodyEl.classList.add('node--marked');
     }
+    if (node.data && node.data.color) {
+      bodyEl.classList.add('node--color-' + node.data.color);
+    }
 
     var textEl = document.createElement('span');
     textEl.className = 'node__text';
@@ -971,6 +974,34 @@ var Render = (function () {
     });
   }
 
+  // Устанавливает/сбрасывает цвет фона узла (data.color, кнопки группы
+  // "Цвета" тулбара). colorKey — одна из Model.NODE_COLORS, либо
+  // null/undefined/'reset' (любое недопустимое значение) — сбрасывает цвет
+  // (см. Model.setColor). Лёгкое обновление, как toggleMarked() — цвет не
+  // каскадируется на предков, в отличие от отметки.
+  function setNodeColor(id, colorKey) {
+    if (id == null || id === Model.getState().rootId) {
+      return; // root не окрашивается — у него фиксированный фирменный цвет
+    }
+    if (!Model.getNode(id)) {
+      return;
+    }
+    Undo.push();
+    Model.setColor(id, colorKey);
+    Storage.save();
+    var box = nodeEls[id];
+    var bodyEl = box && box.querySelector('.node__body');
+    if (bodyEl) {
+      Model.NODE_COLORS.forEach(function (key) {
+        bodyEl.classList.remove('node--color-' + key);
+      });
+      var current = Model.getColor(id);
+      if (current) {
+        bodyEl.classList.add('node--color-' + current);
+      }
+    }
+  }
+
   // Компенсация «отрицательного» смещения контента: узлы, сдвинутые вручную
   // (data.offset → transform: translate) далеко вверх/влево, визуально уходят
   // в координаты < 0 контейнера. transform НЕ участвует в layout и НЕ создаёт
@@ -1422,6 +1453,7 @@ var Render = (function () {
     editNode: editNode,
     deleteNode: deleteNode,
     toggleMarked: toggleMarked,
+    setNodeColor: setNodeColor,
     setZoom: setZoom,
     getZoom: getZoom
   };

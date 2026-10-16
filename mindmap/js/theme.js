@@ -26,7 +26,7 @@ var Theme = (function () {
 
   function init() {
     // Кнопка "Тема" встречается в НЕСКОЛЬКИХ вкладках ribbon'а (ВИД и
-    // ИНСТРУМЕНТЫ — см. uiConfig.js) как один и тот же action theme_toggle
+    // ИНСТРУМЕНТЫ — см. ribbonConfig.js) как один и тот же action theme_toggle
     // под разными DOM id (btn-theme/btn-theme-tools). Раньше это были ДВЕ
     // кнопки с ОДНИМ И ТЕМ ЖЕ id='btn-theme' — document.getElementById
     // находил только первую, вторая была нерабочей "мёртвой кнопкой".

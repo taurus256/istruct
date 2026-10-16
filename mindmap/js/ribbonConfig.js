@@ -1,16 +1,16 @@
 /*
- * uiConfig.js — декларативное описание содержимого ribbon-тулбара: вкладки,
- * группы, кнопки. ЧИСТЫЕ ДАННЫЕ, без логики отображения (см.
+ * ribbonConfig.js — декларативное описание содержимого ribbon-тулбара:
+ * вкладки, группы, кнопки. ЧИСТЫЕ ДАННЫЕ, без логики отображения (см.
  * ribbonRenderer.js — он рендерит DOM по этой структуре; десктопный
  * рендерер сейчас единственный, но формат данных не завязан на конкретный
- * способ отображения — в будущем по тому же UIConfig можно построить и
+ * способ отображения — в будущем по тому же RibbonConfig можно построить и
  * мобильный рендерер).
  *
- * Переименовано из ribbonConfig.js/RibbonConfig: теперь это не только
- * ribbon, но и общее место декларативного описания UI — определения
- * всплывающих меню вынесены в отдельный файл popups.js (чтобы не раздувать
- * этот файл и держать ribbon/меню как независимые, самостоятельно читаемые
- * списки), но оба ссылаются на общий реестр действий (см. actions.js).
+ * Имя/иконка кнопок здесь не хранятся — content-элементы ссылаются на
+ * действие по id (поле action), а имя/иконку резолвит ribbonRenderer.js
+ * через общий реестр действий (см. getAction() в actions.js). Определения
+ * всплывающих меню (панель ФАЙЛ) вынесены в отдельный файл popups.js — он
+ * читает тот же реестр действий, но не зависит от RibbonConfig и наоборот.
  *
  * Обычный <script> (НЕ fetch отдельного .json) — при открытии приложения
  * через file:// локальные JSON-файлы недоступны через сетевые запросы
@@ -45,7 +45,7 @@
  *            groups при этом может быть пустым массивом — контент-панель
  *            такой вкладки никогда не показывается.
  */
-var UIConfig = {
+var RibbonConfig = {
   tabs: [
     {
       name: 'ФАЙЛ',
@@ -79,8 +79,21 @@ var UIConfig = {
          {
           name: 'Действия',
           content: [
-            { type: 'button', id: 'btn-mark-node', action: 'node_mark' },
             { type: 'button', id: 'btn-remove-node', action: 'node_remove' }
+          ]
+        },
+        {
+          // 6 smallbutton подряд -> ribbonRenderer.js группирует их в 2
+          // колонки по 3 (см. SMALL_GROUP_SIZE в ribbonRenderer.js).
+          name: 'Цвета',
+          content: [
+            { type: 'button', id: 'btn-mark-node', action: 'node_mark' },
+            { type: 'smallbutton', id: 'btn-color-yellow', action: 'node_color_yellow' },
+            { type: 'smallbutton', id: 'btn-color-gray', action: 'node_color_gray' },
+            { type: 'smallbutton', id: 'btn-color-green', action: 'node_color_green' },
+            { type: 'smallbutton', id: 'btn-color-pink', action: 'node_color_pink' },
+            { type: 'smallbutton', id: 'btn-color-blue', action: 'node_color_blue' },
+            { type: 'smallbutton', id: 'btn-color-reset', action: 'node_color_reset' }
           ]
         }
       ]

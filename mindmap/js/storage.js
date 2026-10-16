@@ -1,7 +1,7 @@
 /*
  * storage.js — сохранение/загрузка модели в localStorage,
  * экспорт и импорт в формате JSON.
- * Формат файла: { "version": 7, "rootId": "n1", "nodes": { ... } }
+ * Формат файла: { "version": 8, "rootId": "n1", "nodes": { ... } }
  *
  * ИДЕНТИФИКАТОР УЗЛА (важно): узел хранится как значение по КЛЮЧУ в объекте
  * "nodes" — именно ключ и есть идентификатор узла. Внутреннего поля "id" у
@@ -51,7 +51,7 @@
  * совпадать). При сериализации поле "id" исключается (см. serializeNodes),
  * при загрузке восстанавливается в памяти из ключа (см. Model.setState).
  *
- * version 7 (текущая): у вопроса теста (data.test.questions[i], см. version 4
+ * version 7: у вопроса теста (data.test.questions[i], см. version 4
  * выше) может появиться необязательное поле "type": "choice" | "freeform".
  * Отсутствие поля равносильно "choice" (старые данные version ≤6 — все
  * выборочные вопросы читаются без изменений). При "type": "freeform"
@@ -61,6 +61,14 @@
  * обрезки пробелов по краям и приведения к нижнему регистру у обеих строк
  * (без нечёткого сравнения). См. test.js (isQuestionCorrect/finalize) и
  * DATA_FORMAT.md §4.1.
+ *
+ * version 8 (текущая): у узлов может появиться необязательное поле
+ * "data.color" — string, один из "yellow"|"gray"|"green"|"pink"|"blue".
+ * Чисто визуальная заливка фона узла, переключается кнопками группы "Цвета"
+ * тулбара (вкладка УЗЛЫ). Отсутствие поля или нераспознанное значение
+ * означает «цвет не задан» (нейтральный фон). См. model.js
+ * (setColor/getColor/clearColor) и render.js (Render.setNodeColor).
+ * Корневой узел не окрашивается. DATA_FORMAT.md §2.7.
  *
  * Обратная совместимость: файлы version 1–6 читаются без изменений —
  * отсутствие поля data.* трактуется как авто-позиция / «заметки нет» /
@@ -270,7 +278,7 @@ var Storage = (function () {
     }
     try {
       var state = Model.getState();
-      var payload = { version: 7, rootId: state.rootId, nodes: serializeNodes(state.nodes) };
+      var payload = { version: 8, rootId: state.rootId, nodes: serializeNodes(state.nodes) };
       writeSchemePayload(idx.activeId, payload);
       touchModified(idx.activeId);
     } catch (e) {
@@ -316,7 +324,7 @@ var Storage = (function () {
   // «сохранением» (см. шапку файла) — помечаем savedAt активной схемы.
   function exportJSON() {
     var state = Model.getState();
-    var payload = { version: 7, rootId: state.rootId, nodes: serializeNodes(state.nodes) };
+    var payload = { version: 8, rootId: state.rootId, nodes: serializeNodes(state.nodes) };
     var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     var url = URL.createObjectURL(blob);
 
@@ -465,7 +473,7 @@ var Storage = (function () {
   function createScheme() {
     var id = generateSchemeId();
     var state = Model.getState();
-    var payload = { version: 7, rootId: state.rootId, nodes: serializeNodes(state.nodes) };
+    var payload = { version: 8, rootId: state.rootId, nodes: serializeNodes(state.nodes) };
     registerScheme(id, payload, Date.now());
     return id;
   }
