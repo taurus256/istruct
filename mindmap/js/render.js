@@ -562,6 +562,39 @@ var Render = (function () {
       selectNode(node.id);
     });
 
+    // Правый клик по узлу — контекстное меню (см. Popups.node/popupMenu.js)
+    // ВМЕСТО стандартного браузерного меню (preventDefault). stopPropagation —
+    // чтобы клик не доходил до фона канвы (там нет своего contextmenu-
+    // обработчика сейчас, но так симметрично обычному click-обработчику выше).
+    // Меню ставится ЛЕВЫМ ВЕРХНИМ углом точно в курсор (options.atPoint), а
+    // не у границ узла — перекрытие с попап-панелями самого узла (edit/add/
+    // note-test) при этом ожидаемо, это не баг (см. positionAtPoint).
+    // Видимость части пунктов (Создать детей.../Сбросить позицию/Открыть
+    // заметку.../Удалить) зависит от состояния ИМЕННО ЭТОГО узла на момент
+    // клика — вычисляем свежо, а не берём из замыкания renderNodeBox (node
+    // — тот же объект, что в Model.state.nodes, так что node.data.* уже
+    // актуален и без полной перерисовки, но hasTest/getNote — через Model
+    // для единообразия с createNoteTestButton выше).
+    box.addEventListener('contextmenu', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (typeof PopupMenu === 'undefined') {
+        return;
+      }
+      selectNode(node.id);
+      var hasTest = Model.hasTest(node.id);
+      var visibility = {
+        notRoot: !isRoot,
+        hasOffset: !!(node.data && node.data.offset),
+        hasTest: hasTest,
+        hasNote: !hasTest && Model.getNote(node.id) !== undefined
+      };
+      PopupMenu.open('node', null, node.id, {
+        visibility: visibility,
+        atPoint: { x: e.clientX, y: e.clientY }
+      });
+    });
+
     // Ctrl+клик по тексту узла-ссылки — переход по URL из комментария узла
     // (открывается в новой вкладке, чтобы не терять состояние mind map).
     // Без Ctrl или для узлов не типа 'link' — событие не перехватываем,
@@ -647,10 +680,7 @@ var Render = (function () {
       resetBtn.innerHTML = '<img src="assets/icons/small/undo-2.svg" alt="">';
       resetBtn.addEventListener('click', function (e) {
         e.stopPropagation();
-        Undo.push();
-        Model.clearOffset(node.id);
-        Storage.save();
-        renderAll();
+        resetPosition(node.id);
       });
       panel.appendChild(resetBtn);
     }
@@ -699,12 +729,32 @@ var Render = (function () {
     }
     btn.addEventListener('click', function (e) {
       e.stopPropagation();
-      selectNode(nodeId);
-      if (onOpenPanelRequest) {
-        onOpenPanelRequest(nodeId);
-      }
+      openNotePanel(nodeId);
     });
     return btn;
+  }
+
+  // Сбрасывает ручное позиционирование узла (data.offset) — кнопка в
+  // node__panel--edit и действие 'node_reset_position' контекстного меню
+  // (см. ActionHandlers в app.js) используют одну и ту же логику.
+  function resetPosition(nodeId) {
+    Undo.push();
+    Model.clearOffset(nodeId);
+    Storage.save();
+    renderAll();
+  }
+
+  // Выделяет узел и просит координатор в app.js открыть боковую панель
+  // заметки/теста (см. setOnOpenPanelRequest) — используется и кнопкой
+  // «открыть заметку/тест» на самом узле (createNoteTestButton), и
+  // действиями 'node_open_test'/'node_open_note' контекстного меню
+  // (оба ведут к одному и тому же — какой вид показать, решает routeSelection
+  // в app.js по фактическому наличию data.test/data.note у узла).
+  function openNotePanel(nodeId) {
+    selectNode(nodeId);
+    if (onOpenPanelRequest) {
+      onOpenPanelRequest(nodeId);
+    }
   }
 
   // Создаёт кнопки добавления по одной на каждый зарегистрированный тип
@@ -1454,6 +1504,9 @@ var Render = (function () {
     deleteNode: deleteNode,
     toggleMarked: toggleMarked,
     setNodeColor: setNodeColor,
+    editOrAddComment: editOrAddComment,
+    resetPosition: resetPosition,
+    openNotePanel: openNotePanel,
     setZoom: setZoom,
     getZoom: getZoom
   };

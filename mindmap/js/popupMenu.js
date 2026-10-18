@@ -12,6 +12,13 @@
  * Вложенность submenu — ОДИН уровень (submenu внутри submenu не
  * поддерживается: достаточно для текущих сценариев — см. popups.js).
  *
+ * Условная видимость пункта — необязательное поле item.visibleWhen (строка-
+ * ключ, например 'hasTest'): пункт рендерится, только если
+ * options.visibility[ключ] истинно у ТЕКУЩЕГО open() (см. Popups.node и
+ * render.js — вычисляет флаги под конкретный узел на момент правого клика).
+ * Список пунктов остаётся декларативным (popups.js) — только ВИДИМОСТЬ
+ * зависит от контекста, поведение/состав пунктов не генерируется в коде.
+ *
  * Открыто единовременно не более одного меню (плюс не более одного
  * раскрытого вложенного submenu внутри него) — повторный вызов open()
  * сначала закрывает предыдущее.
@@ -21,6 +28,13 @@ var PopupMenu = (function () {
   var openSubmenuEl = null; // текущий раскрытый flyout submenu (или null)
   var currentContext = null;
   var onCloseCallback = null; // опциональный колбэк open(...,{onClose}) — см. close()
+  // Карта флагов видимости для текущего открытия (options.visibility в open(),
+  // см. ниже) — пункт с полем item.visibleWhen рендерится, только если
+  // currentVisibility[item.visibleWhen] истинно. Используется, когда один и
+  // тот же декларативный список пунктов (popups.js) должен по-разному
+  // выглядеть в зависимости от состояния конкретного узла/контекста (есть ли
+  // data.offset, data.test, data.note, корень ли это) — см. Popups.node.
+  var currentVisibility = {};
 
   function iconSrc(action, small) {
     if (small && action.smallicon) {
@@ -126,10 +140,34 @@ var PopupMenu = (function () {
     return row;
   }
 
+  // Отфильтровывает пункты по visibleWhen (см. шапку файла), затем убирает
+  // "осиротевшие" separator — в начале/конце списка или два подряд — которые
+  // иначе получаются из-за скрытых соседних пунктов (пример: у корневого
+  // узла 'node_remove' не виден — пункт 'separator' перед ним остаётся
+  // одиноким последним элементом меню). Список остаётся декларативным
+  // (popups.js) — это чисто визуальная уборка уже отфильтрованного результата.
+  function filterVisibleItems(items) {
+    var visible = items.filter(function (item) {
+      return !item.visibleWhen || !!currentVisibility[item.visibleWhen];
+    });
+    var cleaned = [];
+    visible.forEach(function (item) {
+      var prevIsSeparator = cleaned.length > 0 && cleaned[cleaned.length - 1].type === 'separator';
+      if (item.type === 'separator' && (cleaned.length === 0 || prevIsSeparator)) {
+        return; // в начале списка или сразу после другого separator
+      }
+      cleaned.push(item);
+    });
+    if (cleaned.length > 0 && cleaned[cleaned.length - 1].type === 'separator') {
+      cleaned.pop(); // в конце списка
+    }
+    return cleaned;
+  }
+
   function buildMenuEl(items) {
     var menu = document.createElement('div');
     menu.className = 'popup-menu';
-    items.forEach(function (item) {
+    filterVisibleItems(items).forEach(function (item) {
       if (item.type === 'separator') {
         menu.appendChild(makeSeparatorEl());
       } else if (item.type === 'submenu') {
@@ -166,6 +204,32 @@ var PopupMenu = (function () {
     var top = rect.bottom + 4;
     if (top + menuRect.height > window.innerHeight - 8) {
       top = Math.max(8, rect.top - menuRect.height - 4);
+    }
+    menuEl.style.left = left + 'px';
+    menuEl.style.top = top + 'px';
+    menuEl.style.visibility = '';
+  }
+
+  // Позиционирует меню так, чтобы его левый верхний угол оказался строго в
+  // точке (x, y) — курсор мыши в момент правого клика (см. Popups.node /
+  // render.js: options.atPoint). В отличие от positionNear — не привязано к
+  // границам какого-либо элемента (узел, кнопка-триггер), поэтому и
+  // перекрытие меню с попап-панелями самого узла — ожидаемое поведение, не
+  // баг. Перенос влево/вверх при нехватке места у края вьюпорта — как и у
+  // positionNear.
+  function positionAtPoint(menuEl, x, y) {
+    menuEl.style.visibility = 'hidden';
+    menuEl.hidden = false;
+    document.body.appendChild(menuEl);
+    var menuRect = menuEl.getBoundingClientRect();
+
+    var left = x;
+    if (left + menuRect.width > window.innerWidth - 8) {
+      left = Math.max(8, window.innerWidth - 8 - menuRect.width);
+    }
+    var top = y;
+    if (top + menuRect.height > window.innerHeight - 8) {
+      top = Math.max(8, window.innerHeight - 8 - menuRect.height);
     }
     menuEl.style.left = left + 'px';
     menuEl.style.top = top + 'px';
@@ -219,6 +283,12 @@ var PopupMenu = (function () {
   // этого меню (клик по пункту, клик вне меню, Escape, повторный open())
   // — используется вызывающим кодом (filesPanel.js) только чтобы снять
   // визуальное "нажатое" состояние с кнопки-триггера, см. scheme_more.
+  // options.visibility — опциональная карта { [visibleWhen]: boolean },
+  // см. item.visibleWhen выше.
+  // options.atPoint — опциональная { x, y } (координаты курсора в момент
+  // правого клика, см. render.js) — если задана, меню ставится левым верхним
+  // углом ровно в эту точку (positionAtPoint) ВМЕСТО привязки к anchorEl
+  // (positionNear); anchorEl в этом случае может быть null.
   function open(popupKey, anchorEl, context, options) {
     close(); // не более одного открытого меню одновременно
 
@@ -229,6 +299,7 @@ var PopupMenu = (function () {
     }
 
     currentContext = context;
+    currentVisibility = (options && options.visibility) || {};
     onCloseCallback = (options && typeof options.onClose === 'function') ? options.onClose : null;
     rootEl = buildMenuEl(popupDef.items);
     // Отличает корневое меню от flyout-ов (оба имеют класс .popup-menu —
@@ -238,7 +309,11 @@ var PopupMenu = (function () {
     // Без этого класса document.querySelector('.popup-menu') мог бы
     // вернуть flyout вместо rootEl.
     rootEl.classList.add('popup-menu--root');
-    positionNear(rootEl, anchorEl);
+    if (options && options.atPoint) {
+      positionAtPoint(rootEl, options.atPoint.x, options.atPoint.y);
+    } else {
+      positionNear(rootEl, anchorEl);
+    }
 
     document.addEventListener('click', onOutsideClick, true);
     document.addEventListener('keydown', onKeyDown, true);
@@ -255,6 +330,7 @@ var PopupMenu = (function () {
       rootEl = null;
     }
     currentContext = null;
+    currentVisibility = {};
     document.removeEventListener('click', onOutsideClick, true);
     document.removeEventListener('keydown', onKeyDown, true);
     if (wasOpen && onCloseCallback) {

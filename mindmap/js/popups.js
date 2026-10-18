@@ -16,6 +16,13 @@
  *       необязателен (может быть пунктом без иконки, просто name + стрелка).
  *       Вложенность — один уровень (submenu внутри submenu не ожидается
  *       текущим popupMenu.js, см. его комментарий).
+ *   visibleWhen: <ключ>
+ *     — необязательное поле у 'menuitem' (действует и у верхнего уровня, и
+ *       внутри submenu): пункт рендерится, только если options.visibility
+ *       переданного в PopupMenu.open() объекта содержит этот ключ со
+ *       значением true — см. popupMenu.js и render.js (Popups.node ниже:
+ *       состав пунктов один и тот же для любого узла, но часть из них имеет
+ *       смысл только при определённом состоянии узла).
  */
 var Popups = {
   // Меню "⋯" у карточки схемы в панели ФАЙЛ (см. filesPanel.js).
@@ -32,6 +39,34 @@ var Popups = {
           { type: 'menuitem', action: 'file_import_md' }
         ]
       }
+    ]
+  },
+
+  // Контекстное меню узла (правый клик по узлу на холсте — см. render.js:
+  // contextmenu-обработчик в renderNodeBox). Дублирует набор действий,
+  // доступных через node__panel (панель редактирования при наведении/
+  // выделении узла — см. buildEditPanel/createNoteTestButton) плюс кнопки
+  // добавления дочерних узлов (makeAddButtons), сгруппированные здесь под
+  // одним пунктом "Создать" с подменю — вместо ряда отдельных кнопок.
+  node: {
+    items: [
+      {
+        type: 'submenu',
+        name: 'Создать',
+        icon: 'assets/icons/small/create-node.svg',
+        submenu: [
+          { type: 'menuitem', action: 'node_add_text' },
+          { type: 'menuitem', action: 'node_add_test' },
+          { type: 'menuitem', action: 'node_add_link' }
+        ]
+      },
+      { type: 'separator' },
+      { type: 'menuitem', action: 'node_comment' },
+      { type: 'menuitem', action: 'node_open_test', visibleWhen: 'hasTest' },
+      { type: 'menuitem', action: 'node_open_note', visibleWhen: 'hasNote' },
+      { type: 'menuitem', action: 'node_reset_position', visibleWhen: 'hasOffset' },
+      { type: 'separator' },
+      { type: 'menuitem', action: 'node_remove', visibleWhen: 'notRoot' }
     ]
   }
 };

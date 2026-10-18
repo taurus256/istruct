@@ -19,6 +19,35 @@ var ActionHandlers = {
     // парсера, см. анализ перед этим шагом). Пункт меню намеренно оставлен
     // видимым, но неактивным — заглушка вместо тихого no-op.
     alert('Импорт MD — в разработке');
+  },
+
+  // Контекстное меню узла (правый клик, см. Popups.node/render.js) — context
+  // здесь ВСЕГДА id конкретного узла, по которому кликнули правой кнопкой
+  // (НЕ обязательно текущий Render.getSelectedId(), хотя contextmenu-
+  // обработчик и выделяет его заодно — см. render.js).
+  node_add_text: function (nodeId) {
+    Render.addChild(nodeId, 'main');
+  },
+  node_add_test: function (nodeId) {
+    Render.addChild(nodeId, 'test');
+  },
+  node_add_link: function (nodeId) {
+    Render.addChild(nodeId, 'link');
+  },
+  node_remove: function (nodeId) {
+    Render.deleteNode(nodeId);
+  },
+  node_comment: function (nodeId) {
+    Render.editOrAddComment(nodeId);
+  },
+  node_reset_position: function (nodeId) {
+    Render.resetPosition(nodeId);
+  },
+  node_open_test: function (nodeId) {
+    Render.openNotePanel(nodeId);
+  },
+  node_open_note: function (nodeId) {
+    Render.openNotePanel(nodeId);
   }
 };
 

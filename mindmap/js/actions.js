@@ -47,7 +47,18 @@ var Actions = [
   // ---- Действия всплывающего меню карточки схемы (панель ФАЙЛ, см. popups.js) ----
   { id: 'file_delete', name: 'Удалить', icon: 'assets/icons/trash.svg' },
   { id: 'file_import_json', name: 'Импорт JSON', icon: 'assets/icons/arrow-down.svg' },
-  { id: 'file_import_md', name: 'Импорт MD', icon: 'assets/icons/arrow-down.svg' }
+  { id: 'file_import_md', name: 'Импорт MD', icon: 'assets/icons/arrow-down.svg' },
+
+  // ---- Действия контекстного меню узла (правый клик, см. Popups.node) ----
+  // Дублируют то, что уже есть в node__panel (render.js: editOrAddComment/
+  // resetBtn/createNoteTestButton/deleteNode), но как Action — для меню.
+  // Иконки — уже существующие small/*-ассеты render.js (у comment/reset-
+  // position/note своей 48px-версии нет: вне контекстного меню и ribbon'а
+  // они нигде не используются как большая кнопка).
+  { id: 'node_comment', name: 'Комментарий', icon: 'assets/icons/small/comment.svg' },
+  { id: 'node_open_test', name: 'Открыть тест', icon: 'assets/icons/small/test.svg' },
+  { id: 'node_open_note', name: 'Открыть заметку', icon: 'assets/icons/small/note.svg' },
+  { id: 'node_reset_position', name: 'Сбросить позицию', icon: 'assets/icons/small/undo-2.svg' }
 ];
 
 // Быстрый поиск действия по id. Возвращает null, если действие не найдено —
