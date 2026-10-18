@@ -90,6 +90,7 @@
   /* Выделение и связи */
   --node-selected-outline: #ff9800;
   --connector-color: #8A8A8A; /* neutral */
+  --neutral: #8A8A8A;
 
   /* Комментарий-атрибут (мелкий серый текст под узлом) */
   --comment-color: #8a8a8a;

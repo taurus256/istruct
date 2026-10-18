@@ -55,7 +55,7 @@ body {
    правому краю — без justify-content:space-between, простой flex-поток). */
 .ribbon-tabs-row {
   display: flex;
-  align-items: center;
+  align-items: start;
   flex: 0 0 auto;
 }
 
@@ -73,8 +73,8 @@ body {
 .ribbon-undo-redo {
   display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 0 8px;
+  gap: 8px;
+  padding: 4px 8px;
   flex: 0 0 auto;
 }
 
@@ -82,8 +82,8 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   padding: 6px;
   border: none;
   background: transparent;
@@ -92,8 +92,8 @@ body {
 }
 
 .ribbon-undo-redo__btn img {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   display: block;
 }
 
@@ -1408,7 +1408,7 @@ body.mm-resizing .panel-resize-handle {
   min-width: 200px;
   padding: 6px 0;
   background: var(--surface, #ffffff);
-  border: 1px solid var(--test-card-border, #e2e5e9);
+  border: 1px solid var(--neutral, #8A8A8A);
   border-radius: var(--radius-ui);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
 }
