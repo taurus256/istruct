@@ -48,6 +48,19 @@ var ActionHandlers = {
   },
   node_open_note: function (nodeId) {
     Render.openNotePanel(nodeId);
+  },
+
+  // Контекстное меню фона канвы (правый клик вне узлов, см. Popups.canvas/
+  // render.js) — context здесь не используется (действия не привязаны к
+  // конкретному узлу), поэтому обработчики ничего не принимают.
+  scheme_zoom_in: function () {
+    Zoom.zoomIn();
+  },
+  scheme_zoom_out: function () {
+    Zoom.zoomOut();
+  },
+  scheme_export: function () {
+    Storage.exportJSON();
   }
 };
 
@@ -554,5 +567,20 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
     Render.selectNode(null);
+  });
+
+  // Правый клик по фону канвы (вне узлов) — контекстное меню (см.
+  // Popups.canvas/popups.js) ВМЕСТО стандартного браузерного меню. Правый
+  // клик по самому узлу обрабатывается отдельно в render.js (contextmenu на
+  // .node__body) и останавливает всплытие (stopPropagation) — сюда он не
+  // доходит, поэтому здесь обработчик безусловный, без проверки e.target.
+  mindmapRoot.addEventListener('contextmenu', function (e) {
+    e.preventDefault();
+    if (typeof PopupMenu === 'undefined') {
+      return;
+    }
+    PopupMenu.open('canvas', null, null, {
+      atPoint: { x: e.clientX, y: e.clientY }
+    });
   });
 });

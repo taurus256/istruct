@@ -91,6 +91,17 @@ var Zoom = (function () {
     zoomFromCenter(1);
   }
 
+  // Увеличить/уменьшить на один «шаг» STEP — полный аналог Alt+"+"/Alt+"-"
+  // (якорь в центре видимой области). Используются пунктами контекстного
+  // меню фона канвы "Увеличить"/"Уменьшить" (см. Popups.canvas/app.js).
+  function zoomIn() {
+    zoomFromCenter(Render.getZoom() * STEP);
+  }
+
+  function zoomOut() {
+    zoomFromCenter(Render.getZoom() / STEP);
+  }
+
   // Alt+"+" — увеличить, Alt+"-" — уменьшить, Alt+"0" — вернуть 100%.
   // Используем e.code (физическая клавиша, не зависит от раскладки/Shift) плюс
   // e.key как фолбэк, чтобы сработало и на основной клавиатуре, и на numpad.
@@ -136,6 +147,8 @@ var Zoom = (function () {
 
   return {
     init: init,
-    reset: reset
+    reset: reset,
+    zoomIn: zoomIn,
+    zoomOut: zoomOut
   };
 })();

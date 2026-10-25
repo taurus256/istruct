@@ -58,7 +58,15 @@ var Actions = [
   { id: 'node_comment', name: 'Комментарий', icon: 'assets/icons/small/comment.svg' },
   { id: 'node_open_test', name: 'Открыть тест', icon: 'assets/icons/small/test.svg' },
   { id: 'node_open_note', name: 'Открыть заметку', icon: 'assets/icons/small/note.svg' },
-  { id: 'node_reset_position', name: 'Сбросить позицию', icon: 'assets/icons/small/undo-2.svg' }
+  { id: 'node_reset_position', name: 'Сбросить позицию', icon: 'assets/icons/small/undo-2.svg' },
+
+  // ---- Действия контекстного меню фона канвы (правый клик по пустому месту
+  // #mindmap-root вне узлов, см. Popups.canvas/render.js). zoom_in/zoom_out
+  // дублируют Zoom.zoomIn/zoomOut (колесо+Ctrl, Alt+"+"/"-") как пункты меню —
+  // своей 48px-версии нет (нигде не используются как большая ribbon-кнопка),
+  // поэтому сразу 24px-ассет в icon, как у node_comment/node_reset_position выше.
+  { id: 'scheme_zoom_in', name: 'Увеличить', icon: 'assets/icons/small/zoom-in.svg' },
+  { id: 'scheme_zoom_out', name: 'Уменьшить', icon: 'assets/icons/small/zoom-out.svg' }
 ];
 
 // Быстрый поиск действия по id. Возвращает null, если действие не найдено —

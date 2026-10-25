@@ -68,5 +68,18 @@ var Popups = {
       { type: 'separator' },
       { type: 'menuitem', action: 'node_remove', visibleWhen: 'notRoot' }
     ]
+  },
+
+  // Контекстное меню фона канвы (правый клик по пустому месту #mindmap-root
+  // ВНЕ узлов — см. render.js/app.js: contextmenu-обработчик на самом
+  // контейнере). В отличие от Popups.node — состав фиксирован, видимость
+  // пунктов не зависит от контекста (visibleWhen не используется).
+  canvas: {
+    items: [
+      { type: 'menuitem', action: 'scheme_zoom_in' },
+      { type: 'menuitem', action: 'scheme_zoom_out' },
+      { type: 'separator' },
+      { type: 'menuitem', action: 'scheme_export' }
+    ]
   }
 };
