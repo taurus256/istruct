@@ -159,6 +159,7 @@ body {
   overflow-x: auto;
   flex: 0 0 auto;
   background: var(--toolbar-bg, #f3f3f3);
+  scrollbar-width: thin;
 }
 
 /* ribbonRenderer.js держит в DOM все вкладки одновременно и переключает
@@ -368,6 +369,7 @@ body {
   color: var(--status-bar-color, #777);
   white-space: nowrap;
   overflow-x: auto;
+  scrollbar-width: thin;
 }
 
 #status-bar a {
@@ -504,7 +506,69 @@ body {
      ширине всего дерева), поэтому #mindmap-root получает корректный
      положительный scrollWidth, покрывающий весь контент. */
   align-items: flex-start;
-  scrollbar-width: thin;
+  /* Скроллбар #mindmap-root полностью скрыт (по запросу) — панорамирование
+     канвы делается через drag (pan.js), видимый скроллбар здесь не нужен.
+     Скролл overflow:auto продолжает работать (колесо мыши, pan.js), просто
+     без видимой дорожки/бегунка — см. ::-webkit-scrollbar ниже. */
+  scrollbar-width: none;
+}
+
+.mindmap-root::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+/* Классический (не overlay/auto-hiding) рендер скроллбара в Chromium —
+   без этого на Linux/GTK браузер использует нативный overlay-скроллбар
+   ОС, который мигает (кратко появляется и тут же исчезает) при ЛЮБОМ
+   клике/взаимодействии со страницей (открытие попап-меню, открытие
+   боковой панели и т.п. — само взаимодействие тут ни при чём: это
+   поведение GTK-виджета ОС, не связанное с DOM/layout конкретного
+   overflow:auto элемента). Баг воспроизводится на ЛЮБОМ overflow:auto/
+   scroll элементе страницы — поэтому те же ::-webkit-scrollbar-правила
+   применяются ко всем ТАКИМ элементам, КРОМЕ #mindmap-root (у него
+   скроллбар просто скрыт целиком, см. выше). Список ниже должен
+   охватывать каждый оставшийся overflow:auto/scroll в layout.css. */
+.ribbon-tab-content::-webkit-scrollbar,
+#status-bar::-webkit-scrollbar,
+.files-panel::-webkit-scrollbar,
+.files-panel__list::-webkit-scrollbar,
+.notes-source::-webkit-scrollbar,
+.notes-visual::-webkit-scrollbar,
+.test-body::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.ribbon-tab-content::-webkit-scrollbar-track,
+#status-bar::-webkit-scrollbar-track,
+.files-panel::-webkit-scrollbar-track,
+.files-panel__list::-webkit-scrollbar-track,
+.notes-source::-webkit-scrollbar-track,
+.notes-visual::-webkit-scrollbar-track,
+.test-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ribbon-tab-content::-webkit-scrollbar-thumb,
+#status-bar::-webkit-scrollbar-thumb,
+.files-panel::-webkit-scrollbar-thumb,
+.files-panel__list::-webkit-scrollbar-thumb,
+.notes-source::-webkit-scrollbar-thumb,
+.notes-visual::-webkit-scrollbar-thumb,
+.test-body::-webkit-scrollbar-thumb {
+  background: var(--ribbon-border, #d2d2d2);
+  border-radius: 6px;
+}
+
+.ribbon-tab-content::-webkit-scrollbar-thumb:hover,
+#status-bar::-webkit-scrollbar-thumb:hover,
+.files-panel::-webkit-scrollbar-thumb:hover,
+.files-panel__list::-webkit-scrollbar-thumb:hover,
+.notes-source::-webkit-scrollbar-thumb:hover,
+.notes-visual::-webkit-scrollbar-thumb:hover,
+.test-body::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted, #6b7280);
 }
 
 .mindmap-root.mm-panning {
@@ -1173,6 +1237,7 @@ body.mm-resizing .panel-resize-handle {
   border-right: 1px solid var(--notes-panel-border, #d2d2d2);
   box-shadow: 2px 0 12px rgba(0, 0, 0, 0.12);
   overflow-y: auto;
+  scrollbar-width: thin;
 }
 
 .files-panel[hidden] {
@@ -1261,6 +1326,7 @@ body.mm-resizing .panel-resize-handle {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  scrollbar-width: thin;
 }
 
 .scheme-card {
@@ -1870,6 +1936,7 @@ body.mm-resizing .panel-resize-handle {
   box-sizing: border-box;
   padding: 16px;
   overflow: auto;
+  scrollbar-width: thin;
   font: 400 14px/20px var(--font-family-base);
   color: var(--notes-title-color, #1a1a1a);
 }
@@ -2044,6 +2111,7 @@ body.mm-resizing .panel-resize-handle {
   border: none;
   outline: none;
   overflow: auto;
+  scrollbar-width: thin;
   font: 400 14px/20px var(--font-family-base);
   color: var(--notes-title-color, #1a1a1a);
   background: var(--notes-editor-bg, #ffffff);
@@ -2094,6 +2162,7 @@ body.mm-resizing .panel-resize-handle {
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
+  scrollbar-width: thin;
   padding: 16px;
   font: var(--type-body);
   color: var(--node-text-color, #1f2937);

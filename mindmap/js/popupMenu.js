@@ -192,6 +192,14 @@ var PopupMenu = (function () {
   // anchor'а, с переносом влево/вверх при нехватке места у края вьюпорта.
   function positionNear(menuEl, anchorEl) {
     var rect = anchorEl.getBoundingClientRect();
+    // left/top выставляем ПРИБЛИЗИТЕЛЬНО (по anchor'у) ДО appendChild и ДО
+    // снятия hidden — иначе элемент на мгновение получает left/top:auto
+    // (т.е. вычисляется как для обычного потока — после последнего ребёнка
+    // body, часто далеко внизу страницы), что раздувает scrollable-область
+    // документа и вызывает заметное мелькание скроллбаров ещё до того, как
+    // ниже будут проставлены настоящие (уже выверенные под вьюпорт) координаты.
+    menuEl.style.left = rect.left + 'px';
+    menuEl.style.top = (rect.bottom + 4) + 'px';
     menuEl.style.visibility = 'hidden';
     menuEl.hidden = false;
     document.body.appendChild(menuEl);
@@ -218,6 +226,10 @@ var PopupMenu = (function () {
   // баг. Перенос влево/вверх при нехватке места у края вьюпорта — как и у
   // positionNear.
   function positionAtPoint(menuEl, x, y) {
+    // См. комментарий в positionNear — left/top ставим ДО appendChild/hidden,
+    // иначе на мгновение действует left/top:auto и скроллбары мелькают.
+    menuEl.style.left = x + 'px';
+    menuEl.style.top = y + 'px';
     menuEl.style.visibility = 'hidden';
     menuEl.hidden = false;
     document.body.appendChild(menuEl);
