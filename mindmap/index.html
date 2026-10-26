@@ -42,16 +42,9 @@
      внутри #work-area — в отличие от #help-panel/#side-panel (flex-соседи,
      сжимающие канву), эта панель не должна влиять на раскладку канвы. -->
 <aside id="files-panel" class="files-panel" hidden>
-  <div class="files-panel__actions">
-    <button id="btn-files-create" type="button" class="files-panel__btn files-panel__btn--primary">
-      <span class="files-panel__btn-icon files-panel__btn-icon--plus" aria-hidden="true"></span>
-      Создать новую схему
-    </button>
-    <button id="btn-files-import" type="button" class="files-panel__btn files-panel__btn--secondary">
-      <img src="assets/icons/arrow-down.svg" alt="" class="files-panel__btn-icon">
-      Импортировать с компьютера
-    </button>
-  </div>
+  <!-- Наполняется декларативно из ButtonPanels.files (см. buttonPanel.js/
+       filesPanel.js) — ButtonPanel.render() вставляет .btn-panel сюда. -->
+  <div id="files-panel-actions" class="files-panel__actions"></div>
   <div id="files-panel-list" class="files-panel__list"></div>
 </aside>
 
@@ -110,6 +103,8 @@
 <script src="js/theme.js"></script>
 <script src="js/actions.js"></script>
 <script src="js/popups.js"></script>
+<script src="js/buttonPanels.js"></script>
+<script src="js/buttonPanel.js"></script>
 <script src="js/nodeTypes.js"></script>
 <script src="js/model.js"></script>
 <script src="js/undo.js"></script>

@@ -18,8 +18,9 @@
 var FilesPanel = (function () {
   var panelEl = null;      // #files-panel
   var listEl = null;       // #files-panel-list
-  var createBtn = null;    // #btn-files-create
-  var importBtn = null;    // #btn-files-import
+  var actionsEl = null;    // #files-panel-actions — наполняется ButtonPanel.render(ButtonPanels.files)
+  var createBtn = null;    // [data-action="file_create_new"] внутри actionsEl
+  var importBtn = null;    // [data-action="file_import_new"] внутри actionsEl
   var importInput = null;  // #input-import-new-scheme
   var importIntoInput = null;   // #input-import-into-scheme (меню карточки, см. requestImportIntoScheme)
   var importIntoSchemeId = null; // id схемы — цель следующего выбора файла в importIntoInput
@@ -31,8 +32,12 @@ var FilesPanel = (function () {
   function init(options) {
     panelEl = document.getElementById('files-panel');
     listEl = document.getElementById('files-panel-list');
-    createBtn = document.getElementById('btn-files-create');
-    importBtn = document.getElementById('btn-files-import');
+    actionsEl = document.getElementById('files-panel-actions');
+    if (actionsEl && typeof ButtonPanel !== 'undefined' && typeof ButtonPanels !== 'undefined') {
+      actionsEl.appendChild(ButtonPanel.render(ButtonPanels.files));
+      createBtn = actionsEl.querySelector('[data-action="file_create_new"]');
+      importBtn = actionsEl.querySelector('[data-action="file_import_new"]');
+    }
     importInput = document.getElementById('input-import-new-scheme');
     importIntoInput = document.getElementById('input-import-into-scheme');
     tabBtnEl = options && options.tabBtnEl;

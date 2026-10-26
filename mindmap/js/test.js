@@ -173,9 +173,9 @@ var TestPanel = (function () {
         '</div>' +
         introStatusHtml(nodeId) +
       '</div>' +
-      '<div class="test-footer">' +
-        '<button type="button" class="test-btn test-btn--primary" data-action="start">Начать тест</button>' +
-      '</div>';
+      '<div class="test-footer"></div>';
+    // Кнопки футера — декларативно, см. ButtonPanels.testIntro/buttonPanel.js.
+    viewEl.querySelector('.test-footer').appendChild(ButtonPanel.render(ButtonPanels.testIntro));
   }
 
   // Статус предыдущего прохождения на стартовом экране: если есть сохранённый
@@ -267,10 +267,9 @@ var TestPanel = (function () {
         '<div class="test-question-card">' + md(q.text) + '</div>' +
         answerHtml +
       '</div>' +
-      '<div class="test-footer">' +
-        '<button type="button" class="test-btn test-btn--primary" data-action="submit">Ответить</button>' +
-        '<button type="button" class="test-link" data-action="finish">Завершить тест</button>' +
-      '</div>';
+      '<div class="test-footer"></div>';
+    // Кнопки футера — декларативно, см. ButtonPanels.testQuestion/buttonPanel.js.
+    viewEl.querySelector('.test-footer').appendChild(ButtonPanel.render(ButtonPanels.testQuestion));
 
     // Textarea обновляет attempt.answers напрямую по 'input', БЕЗ повторного
     // renderQuestion() — полная перерисовка на каждый символ пересоздала бы
@@ -477,10 +476,9 @@ var TestPanel = (function () {
         '</div>' +
         wrongHtml +
       '</div>' +
-      '<div class="test-footer">' +
-        '<button type="button" class="test-btn test-btn--primary" data-action="return">Назад</button>' +
-        '<button type="button" class="test-link" data-action="retry">Пройти ещё раз</button>' +
-      '</div>';
+      '<div class="test-footer"></div>';
+    // Кнопки футера — декларативно, см. ButtonPanels.testResult/buttonPanel.js.
+    viewEl.querySelector('.test-footer').appendChild(ButtonPanel.render(ButtonPanels.testResult));
   }
 
   function statCard(label, value, highlight) {
@@ -511,7 +509,7 @@ var TestPanel = (function () {
       case 'close':
         if (onCloseRequest) { onCloseRequest(); }
         break;
-      case 'start':
+      case 'test_start':
         startAttempt(currentNodeId);
         break;
       case 'prev':
@@ -522,7 +520,7 @@ var TestPanel = (function () {
           attempt.index += 1; renderQuestion();
         }
         break;
-      case 'submit':
+      case 'test_submit':
         if (attempt) {
           if (attempt.index < attempt.questions.length - 1) {
             attempt.index += 1;
@@ -532,14 +530,14 @@ var TestPanel = (function () {
           }
         }
         break;
-      case 'finish':
+      case 'test_finish':
         if (attempt) { finalize('finished'); } // ранний конец: неотвеченные = неверные
         break;
-      case 'return':
+      case 'test_return':
         // Результат остаётся сохранённым; показываем стартовый экран.
         renderIntro(currentNodeId);
         break;
-      case 'retry':
+      case 'test_retry':
         startAttempt(currentNodeId);
         break;
       default:

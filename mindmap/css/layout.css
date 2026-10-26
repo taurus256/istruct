@@ -1211,6 +1211,66 @@ body.mm-resizing .panel-resize-handle {
   display: none;
 }
 
+/* ---------- Панель кнопок-действий (buttonPanel.js/buttonPanels.js) ---------- */
+
+/* Единый визуальный вид для ВСЕХ панелей кнопок (панель ФАЙЛ и низ теста —
+   см. ButtonPanels.files/testIntro/testQuestion/testResult): иконка+текст,
+   высота 37px, primary — акцентная заливка, secondary — белая с бордером.
+   Панель ФАЙЛ — эталон стиля (см. Figma node 570:2959 "Buttons panel");
+   других поверхностных модификаторов НЕТ — .test-footer использует эти же
+   классы без переопределений. */
+.btn-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.btn-panel__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 37px;
+  border-radius: var(--radius-ui);
+  font: var(--type-button-label);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.btn-panel__btn--primary {
+  background: var(--test-accent-blue, #005fb8);
+  color: var(--test-accent-text, #ffffff);
+  border: none;
+}
+
+.btn-panel__btn--primary:hover {
+  background: var(--test-accent-blue-hover, #0a4f95);
+}
+
+.btn-panel__btn--secondary {
+  background: var(--surface, #ffffff);
+  color: var(--test-accent-blue, #005fb8);
+  border: 1px solid var(--test-card-border, #e2e5e9);
+}
+
+.btn-panel__btn--secondary:hover {
+  background: var(--hover-tint, rgba(0, 0, 0, 0.06));
+}
+
+.btn-panel__icon {
+  display: block;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+}
+
+.btn-panel__icon img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
 /* ---------- Панель выбора схемы (#files-panel) — ОВЕРЛЕЙ, НЕ flex-сосед ---------- */
 
 /* В ОТЛИЧИЕ от .side-panel/.help-panel выше (flex-соседи #work-area,
@@ -1245,78 +1305,7 @@ body.mm-resizing .panel-resize-handle {
 }
 
 .files-panel__actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
   flex: 0 0 auto;
-}
-
-.files-panel__btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  height: 37px;
-  border-radius: var(--radius-ui);
-  font: var(--type-button-label);
-  cursor: pointer;
-}
-
-.files-panel__btn--primary {
-  background: var(--test-accent-blue, #005fb8);
-  color: var(--test-accent-text, #ffffff);
-  border: none;
-}
-
-.files-panel__btn--primary:hover {
-  background: var(--test-accent-blue-hover, #0a4f95);
-}
-
-.files-panel__btn--secondary {
-  background: var(--surface, #ffffff);
-  color: var(--test-accent-blue, #005fb8);
-  border: 1px solid var(--test-card-border, #e2e5e9);
-}
-
-.files-panel__btn--secondary:hover {
-  background: var(--hover-tint, rgba(0, 0, 0, 0.06));
-}
-
-.files-panel__btn-icon {
-  width: 16px;
-  height: 16px;
-  display: block;
-  flex: 0 0 auto;
-}
-
-/* "+" кнопки "Создать новую схему" — готовой иконки в assets/icons нет,
-   рисуем крестик чистым CSS (две полосы псевдоэлементами), не заводя новый
-   SVG-файл ради одного глифа. Белый — кнопка всегда на синем фоне. */
-.files-panel__btn-icon--plus {
-  position: relative;
-}
-
-.files-panel__btn-icon--plus::before,
-.files-panel__btn-icon--plus::after {
-  content: '';
-  position: absolute;
-  background: var(--test-accent-text, #ffffff);
-  border-radius: 1px;
-}
-
-.files-panel__btn-icon--plus::before {
-  left: 7px;
-  top: 2px;
-  width: 2px;
-  height: 12px;
-}
-
-.files-panel__btn-icon--plus::after {
-  left: 2px;
-  top: 7px;
-  width: 12px;
-  height: 2px;
 }
 
 .files-panel__list {
@@ -2425,41 +2414,10 @@ body.mm-resizing .panel-resize-handle {
   font: var(--type-body);
 }
 
-/* Кнопки футера. */
-.test-btn {
-  display: block;
-  width: 100%;
-  padding: 11px 14px;
-  border: none;
-  border-radius: var(--radius-button);
-  cursor: pointer;
-  font: 600 14px/1.2 var(--font-family-base);
-}
-
-.test-btn--primary {
-  background: var(--test-accent-blue, #005fb8);
-  color: var(--test-accent-text, #fff);
-}
-
-.test-btn--primary:hover {
-  background: var(--test-accent-blue-hover, #0a4f95);
-}
-
-.test-link {
-  display: block;
-  width: 100%;
-  margin-top: 8px;
-  border: none;
-  background: transparent;
-  color: var(--text-faint, #9aa0a6);
-  cursor: pointer;
-  font: 400 13px/1.2 var(--font-family-base);
-  text-align: center;
-}
-
-.test-link:hover {
-  color: var(--text-muted, #6b7280);
-}
+/* Кнопки футера теста (.test-footer) — используют общий .btn-panel/
+   .btn-panel__btn--primary/--secondary без переопределений (см. блок
+   "Панель кнопок-действий" выше в этом файле) — тот же вид, что в панели
+   ФАЙЛ, по запросу (единый стиль кнопок во всём приложении). */
 
 /* Экран результата. */
 .test-result-card {

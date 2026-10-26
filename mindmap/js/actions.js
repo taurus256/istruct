@@ -66,7 +66,25 @@ var Actions = [
   // своей 48px-версии нет (нигде не используются как большая ribbon-кнопка),
   // поэтому сразу 24px-ассет в icon, как у node_comment/node_reset_position выше.
   { id: 'scheme_zoom_in', name: 'Увеличить', icon: 'assets/icons/small/zoom-in.svg' },
-  { id: 'scheme_zoom_out', name: 'Уменьшить', icon: 'assets/icons/small/zoom-out.svg' }
+  { id: 'scheme_zoom_out', name: 'Уменьшить', icon: 'assets/icons/small/zoom-out.svg' },
+
+  // ---- Действия панели ФАЙЛ (см. ButtonPanels.files/buttonPanel.js,
+  // filesPanel.js) — ДРУГОЕ действие, чем file_import_json/scheme_import
+  // выше: создаёт НОВУЮ схему из выбранного файла, а не перезаписывает
+  // существующую (см. Storage.importAsNewScheme в filesPanel.js).
+  { id: 'file_create_new', name: 'Создать новую схему', icon: 'assets/icons/small/plus.svg' },
+  { id: 'file_import_new', name: 'Загрузить из файла', icon: 'assets/icons/arrow-down.svg' },
+
+  // ---- Действия нижней панели кнопок прохождения теста (см.
+  // ButtonPanels.testIntro/testQuestion/testResult, test.js). Стиль кнопок —
+  // тот же, что в панели ФАЙЛ (см. .btn-panel в layout.css): primarybutton
+  // без иконки (главное действие экрана), button — с иконкой, как у
+  // file_import_new выше.
+  { id: 'test_start', name: 'Начать тест' },
+  { id: 'test_submit', name: 'Ответить' },
+  { id: 'test_finish', name: 'Завершить тест', icon: 'assets/icons/small/cross.svg' },
+  { id: 'test_return', name: 'Назад' },
+  { id: 'test_retry', name: 'Пройти ещё раз', icon: 'assets/icons/small/redo.svg' }
 ];
 
 // Быстрый поиск действия по id. Возвращает null, если действие не найдено —
