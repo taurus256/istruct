@@ -1,4 +1,19 @@
 <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M13.8 10.4L41 23.1L34.2 37.6L7 24.9L13.8 10.4Z" stroke="#C42B1C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M23.3 14.9L16.5 29.4" stroke="#C42B1C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<g id="Icons &#226;&#128;&#148; Office Ribbon style (variant)">
+<g id="Icons Grid">
+<g id="Slot &#226;&#128;&#148; Clear schema">
+<g id="Icon/Clear schema (Office)" clip-path="url(#clip0_0_1)">
+<g id="Frame">
+<path id="Vector" d="M13.8 10.4L41 23.1L34.2 37.6L7 24.9L13.8 10.4Z" fill="#FDE7E9" stroke="#ED8378" stroke-width="2.5"/>
+<path id="Vector_2" d="M23.3 14.9L16.5 29.4" stroke="#ED8378" stroke-width="2" stroke-linecap="round"/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<defs>
+<clipPath id="clip0_0_1">
+<rect width="48" height="48" fill="white"/>
+</clipPath>
+</defs>
 </svg>

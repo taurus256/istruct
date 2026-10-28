@@ -1,3 +1,18 @@
 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M5 12L9.6665 16.6665L19 7.3335" stroke="#0F7B0F" stroke-linecap="round" stroke-linejoin="round"/>
+<g id="SmallIcons &#226;&#128;&#148; Office Ribbon style (variant, 24px)">
+<g id="Icons Grid">
+<g id="Slot &#226;&#128;&#148; Check">
+<g id="SmallIcon/Check (Office)" clip-path="url(#clip0_0_1)">
+<g id="Frame">
+<path id="Vector" d="M6.5 12.5L10 16L18 6.5L20 8.25L10.5 19L4.5 14.25L6.5 12.5Z" fill="#78ED78"/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<defs>
+<clipPath id="clip0_0_1">
+<rect width="24" height="24" fill="white"/>
+</clipPath>
+</defs>
 </svg>

@@ -1,4 +1,19 @@
 <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-<circle cx="24" cy="24" r="18" stroke="#323130" stroke-width="2"/>
-<path d="M42.98 24C42.98 32.8366 36.9359 40 29.48 40C22.0242 40 15.98 32.8366 15.98 24C15.98 15.1634 22.0242 8 29.48 8C36.9359 8 42.98 15.1634 42.98 24Z" fill="#323130"/>
+<g id="Icons &#226;&#128;&#148; Office Ribbon style (variant)">
+<g id="Icons Grid">
+<g id="Slot &#226;&#128;&#148; Theme">
+<g id="Icon/Theme (Office)" clip-path="url(#clip0_0_1)">
+<g id="Frame">
+<path id="Vector" d="M24 42C33.9411 42 42 33.9411 42 24C42 14.0589 33.9411 6 24 6C14.0589 6 6 14.0589 6 24C6 33.9411 14.0589 42 24 42Z" stroke="#4D4D4D" stroke-width="1.5"/>
+<path id="Vector_2" d="M42.98 24C42.98 32.8366 36.936 40 29.48 40C22.024 40 15.98 32.8366 15.98 24C15.98 15.1634 22.024 8 29.48 8C36.936 8 42.98 15.1634 42.98 24Z" fill="#4D4D4D"/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<defs>
+<clipPath id="clip0_0_1">
+<rect width="48" height="48" fill="white"/>
+</clipPath>
+</defs>
 </svg>

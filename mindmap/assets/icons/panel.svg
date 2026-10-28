@@ -1,7 +1,22 @@
 <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M8 8H40C41.3333 8 42 8.66667 42 10V38C42 39.3333 41.3333 40 40 40H8C6.66667 40 6 39.3333 6 38V10C6 8.66667 6.66667 8 8 8Z" stroke="#0070CB" stroke-width="2"/>
-<path d="M30 8V40" stroke="#0070CB" stroke-width="2"/>
-<path d="M34 16H38" stroke="#0070CB" stroke-width="2" stroke-linecap="round"/>
-<path d="M34 22H38" stroke="#0070CB" stroke-width="2" stroke-linecap="round"/>
-<path d="M34 28H38" stroke="#0070CB" stroke-width="2" stroke-linecap="round"/>
+<g id="Icons &#226;&#128;&#148; Office Ribbon style (variant)">
+<g id="Icons Grid">
+<g id="Slot &#226;&#128;&#148; Side Panel">
+<g id="Icon/Side Panel (Office)" clip-path="url(#clip0_0_1)">
+<g id="Frame">
+<path id="Vector" d="M11 8.5H37C38.3807 8.5 39.5 9.61929 39.5 11V37C39.5 38.3807 38.3807 39.5 37 39.5H11C9.61929 39.5 8.5 38.3807 8.5 37V11C8.5 9.61929 9.61929 8.5 11 8.5Z" fill="#78B9ED" stroke="#8A8A8A"/>
+<path id="Vector_2" d="M30 9V39" stroke="white" stroke-width="2"/>
+<path id="Vector_3" d="M33 16H37.5" stroke="white" stroke-width="2" stroke-linecap="round"/>
+<path id="Vector_4" d="M33 22H37.5" stroke="white" stroke-width="2" stroke-linecap="round"/>
+<path id="Vector_5" d="M33 28H37" stroke="white" stroke-width="2" stroke-linecap="round"/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<defs>
+<clipPath id="clip0_0_1">
+<rect width="48" height="48" fill="white"/>
+</clipPath>
+</defs>
 </svg>

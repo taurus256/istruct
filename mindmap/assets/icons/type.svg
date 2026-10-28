@@ -1,5 +1,18 @@
-<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-<g id="type">
-<path id="Vector" d="M24 8.0016V39.9984M8.0016 14.001V10.0014C8.0016 9.47102 8.21229 8.96236 8.58733 8.58733C8.96236 8.21229 9.47102 8.0016 10.0014 8.0016H37.9986C38.529 8.0016 39.0376 8.21229 39.4127 8.58733C39.7877 8.96236 39.9984 9.47102 39.9984 10.0014V14.001M18.0006 39.9984H29.9994" stroke="#1A1A1A" stroke-width="2" stroke-linecap="round"/>
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Icons &#226;&#128;&#148; Office Ribbon style (variant)">
+<g id="Icons Grid">
+<g id="Slot &#226;&#128;&#148; Text node">
+<g id="Icon/Text node (Office)" clip-path="url(#clip0_0_1)">
+<g id="Frame">
+<path id="Vector" d="M39.5 8.5V14.5H27.5V39.5H20.5V14.5H8.5V8.5H39.5Z" fill="#4E4D4B" stroke="#8A8A8A"/>
 </g>
+</g>
+</g>
+</g>
+</g>
+<defs>
+<clipPath id="clip0_0_1">
+<rect width="48" height="48" fill="white"/>
+</clipPath>
+</defs>
 </svg>

@@ -144,7 +144,11 @@
   --ribbon-btn-border: transparent;
   --ribbon-btn-hover-bg: var(--toolbar-bg);
   --ribbon-btn-selected-bg: #e1f0f9;
-  --ribbon-btn-selected-border: var(--attention);
+  /* Figma (Ribbon Button, State=Selected, node 26:10): рамка #005FB8 —
+     ДРУГАЯ переменная (VariableID:141:2340), чем --attention/#0070CB
+     (VariableID:141:2341, используется для Undo/Redo и т.п.) — не путать,
+     тут совпадает именно с --test-accent-blue. */
+  --ribbon-btn-selected-border: var(--test-accent-blue);
   --ribbon-label-color: #323130;
   --ribbon-group-label-color: #7a7a7a;
   --ribbon-divider-color: #d2d2d2;

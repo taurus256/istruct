@@ -1,3 +1,21 @@
 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M15.6 21L21 15.1667V5.44444C21 4.37056 20.1941 3.5 19.2 3.5H4.8C3.80589 3.5 3 4.37056 3 5.44444V19.0556C3 20.1295 3.80589 21 4.8 21H15.6ZM21 15.1667H15.6V21M7.5 9.33333H16.5M7.5 13.2222H12.9" stroke="#9D5D00" stroke-linecap="round" stroke-linejoin="round"/>
+<g id="SmallIcons &#226;&#128;&#148; Office Ribbon style (variant, 24px)">
+<g id="Icons Grid">
+<g id="Slot &#226;&#128;&#148; Note">
+<g id="SmallIcon/Note (Office)" clip-path="url(#clip0_0_1)">
+<g id="Frame">
+<path id="Vector" d="M6 3.5H14.1719C14.5696 3.50008 14.9512 3.65822 15.2324 3.93945L19.0605 7.76758C19.3418 8.04881 19.4999 8.43041 19.5 8.82812V19C19.5 19.8284 18.8284 20.5 18 20.5H6C5.17157 20.5 4.5 19.8284 4.5 19V5C4.5 4.17157 5.17157 3.5 6 3.5Z" fill="#FFF4CE" stroke="#EDBD78"/>
+<path id="Vector_2" d="M15 3L20 8H15V3Z" fill="#EDBD78"/>
+<path id="Vector_3" d="M7 12H17" stroke="#EDBD78" stroke-width="1.3" stroke-linecap="round"/>
+<path id="Vector_4" d="M7 16H17" stroke="#EDBD78" stroke-width="1.3" stroke-linecap="round"/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<defs>
+<clipPath id="clip0_0_1">
+<rect width="24" height="24" fill="white"/>
+</clipPath>
+</defs>
 </svg>

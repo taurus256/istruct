@@ -21,14 +21,14 @@
  */
 var Actions = [
   // ---- Действия ribbon-тулбара (перенесены из прежних литералов ribbonConfig.js) ----
-  { id: 'scheme_import', name: 'Импорт JSON', icon: 'assets/icons/arrow-down.svg' },
-  { id: 'scheme_export', name: 'Экспорт JSON', icon: 'assets/icons/arrow-up.svg' },
+  { id: 'scheme_import', name: 'Импорт JSON', icon: 'assets/icons/arrow-down.svg', smallicon: 'assets/icons/small/import-json.svg' },
+  { id: 'scheme_export', name: 'Экспорт JSON', icon: 'assets/icons/arrow-up.svg', smallicon: 'assets/icons/small/export-json.svg' },
   { id: 'scheme_clear', name: 'Очистить', icon: 'assets/icons/eracer.svg' },
   { id: 'node_add_text', name: 'Текст', icon: 'assets/icons/type.svg', iconNeutral: true },
   { id: 'node_add_test', name: 'Тест', icon: 'assets/icons/test.svg' },
   { id: 'node_add_link', name: 'Ссылка', icon: 'assets/icons/link.svg' },
   { id: 'node_mark', name: 'Отметить', icon: 'assets/icons/check.svg' },
-  { id: 'node_remove', name: 'Удалить', icon: 'assets/icons/trash.svg' },
+  { id: 'node_remove', name: 'Удалить', icon: 'assets/icons/trash.svg', smallicon: 'assets/icons/small/trash.svg' },
 
   // ---- Цвет фона узла (группа "Цвета", вкладка УЗЛЫ) — см. Model.setColor/
   // Render.setNodeColor. Иконки — цветные квадраты-образцы (Figma: node-id
@@ -45,19 +45,20 @@ var Actions = [
   { id: 'theme_toggle', name: 'Тема', icon: 'assets/icons/theme.svg', iconNeutral: true },
 
   // ---- Действия всплывающего меню карточки схемы (панель ФАЙЛ, см. popups.js) ----
-  { id: 'file_delete', name: 'Удалить', icon: 'assets/icons/trash.svg' },
-  { id: 'file_import_json', name: 'Импорт JSON', icon: 'assets/icons/arrow-down.svg' },
-  { id: 'file_import_md', name: 'Импорт MD', icon: 'assets/icons/arrow-down.svg' },
+  { id: 'file_delete', name: 'Удалить', icon: 'assets/icons/trash.svg', smallicon: 'assets/icons/small/trash.svg' },
+  { id: 'file_import_json', name: 'Импорт JSON', icon: 'assets/icons/arrow-down.svg', smallicon: 'assets/icons/small/import-json.svg' },
+  { id: 'file_import_md', name: 'Импорт MD', icon: 'assets/icons/import-md.svg', smallicon: 'assets/icons/small/import-md.svg' },
 
   // ---- Действия контекстного меню узла (правый клик, см. Popups.node) ----
   // Дублируют то, что уже есть в node__panel (render.js: editOrAddComment/
   // resetBtn/createNoteTestButton/deleteNode), но как Action — для меню.
-  // Иконки — уже существующие small/*-ассеты render.js (у comment/reset-
-  // position/note своей 48px-версии нет: вне контекстного меню и ribbon'а
-  // они нигде не используются как большая кнопка).
-  { id: 'node_comment', name: 'Комментарий', icon: 'assets/icons/small/comment.svg' },
+  // node_open_test/node_reset_position — своей 48px-версии нет (вне
+  // контекстного меню нигде не используются как большая кнопка), поэтому
+  // сразу 24px-ассет в icon. node_comment/node_open_note теперь имеют обе
+  // версии (Figma: Icons Grid 467:2611/471:2523).
+  { id: 'node_comment', name: 'Комментарий', icon: 'assets/icons/comment.svg', smallicon: 'assets/icons/small/comment.svg' },
   { id: 'node_open_test', name: 'Открыть тест', icon: 'assets/icons/small/test.svg' },
-  { id: 'node_open_note', name: 'Открыть заметку', icon: 'assets/icons/small/note.svg' },
+  { id: 'node_open_note', name: 'Открыть заметку', icon: 'assets/icons/note.svg', smallicon: 'assets/icons/small/note.svg' },
   { id: 'node_reset_position', name: 'Сбросить позицию', icon: 'assets/icons/small/undo-2.svg' },
 
   // ---- Действия контекстного меню фона канвы (правый клик по пустому месту

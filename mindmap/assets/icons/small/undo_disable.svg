@@ -1,3 +1,18 @@
 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M9 4L4 9L9 14M4 9H14.5C15.2223 9 15.9375 9.14226 16.6048 9.41866C17.272 9.69506 17.8784 10.1002 18.3891 10.6109C18.8998 11.1216 19.3049 11.728 19.5813 12.3952C19.8577 13.0625 20 13.7777 20 14.5C20 15.2223 19.8577 15.9375 19.5813 16.6048C19.3049 17.272 18.8998 17.8784 18.3891 18.3891C17.8784 18.8998 17.272 19.3049 16.6048 19.5813C15.9375 19.8577 15.2223 20 14.5 20H11" stroke="#8A8A8A" stroke-linecap="round" stroke-linejoin="round"/>
+<g id="SmallIcons &#226;&#128;&#148; Office Ribbon style (variant, 24px)">
+<g id="Icons Grid">
+<g id="Slot &#226;&#128;&#148; Undo">
+<g id="SmallIcon/Undo (Office)" clip-path="url(#clip0_0_1)">
+<g id="Frame">
+<path id="Vector" d="M9 14L4 9L9 4M4 9H14.5C15.222 9 15.937 9.1423 16.605 9.4187C17.272 9.6951 17.878 10.1002 18.389 10.6109C18.9 11.1216 19.305 11.728 19.581 12.3952C19.858 13.0625 20 13.7777 20 14.5C20 15.2223 19.858 15.9375 19.581 16.6048C19.305 17.272 18.9 17.8784 18.389 18.3891C17.878 18.8998 17.272 19.3049 16.605 19.5813C15.937 19.8577 15.222 20 14.5 20H11" stroke="#B3B3B3" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<defs>
+<clipPath id="clip0_0_1">
+<rect width="24" height="24" fill="white"/>
+</clipPath>
+</defs>
 </svg>
