@@ -213,6 +213,10 @@ var Notes = (function () {
       modeToggleEl.title = (mode === 'visual')
         ? 'Показать Markdown-исходник'
         : 'Показать визуальный редактор';
+      // "Нажатое" состояние (см. .notes-btn--selected в layout.css) — пока
+      // открыт Markdown-исходник, т.к. это отклонение от визуального режима
+      // по умолчанию, а не наоборот.
+      modeToggleEl.classList.toggle('notes-btn--selected', mode === 'source');
     }
   }
 

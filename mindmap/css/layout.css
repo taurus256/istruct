@@ -1462,7 +1462,9 @@ body.mm-resizing .panel-resize-handle {
   flex-direction: column;
   min-width: 200px;
   padding: 6px 0;
-  background: var(--surface, #ffffff);
+  /* "Цвет панели" — тот же токен, что у .side-panel/.notes-toolbar и т.д.,
+     см. запрос пользователя — вместо --surface (цвет узла/карточки). */
+  background: var(--notes-panel-bg, #f3f3f3);
   border: 1px solid var(--neutral, #8A8A8A);
   border-radius: var(--radius-ui);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
@@ -1769,14 +1771,14 @@ body.mm-resizing .panel-resize-handle {
   border: none;
   background: transparent;
   cursor: pointer;
-  padding: 6px;
+  padding: 4px;
   border-radius: var(--radius-button);
   flex: 0 0 auto;
 }
 
 .help-panel__close img {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   display: block;
 }
 
@@ -1846,13 +1848,13 @@ body.mm-resizing .panel-resize-handle {
   border: none;
   background: transparent;
   cursor: pointer;
-  padding: 6px;
+  padding: 4px;
   border-radius: var(--radius-button);
 }
 
 .notes-panel__close img {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   display: block;
 }
 
@@ -1868,19 +1870,25 @@ body.mm-resizing .panel-resize-handle {
   gap: 8px;
   padding: 6px 16px;
   border-bottom: 1px solid var(--notes-inner-border, #e5e7eb);
-  background: var(--notes-toolbar-bg, #ffffff);
+  /* "Цвет панели" — тот же токен, что и у самой боковой панели (.side-panel/
+     .help-panel/.files-panel), а не отдельный --notes-toolbar-bg — тулбар
+     сливается с фоном панели вместо отдельной белой плашки. */
+  background: var(--notes-panel-bg, #f3f3f3);
   flex: 0 0 auto;
 }
 
+/* Цвета/рамка — те же токены, что у ribbon-кнопок тулбара (.ribbon-btn,
+   layout.css выше): нейтральный фон+прозрачная рамка по умолчанию, акцентная
+   рамка по hover, заливка+акцентная рамка у --selected (см. ниже). */
 .notes-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 28px;
   height: 28px;
-  padding: 6px;
-  border: none;
-  background: transparent;
+  padding: 4px;
+  border: 1px solid var(--ribbon-btn-border, transparent);
+  background: var(--ribbon-btn-bg, #f5f5f5);
   border-radius: var(--radius-button);
   cursor: pointer;
   font-size: 13px;
@@ -1889,13 +1897,22 @@ body.mm-resizing .panel-resize-handle {
 }
 
 .notes-btn img {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   display: block;
 }
 
 .notes-btn:hover {
   background: var(--ribbon-btn-hover-bg, #eef3fb);
+  border-color: var(--ribbon-btn-hover-border, #b7cbe0);
+}
+
+/* Пункт в постоянно включённом состоянии (сейчас — только кнопка переключения
+   режима #notes-mode-toggle, когда открыт Markdown-исходник, см. notes.js
+   updateModeClass) — та же пара токенов, что у .ribbon-btn--selected. */
+.notes-btn--selected {
+  background: var(--ribbon-btn-selected-bg, #e1f0f9);
+  border-color: var(--ribbon-btn-selected-border, #005fb8);
 }
 
 .notes-toolbar__divider {
@@ -2022,13 +2039,13 @@ body.mm-resizing .panel-resize-handle {
   border: none;
   background: transparent;
   cursor: pointer;
-  padding: 6px;
+  padding: 4px;
   border-radius: var(--radius-button);
 }
 
 .notes-panel__close img {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   display: block;
 }
 
@@ -2043,7 +2060,7 @@ body.mm-resizing .panel-resize-handle {
   gap: 8px;
   padding: 6px 16px;
   border-bottom: 1px solid var(--notes-inner-border, #e5e7eb);
-  background: var(--notes-toolbar-bg, #ffffff);
+  background: var(--notes-panel-bg, #f3f3f3);
   flex: 0 0 auto;
 }
 
@@ -2061,9 +2078,9 @@ body.mm-resizing .panel-resize-handle {
   justify-content: center;
   width: 28px;
   height: 28px;
-  padding: 6px;
-  border: none;
-  background: transparent;
+  padding: 4px;
+  border: 1px solid var(--ribbon-btn-border, transparent);
+  background: var(--ribbon-btn-bg, #f5f5f5);
   border-radius: var(--radius-button);
   font-size: 13px;
   line-height: 1.1;
@@ -2072,13 +2089,19 @@ body.mm-resizing .panel-resize-handle {
 }
 
 .notes-btn img {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   display: block;
 }
 
 .notes-btn:hover {
   background: var(--ribbon-btn-hover-bg, #eef3fb);
+  border-color: var(--ribbon-btn-hover-border, #b7cbe0);
+}
+
+.notes-btn--selected {
+  background: var(--ribbon-btn-selected-bg, #e1f0f9);
+  border-color: var(--ribbon-btn-selected-border, #005fb8);
 }
 
 .notes-btn--mode {
@@ -2267,23 +2290,30 @@ body.mm-resizing .panel-resize-handle {
   color: var(--text-muted, #6b7280);
 }
 
-/* Иконки Figma chevron-left/chevron-right (эталон: та же пара, что и в
-   help-panel — см. .help-panel__back/.help-card__arrow). */
+/* Иконки arrow-left/arrow-right (small/, собственная пара, не путать с
+   chevron-left/chevron-right у help-panel — см. .help-panel__back/
+   .help-card__arrow, те не трогаем). Цвета/рамка — те же токены, что у
+   ribbon-кнопок тулбара (.ribbon-btn) и .notes-btn выше. */
 .test-nav__btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 32px;
   height: 30px;
-  border: 1px solid var(--test-card-border, #e2e5e9);
-  background: var(--surface, #fff);
+  border: 1px solid var(--ribbon-btn-border, transparent);
+  background: var(--ribbon-btn-bg, #f5f5f5);
   border-radius: var(--radius-button);
   cursor: pointer;
 }
 
+.test-nav__btn:hover:not(:disabled) {
+  background: var(--ribbon-btn-hover-bg, #eef3fb);
+  border-color: var(--ribbon-btn-hover-border, #b7cbe0);
+}
+
 .test-nav__btn img {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   display: block;
 }
 
