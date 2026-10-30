@@ -53,20 +53,7 @@ var RibbonConfig = {
       groups: []
     },
     {
-       name: 'СХЕМА',
-       groups: [
-         {
-           name: 'Схема',
-           content: [
-             { type: 'button', id: 'btn-import', action: 'scheme_import' },
-             { type: 'button', id: 'btn-export', action: 'scheme_export' },
-             { type: 'button', id: 'btn-clear-scheme', action: 'scheme_clear' }
-           ]
-         }
-       ]
-     },
-    {
-      name: 'УЗЛЫ',
+      name: 'РЕДАКТИРОВАНИЕ',
       groups: [
         {
           name: 'Добавить',
@@ -95,9 +82,28 @@ var RibbonConfig = {
             { type: 'smallbutton', id: 'btn-color-blue', action: 'node_color_blue' },
             { type: 'smallbutton', id: 'btn-color-reset', action: 'node_color_reset' }
           ]
+        },
+		{
+            name: 'Панели',
+            content: [
+               { type: 'button', id: 'btn-notes', action: 'notes_panel' }
+            ]
         }
       ]
     },
+    {
+       name: 'СХЕМА',
+       groups: [
+         {
+           name: 'Схема',
+           content: [
+             { type: 'button', id: 'btn-import', action: 'scheme_import' },
+             { type: 'button', id: 'btn-export', action: 'scheme_export' },
+             { type: 'button', id: 'btn-clear-scheme', action: 'scheme_clear' }
+           ]
+         }
+       ]
+     },
     {
       name: 'ВИД',
       groups: [
@@ -112,17 +118,6 @@ var RibbonConfig = {
           name: 'Инструменты',
           content: [
             { type: 'button', id: 'btn-theme', action: 'theme_toggle' }
-          ]
-        }
-      ]
-    },
-    {
-      name: 'ИНСТРУМЕНТЫ',
-      groups: [
-        {
-          name: 'Инструменты',
-          content: [
-            { type: 'button', id: 'btn-theme-tools', action: 'theme_toggle' }
           ]
         }
       ]

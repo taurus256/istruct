@@ -321,13 +321,13 @@ var FilesPanel = (function () {
 
     var modified = document.createElement('span');
     modified.className = 'scheme-card__meta';
-    modified.textContent = 'Изменено: ' + formatTimestamp(scheme.modifiedAt);
+    modified.textContent = 'Последнее изменение: ' + formatTimestamp(scheme.modifiedAt);
     body.appendChild(modified);
 
-    var saved = document.createElement('span');
-    saved.className = 'scheme-card__meta';
-    saved.textContent = 'Сохранено: ' + formatTimestamp(scheme.savedAt);
-    body.appendChild(saved);
+//    var saved = document.createElement('span');
+//    saved.className = 'scheme-card__meta';
+//    saved.textContent = 'Сохранено: ' + formatTimestamp(scheme.savedAt);
+//    body.appendChild(saved);
 
     card.appendChild(body);
 

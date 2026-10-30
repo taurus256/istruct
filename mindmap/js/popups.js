@@ -28,17 +28,9 @@ var Popups = {
   // Меню "⋯" у карточки схемы в панели ФАЙЛ (см. filesPanel.js).
   fileCard: {
     items: [
-      { type: 'menuitem', action: 'file_delete' },
+      { type: 'menuitem', action: 'scheme_export' },
       { type: 'separator' },
-      {
-        type: 'submenu',
-        name: 'Импорт',
-        icon: 'assets/icons/arrow-down.svg',
-        submenu: [
-          { type: 'menuitem', action: 'file_import_json' },
-          { type: 'menuitem', action: 'file_import_md' }
-        ]
-      }
+      { type: 'menuitem', action: 'file_delete' }
     ]
   },
 

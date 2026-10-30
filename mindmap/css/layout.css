@@ -30,6 +30,10 @@ body {
   flex-direction: column;
 }
 
+h1 {
+  line-height: initial;
+  font: var(--type-main-node-title);
+}
 /* ---------- Тулбар (ribbon-style, портирован из Figma) ---------- */
 
 /* Тулбар теперь двухуровневый: строка вкладок (.ribbon-tabs) сверху,

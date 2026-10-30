@@ -21,8 +21,8 @@
  */
 var Actions = [
   // ---- Действия ribbon-тулбара (перенесены из прежних литералов ribbonConfig.js) ----
-  { id: 'scheme_import', name: 'Импорт JSON', icon: 'assets/icons/arrow-down.svg', smallicon: 'assets/icons/small/import-json.svg' },
-  { id: 'scheme_export', name: 'Экспорт JSON', icon: 'assets/icons/arrow-up.svg', smallicon: 'assets/icons/small/export-json.svg' },
+  { id: 'scheme_import', name: 'Загрузить из файла', icon: 'assets/icons/arrow-down.svg', smallicon: 'assets/icons/small/import-json.svg' },
+  { id: 'scheme_export', name: 'Сохранить в файл', icon: 'assets/icons/arrow-up.svg', smallicon: 'assets/icons/small/export-json.svg' },
   { id: 'scheme_clear', name: 'Очистить', icon: 'assets/icons/eracer.svg' },
   { id: 'node_add_text', name: 'Текст', icon: 'assets/icons/type.svg', iconNeutral: true },
   { id: 'node_add_test', name: 'Тест', icon: 'assets/icons/test.svg' },
@@ -39,7 +39,7 @@ var Actions = [
   { id: 'node_color_green', name: 'Зелёный', icon: 'assets/icons/node-color-green.svg' },
   { id: 'node_color_pink', name: 'Розовый', icon: 'assets/icons/node-color-pink.svg' },
   { id: 'node_color_blue', name: 'Голубой', icon: 'assets/icons/node-color-blue.svg' },
-  { id: 'node_color_reset', name: 'Сбросить', icon: 'assets/icons/node-color-reset.svg' },
+  { id: 'node_color_reset', name: 'По умолчанию', icon: 'assets/icons/node-color-reset.svg' },
   { id: 'help_docs', name: 'Справка', icon: 'assets/icons/book.svg' },
   { id: 'notes_panel', name: 'Панель', icon: 'assets/icons/panel.svg' },
   { id: 'theme_toggle', name: 'Тема', icon: 'assets/icons/theme.svg', iconNeutral: true },
