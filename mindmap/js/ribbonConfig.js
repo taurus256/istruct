@@ -84,7 +84,7 @@ var RibbonConfig = {
           ]
         },
 		{
-            name: 'Панели',
+            name: 'Вид',
             content: [
                { type: 'button', id: 'btn-notes', action: 'notes_panel' }
             ]

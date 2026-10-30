@@ -21,8 +21,8 @@
  */
 var Actions = [
   // ---- Действия ribbon-тулбара (перенесены из прежних литералов ribbonConfig.js) ----
-  { id: 'scheme_import', name: 'Загрузить из файла', icon: 'assets/icons/arrow-down.svg', smallicon: 'assets/icons/small/import-json.svg' },
-  { id: 'scheme_export', name: 'Сохранить в файл', icon: 'assets/icons/arrow-up.svg', smallicon: 'assets/icons/small/export-json.svg' },
+  { id: 'scheme_import', name: 'Загрузить из файла', icon: 'assets/icons/arrow-up.svg', smallicon: 'assets/icons/small/import-json.svg' },
+  { id: 'scheme_export', name: 'Сохранить в файл', icon: 'assets/icons/arrow-down.svg', smallicon: 'assets/icons/small/export-json.svg' },
   { id: 'scheme_clear', name: 'Очистить', icon: 'assets/icons/eracer.svg' },
   { id: 'node_add_text', name: 'Текст', icon: 'assets/icons/type.svg', iconNeutral: true },
   { id: 'node_add_test', name: 'Тест', icon: 'assets/icons/test.svg' },

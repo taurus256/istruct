@@ -53,9 +53,9 @@
   /* Типографическая шкала из Figma (Section 2 — Typography).
      Значения font-shorthand: <weight> <size>/<line-height> <family>. */
   --type-section-title: 700 24px/1.2 var(--font-family-base); /* Section Title (bold, 24px) */
-  --type-main-node-title: 700 20px/1.3 var(--font-family-base); /* Main Node Title (bold, 20px) */
+  --type-main-node-title: 700 18px/1.3 var(--font-family-base); /* Main Node Title (bold, 20px) */
   --type-subsection-title: 700 16px/1.2 var(--font-family-base); /* Subsection Title (bold, 16px) */
-  --type-panel-title: 500 16px/1.2 var(--font-family-base); /* Panel Title (semi bold, 16px) */
+  --type-panel-title: 500 14px/1.2 var(--font-family-base); /* Panel Title (semi bold, 16px) */
   --type-node-label: 500 14px/1.4 var(--font-family-base); /* Node Label (medium, 14px) */
   --type-link-text: 500 14px/1.4 var(--font-family-base); /* Link Text (medium, 14px) */
   --type-body: 400 14px/20px var(--font-family-base); /* Body Text (regular, 14px) */
@@ -135,7 +135,7 @@
   --page-bg: #fafbfc;
 
   /* Тулбар (ribbon-style) */
-  --toolbar-bg: #f9f7f6;
+  --toolbar-bg: #f7f7f7;
   --ribbon-border: #d2d2d2;
   /* Figma-переменная color/toolbar-bg удалена из файла — используем
      color/background (--toolbar-bg) вместо неё. */
@@ -162,7 +162,7 @@
   --status-bar-border: #d2d2d2;
 
   /* Боковая панель (заметки / прохождение теста) */
-  --notes-panel-bg: #f9f7f6;
+  --notes-panel-bg: var(--toolbar-bg);
   --notes-panel-border: #d2d2d2;
   --notes-inner-border: #e5e7eb;
   --notes-title-color: #1a1a1a;

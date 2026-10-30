@@ -1129,7 +1129,7 @@ h1 {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  background: var(--notes-panel-bg, #f3f3f3);
+  background: var(--toolbar-bg, #f3f3f3);
   border-left: 1px solid var(--notes-panel-border, #d2d2d2);
   box-shadow: -2px 0 8px rgba(0, 0, 0, 0.05);
   overflow: hidden;
@@ -1483,7 +1483,7 @@ body.mm-resizing .panel-resize-handle {
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 8px 12px;
+  padding: 4px 8px;
   background: transparent;
   border: none;
   font: var(--type-body);
@@ -1839,7 +1839,7 @@ body.mm-resizing .panel-resize-handle {
 
 .notes-panel__title {
   flex: 1 1 auto;
-  font: 600 16px/1.2 var(--font-family-base);
+  font: var(--type-panel-title);
   color: var(--notes-title-color, #1a1a1a);
 }
 
@@ -1874,10 +1874,6 @@ body.mm-resizing .panel-resize-handle {
   gap: 8px;
   padding: 6px 16px;
   border-bottom: 1px solid var(--notes-inner-border, #e5e7eb);
-  /* "Цвет панели" — тот же токен, что и у самой боковой панели (.side-panel/
-     .help-panel/.files-panel), а не отдельный --notes-toolbar-bg — тулбар
-     сливается с фоном панели вместо отдельной белой плашки. */
-  background: var(--notes-panel-bg, #f3f3f3);
   flex: 0 0 auto;
 }
 
@@ -1896,7 +1892,7 @@ body.mm-resizing .panel-resize-handle {
   border-radius: var(--radius-button);
   cursor: pointer;
   font-size: 13px;
-  line-height: 1;
+  line-height: 1.1;
   color: var(--node-text-color, inherit);
 }
 
@@ -1923,6 +1919,7 @@ body.mm-resizing .panel-resize-handle {
   flex: 0 0 auto;
   width: 1px;
   height: 16px;
+  align-self: center;
   margin: 0 2px;
   background: var(--notes-inner-border, #e5e7eb);
 }
@@ -1945,38 +1942,42 @@ body.mm-resizing .panel-resize-handle {
   height: 100%;
   box-sizing: border-box;
   padding: 16px;
+  border: none;
+  outline: none;
   overflow: auto;
   scrollbar-width: thin;
   font: 400 14px/20px var(--font-family-base);
   color: var(--notes-title-color, #1a1a1a);
+  background: var(--notes-editor-bg, #ffffff);
 }
 
 .notes-source {
-  border: none;
   resize: none;
-  outline: none;
   font-family: var(--font-family-mono);
-  white-space: pre-wrap;
+  white-space: pre;
 }
 
 .notes-visual {
   outline: none;
+  user-select: text;
 }
 
 .notes-visual img {
   max-width: 100%;
 }
 
-/* Ссылки внутри contenteditable по умолчанию получают курсор текста — явно
-   возвращаем "руку", т.к. клик по Markdown-ссылке всегда открывает URL. */
+/* Ссылки внутри contenteditable по умолчанию получают курсор текста (браузер
+   считает, что область редактируется) — явно возвращаем "руку", т.к. клик
+   по Markdown-ссылке всегда открывает URL (см. обработчик click на visualEl в notes.js). */
 .notes-visual a {
   cursor: pointer;
 }
 
-/* Визуальный плейсхолдер для пустого contenteditable. */
+/* Плейсхолдер для пустого contenteditable (textarea использует атрибут
+   placeholder). Текст плейсхолдера не попадает в содержимое (чистый CSS). */
 .notes-visual:empty::before {
   content: attr(data-placeholder);
-  color: var(--text-faint, #9ca3af);
+  color: var(--text-faint, #9aa0a6);
   pointer-events: none;
 }
 
@@ -2005,169 +2006,6 @@ body.mm-resizing .panel-resize-handle {
 
 /* При атрибуте hidden панель не занимает место (перекрываем display:flex). */
 .notes-panel[hidden] {
-  display: none;
-}
-
-.notes-panel__header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--notes-inner-border, #e5e7eb);
-  flex: 0 0 auto;
-}
-
-.notes-panel__icon {
-  display: inline-flex;
-  width: 24px;
-  height: 24px;
-}
-
-.notes-panel__icon img {
-  width: 100%;
-  height: 100%;
-}
-
-.notes-panel__title {
-  flex: 1 1 auto;
-  font: 600 16px/1.2 var(--font-family-base);
-  color: var(--notes-title-color, #1a1a1a);
-}
-
-.notes-panel__close {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: var(--radius-button);
-}
-
-.notes-panel__close img {
-  width: 20px;
-  height: 20px;
-  display: block;
-}
-
-.notes-panel__close:hover {
-  background: var(--hover-tint, rgba(0, 0, 0, 0.06));
-}
-
-.notes-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 16px;
-  border-bottom: 1px solid var(--notes-inner-border, #e5e7eb);
-  background: var(--notes-panel-bg, #f3f3f3);
-  flex: 0 0 auto;
-}
-
-.notes-toolbar__divider {
-  width: 1px;
-  height: 16px;
-  align-self: center;
-  margin: 0 2px;
-  background: var(--notes-inner-border, #e5e7eb);
-}
-
-.notes-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  padding: 4px;
-  border: 1px solid var(--ribbon-btn-border, transparent);
-  background: var(--ribbon-btn-bg, #f5f5f5);
-  border-radius: var(--radius-button);
-  font-size: 13px;
-  line-height: 1.1;
-  cursor: pointer;
-  color: var(--node-text-color, inherit);
-}
-
-.notes-btn img {
-  width: 20px;
-  height: 20px;
-  display: block;
-}
-
-.notes-btn:hover {
-  background: var(--ribbon-btn-hover-bg, #eef3fb);
-  border-color: var(--ribbon-btn-hover-border, #b7cbe0);
-}
-
-.notes-btn--selected {
-  background: var(--ribbon-btn-selected-bg, #e1f0f9);
-  border-color: var(--ribbon-btn-selected-border, #005fb8);
-}
-
-.notes-btn--mode {
-  margin-left: auto;
-}
-
-.notes-panel__editor {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-}
-
-.notes-source,
-.notes-visual {
-  width: 100%;
-  height: 100%;
-  box-sizing: border-box;
-  padding: 16px;
-  border: none;
-  outline: none;
-  overflow: auto;
-  scrollbar-width: thin;
-  font: 400 14px/20px var(--font-family-base);
-  color: var(--notes-title-color, #1a1a1a);
-  background: var(--notes-editor-bg, #ffffff);
-}
-
-.notes-source {
-  resize: none;
-  font-family: var(--font-family-mono);
-  white-space: pre;
-}
-
-.notes-visual {
-  user-select: text;
-}
-
-.notes-visual img {
-  max-width: 100%;
-}
-
-/* Ссылки внутри contenteditable по умолчанию получают курсор текста (браузер
-   считает, что область редактируется) — явно возвращаем "руку", т.к. клик
-   по Markdown-ссылке всегда открывает URL (см. обработчик click на visualEl в notes.js). */
-.notes-visual a {
-  cursor: pointer;
-}
-
-/* Плейсхолдер для пустого contenteditable (textarea использует атрибут
-   placeholder). Текст плейсхолдера не попадает в содержимое (чистый CSS). */
-.notes-visual:empty::before {
-  content: attr(data-placeholder);
-  color: var(--text-faint, #9aa0a6);
-  pointer-events: none;
-}
-
-/* Активный режим определяет, какой из двух редакторов показан. */
-.notes-panel--source .notes-visual {
-  display: none;
-}
-
-.notes-panel--visual .notes-source {
   display: none;
 }
 
