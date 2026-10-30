@@ -155,6 +155,13 @@ var FilesPanel = (function () {
     Undo.reset();
     Render.selectNode(null);
     Render.renderAll();
+    // Восстанавливаем позицию панорамирования новой активной схемы (пер-схема,
+    // хранится в её payload — см. Storage про version 9). Зум при переключении
+    // схемы НЕ меняется (это UI-настройка всего приложения, не per-схема),
+    // поэтому restore() можно вызвать сразу после renderAll().
+    if (typeof Pan !== 'undefined' && typeof Pan.restore === 'function') {
+      Pan.restore();
+    }
     close();
   }
 

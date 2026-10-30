@@ -89,6 +89,21 @@ var Pan = (function () {
     wasDragging = moved;
     moved = false;
     container.classList.remove('mm-panning');
+
+    // Если реально было перемещение (а не просто клик по фону) —
+    // сохраняем итоговую позицию панорамирования в модель данных активной
+    // схемы, чтобы при следующем открытии показать ту же область. Храним в
+    // НАТУРАЛЬНЫХ координатах (без учёта текущего зума — см. zoom.js, где
+    // CSS zoom масштабирует и scrollLeft/scrollTop), чтобы восстановление
+    // было корректным независимо от того, на каком зуме схему открыли в
+    // следующий раз. pan.js концептуально не зависит от Render/Storage
+    // (работает с голым DOM), поэтому обращаемся к ним через typeof-проверку
+    // — на случай отсутствия (не должно случаться при обычном порядке
+    // подключения скриптов, но не плодим жёсткую зависимость).
+    if (wasDragging && typeof Storage !== 'undefined' && typeof Storage.setPan === 'function') {
+      var zoom = (typeof Render !== 'undefined' && typeof Render.getZoom === 'function') ? (Render.getZoom() || 1) : 1;
+      Storage.setPan(container.scrollLeft / zoom, container.scrollTop / zoom);
+    }
   }
 
   function wasPanning() {
@@ -113,8 +128,57 @@ var Pan = (function () {
 
   window.addEventListener('blur', onWindowBlur);
 
+  // Восстанавливает сохранённую в модели данных активной схемы позицию
+  // панорамирования (Storage.getPan(), хранится в НАТУРАЛЬНЫХ координатах,
+  // см. storage.js про version 9). Вызывать нужно ПОСЛЕ того, как дерево
+  // отрисовано (renderAll уже применил compensateNegativeOffsets и дал
+  // контейнеру финальный scrollWidth/scrollHeight) И ПОСЛЕ того, как
+  // применён актуальный зум (Zoom.init()/восстановление схемы из панели
+  // "ФАЙЛ"), иначе координаты собьются последующим изменением зума.
+  //
+  // КРИТИЧНО: сырые сохранённые координаты НЕ применяются напрямую —
+  // клампятся в актуальный допустимый диапазон [0, scrollWidth-clientWidth] /
+  // [0, scrollHeight-clientHeight]. Это защищает от восстановления заведомо
+  // недостижимой позиции, если содержимое/размер окна изменились с момента
+  // сохранения (например узел удалён/добавлен, или зум восстановлен на другой
+  // величине).
+  function restore() {
+    if (!container || typeof Storage === 'undefined' || typeof Storage.getPan !== 'function') {
+      return;
+    }
+    var pan = Storage.getPan();
+    if (!pan) {
+      return; // ничего не сохранено — оставляем стандартное scrollLeft=0/scrollTop=0
+    }
+
+    function apply() {
+      var zoom = (typeof Render !== 'undefined' && typeof Render.getZoom === 'function') ? (Render.getZoom() || 1) : 1;
+      var maxLeft = Math.max(0, container.scrollWidth - container.clientWidth);
+      var maxTop = Math.max(0, container.scrollHeight - container.clientHeight);
+      var left = pan.x * zoom;
+      var top = pan.y * zoom;
+      container.scrollLeft = left < 0 ? 0 : (left > maxLeft ? maxLeft : left);
+      container.scrollTop = top < 0 ? 0 : (top > maxTop ? maxTop : top);
+    }
+
+    // Сразу после Render.setZoom() (который вызывает Zoom.init() при восстановлении
+    // сохранённого зума) scrollWidth/scrollHeight контейнера МОГУТ быть ЕЩЁ
+    // НЕФИНАЛЬНЫМИ: узлы с ручным data.offset досчитывают финальную позицию
+    // АСИНХРОННО (beginConnectorsSettle/verifyConnectorsSettled в render.js — до нескольких
+    // доп. кадров после смены зума). Если применить клампинг до этого — scrollLeft/scrollTop
+    // обрежутся по заниженному (ещё не досчитанному) maxScroll и НЕ пересчитается сам после
+    // того, как геометрия дорастёт до итоговой — поэтому ждём реальной стабилизации через
+    // Render.whenGeometrySettled (вызовет синхронно, если стабилизация не идёт).
+    if (typeof Render !== 'undefined' && typeof Render.whenGeometrySettled === 'function') {
+      Render.whenGeometrySettled(apply);
+    } else {
+      apply();
+    }
+  }
+
   return {
     init: init,
-    wasPanning: wasPanning
+    wasPanning: wasPanning,
+    restore: restore
   };
 })();

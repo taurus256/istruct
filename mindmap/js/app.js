@@ -84,6 +84,12 @@ document.addEventListener('DOMContentLoaded', function () {
   if (typeof Zoom !== 'undefined') {
     Zoom.init(mindmapRoot);
   }
+  // Восстанавливаем позицию панорамирования СТРОГО ПОСЛЕ зума — pan.js:restore()
+  // сам переводит натуральные координаты в текущий зум и клампит в допустимый
+  // диапазон — если вызвать до зума, следующее изменение зума сбило бы позицию.
+  if (typeof Pan !== 'undefined' && typeof Pan.restore === 'function') {
+    Pan.restore();
+  }
   Notes.init();
   TestPanel.init();
 
@@ -458,6 +464,11 @@ document.addEventListener('DOMContentLoaded', function () {
       // (selectNode() теперь лёгкий и не пересобирает DOM сам по себе).
       Render.selectNode(null);
       Render.renderAll();
+      // Если в импортированном файле была сохранёна позиция панорамирования —
+      // применить её; иначе останется стандартное scrollLeft=0/scrollTop=0.
+      if (typeof Pan !== 'undefined' && typeof Pan.restore === 'function') {
+        Pan.restore();
+      }
     });
     importInput.value = ''; // сброс, чтобы можно было повторно выбрать тот же файл
   });

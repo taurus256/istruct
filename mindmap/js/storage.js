@@ -1,7 +1,7 @@
 /*
  * storage.js — сохранение/загрузка модели в localStorage,
  * экспорт и импорт в формате JSON.
- * Формат файла: { "version": 8, "rootId": "n1", "nodes": { ... } }
+ * Формат файла: { "version": 9, "rootId": "n1", "nodes": { ... }, "pan"?: {"x":0,"y":0} }
  *
  * ИДЕНТИФИКАТОР УЗЛА (важно): узел хранится как значение по КЛЮЧУ в объекте
  * "nodes" — именно ключ и есть идентификатор узла. Внутреннего поля "id" у
@@ -70,6 +70,23 @@
  * (setColor/getColor/clearColor) и render.js (Render.setNodeColor).
  * Корневой узел не окрашивается. DATA_FORMAT.md §2.7.
  *
+ * version 9 (текущая): у пайлоада СХЕМЫ ЦЕЛИКОМ (рядом с "version"/"rootId"/
+ * "nodes", НЕ внутри узла) может появиться необязательное поле "pan":
+ * { "x": number, "y": number } — последняя сохранённая позиция панорамирования
+ * (scrollLeft/scrollTop контейнера #mindmap-root) ЭТОЙ схемы, в НАТУРАЛЬНЫХ
+ * координатах (при zoom=1, НЕ зависит от текущего масштаба на момент
+ * сохранения — при восстановлении домножается на актуальный Render.getZoom(),
+ * см. pan.js/app.js). Это СВОЙСТВО ВСЕЙ СХЕМЫ (как rootId), НЕ атрибут узла —
+ * хранится ВНЕ Model.state (см. Storage.setPan/getPan ниже), ЧТОБЫ НЕ участвовать в
+ * снапшотах undo/redo (undo.js берёт полный Model.getState() — панорамирование, как
+ * зум/тема, является UI-состоянием "где сейчас смотрит пользователь", а НЕ
+ * данными схемы в смысле undo — см. память проекта про undo.js). Отсутствие
+ * поля (или старый файл version ≤8) означает «позиция не сохранена» — при
+ * открытии такой схемы просто ничего не восстанавливается (остаётся стандартное
+ * scrollLeft=0/scrollTop=0, как сейчас). См. Storage.setPan/getPan, pan.js (точка
+ * сохранения — конец drag-панорамирования), app.js/filesPanel.js (точки
+ * восстановления — после первой загрузки/переключения схемы).
+ *
  * Обратная совместимость: файлы version 1–6 читаются без изменений —
  * отсутствие поля data.* трактуется как авто-позиция / «заметки нет» /
  * «теста нет» / «не отмечен»; отсутствие "type" у вопроса теста трактуется
@@ -109,6 +126,16 @@ var Storage = (function () {
   var DEBOUNCE_MS = 400;
   var debounceTimer = null;
   var idCounter = 0;
+
+  // Кэш текущего pan АКТИВНОЙ схемы в памяти — { x, y } или null. Устанавливается
+  // при load()/loadScheme()/createScheme() (из payload'а, который загружается в
+  // Model) и обновляется в setPan(). НУЖЕН именно как кэш в памяти, а НЕ
+  // просто чтение из localStorage при каждой сериализации: saveImmediate()/exportJSON()
+  // полностью перестраивают payload из Model.getState() при ЛЮБОЙ мутации узла
+  // (вкл. частые автосохранения при вводе текста) — без этого кэша каждое
+  // такое сохранение стирало бы ранее сохранённый pan (payload формируется заново
+  // с нуля, без поля "pan").
+  var currentPan = null;
 
   // Простой генератор уникальных id схем (независимый от Model.generateId,
   // который приватен и предназначен для узлов, а не схем).
@@ -270,6 +297,18 @@ var Storage = (function () {
     }
   }
 
+  // Строит payload схемы из ТЕКУЩЕГО Model.getState() + текущего currentPan кэша
+  // (если он задан) — общий хелпер для saveImmediate/exportJSON/createScheme, чтобы
+  // ни одно из них не затирало ранее сохранённый pan при перезаписи payload'а.
+  function buildPayload() {
+    var state = Model.getState();
+    var payload = { version: 9, rootId: state.rootId, nodes: serializeNodes(state.nodes) };
+    if (currentPan) {
+      payload.pan = { x: currentPan.x, y: currentPan.y };
+    }
+    return payload;
+  }
+
   // Сохраняет ТЕКУЩУЮ модель (Model.getState()) в payload АКТИВНОЙ схемы.
   function saveImmediate() {
     var idx = readIndex();
@@ -277,9 +316,7 @@ var Storage = (function () {
       return; // активной схемы нет — сохранять некуда (не должно случаться после load())
     }
     try {
-      var state = Model.getState();
-      var payload = { version: 8, rootId: state.rootId, nodes: serializeNodes(state.nodes) };
-      writeSchemePayload(idx.activeId, payload);
+      writeSchemePayload(idx.activeId, buildPayload());
       touchModified(idx.activeId);
     } catch (e) {
       console.error('Не удалось сохранить mind map в localStorage', e);
@@ -298,6 +335,17 @@ var Storage = (function () {
     debounceTimer = setTimeout(saveImmediate, DEBOUNCE_MS);
   }
 
+  // Извлекает поле "pan" из payload'а с валидацией ({x,y} числа или null) —
+  // общий хелпер для load()/loadScheme() при установке currentPan.
+  function extractPan(payload) {
+    if (!payload || !payload.pan ||
+        typeof payload.pan.x !== 'number' || typeof payload.pan.y !== 'number' ||
+        !isFinite(payload.pan.x) || !isFinite(payload.pan.y)) {
+      return null;
+    }
+    return { x: payload.pan.x, y: payload.pan.y };
+  }
+
   // Загружает активную схему при старте приложения: мигрирует старые данные
   // при необходимости, затем читает индекс и payload активной схемы. Если
   // схем ещё нет вообще (первый запуск) или активная схема повреждена —
@@ -310,12 +358,14 @@ var Storage = (function () {
       var payload = readSchemePayload(idx.activeId);
       if (payload) {
         Model.setState({ rootId: payload.rootId, nodes: payload.nodes });
+        currentPan = extractPan(payload);
         return;
       }
       console.warn('Активная схема повреждена или отсутствует, создаём новую');
     }
 
     Model.initEmpty();
+    currentPan = null;
     createScheme();
   }
 
@@ -323,8 +373,7 @@ var Storage = (function () {
   // Экспорт — это единственное сегодня действие, которое считается
   // «сохранением» (см. шапку файла) — помечаем savedAt активной схемы.
   function exportJSON() {
-    var state = Model.getState();
-    var payload = { version: 8, rootId: state.rootId, nodes: serializeNodes(state.nodes) };
+    var payload = buildPayload();
     var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     var url = URL.createObjectURL(blob);
 
@@ -369,6 +418,7 @@ var Storage = (function () {
       }
 
       Model.setState({ rootId: payload.rootId, nodes: payload.nodes });
+      currentPan = extractPan(payload);
       saveImmediate();
       if (typeof onSuccess === 'function') {
         onSuccess();
@@ -432,6 +482,7 @@ var Storage = (function () {
       return false;
     }
     Model.setState({ rootId: payload.rootId, nodes: payload.nodes });
+    currentPan = extractPan(payload);
     return true;
   }
 
@@ -472,8 +523,8 @@ var Storage = (function () {
   // вызовом). Регистрирует её в индексе, делает активной. Возвращает id.
   function createScheme() {
     var id = generateSchemeId();
-    var state = Model.getState();
-    var payload = { version: 8, rootId: state.rootId, nodes: serializeNodes(state.nodes) };
+    currentPan = null; // новая схема всегда без сохранённой позиции панорамирования
+    var payload = buildPayload();
     registerScheme(id, payload, Date.now());
     return id;
   }
@@ -600,6 +651,43 @@ var Storage = (function () {
     reader.readAsText(file);
   }
 
+  /**
+   * Сохраняет позицию панорамирования (x,y в НАТУРАЛЬНЫХ координатах,
+   * см. шапку файла про version 9) в payload АКТИВНОЙ схемы. Строит payload ИЗ
+   * ТЕКУЩЕГО Model.getState() (точно так же, как saveImmediate) — НЕ читает
+   * payload из localStorage напрямую (он может быть устаревшим из-за debounce в
+   * save() — иначе запись pan могла бы затереть недавние несохранённые
+   * правки дерева устаревшим снимком nodes). Панорамирование само по себе НЕ
+   * хранится в Model/Model.getState() (UI-состояние, не данные дерева, см. шапку
+   * файла) — поэтому оно НЕ попадает в undo-снапшоты (undo.js снимает только
+   * Model.getState()). Вызывается из pan.js после окончания drag-панорамирования
+   * (с реальным перемещением). Ничего не делает, если активной схемы нет.
+   */
+  function setPan(x, y) {
+    var idx = readIndex();
+    if (!idx || !idx.activeId) {
+      return;
+    }
+    currentPan = { x: x, y: y };
+    try {
+      writeSchemePayload(idx.activeId, buildPayload());
+      touchModified(idx.activeId);
+    } catch (e) {
+      console.error('Не удалось сохранить позицию панорамирования', e);
+    }
+  }
+
+  /**
+   * Читает текущий (в памяти, не из localStorage напрямую) currentPan — { x, y }
+   * (натуральные координаты при zoom=1) или null, если не сохранялась (включая
+   * старые схемы version ≤8, у которых этого поля никогда не было). Обновляется
+   * при load()/loadScheme() и сбрасывается в createScheme() — всегда синхронен с
+   * тем, что реально загружено в Model на данный момент.
+   */
+  function getPan() {
+    return currentPan ? { x: currentPan.x, y: currentPan.y } : null;
+  }
+
   return {
     save: save,
     saveImmediate: saveImmediate,
@@ -614,6 +702,8 @@ var Storage = (function () {
     deleteScheme: deleteScheme,
     getActiveId: getActiveId,
     getSchemeName: getSchemeName,
-    listSchemes: listSchemes
+    listSchemes: listSchemes,
+    setPan: setPan,
+    getPan: getPan
   };
 })();

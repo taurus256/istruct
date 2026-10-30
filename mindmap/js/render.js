@@ -1195,6 +1195,10 @@ var Render = (function () {
   // beginConnectorsSettle/endConnectorsSettle/setOffsetNodesHidden ниже.
   var connectorsSettling = false;
 
+  // Очередь одноразовых колбэков, ждущих завершения текущей стабилизации
+  // геометрии (connectorsSettling) — см. whenGeometrySettled.
+  var settledCallbacks = [];
+
   function hasOffset(id) {
     var node = Model.getNode(id);
     var offset = node && node.data && node.data.offset;
@@ -1289,6 +1293,33 @@ var Render = (function () {
     connectorsSettling = false;
     setOffsetNodesHidden(false);
     renderConnectors(); // перерисовать: коннекторы смещённых узлов теперь видимы
+    flushSettledCallbacks();
+  }
+
+  function flushSettledCallbacks() {
+    var callbacks = settledCallbacks;
+    settledCallbacks = [];
+    callbacks.forEach(function (fn) {
+      try { fn(); } catch (e) { /* не даём одному коллбэку сломать остальные */ }
+    });
+  }
+
+  // Вызывает callback когда геометрия дерева точно устоялась (см. beginConnectorsSettle/
+  // verifyConnectorsSettled — после setZoom() на схемах с ручным data.offset позиция
+  // смещённых узлов — а значит, и scrollWidth/scrollHeight контейнера — досчитывается
+  // асинхронно в течение нескольких кадров). Если стабилизация сейчас НЕ идёт
+  // (connectorsSettling === false — нет смещённых узлов или зум не менялся) — вызывается
+  // СИНХРОННО, сразу. Используется Pan.restore(), чтобы не восстанавливать
+  // scrollLeft/scrollTop до того, как maxScrollLeft/maxScrollTop достигнут финального значения.
+  function whenGeometrySettled(callback) {
+    if (typeof callback !== 'function') {
+      return;
+    }
+    if (!connectorsSettling) {
+      callback();
+      return;
+    }
+    settledCallbacks.push(callback);
   }
 
   // Подстраховка сверх двойного rAF (воспроизводится в Chrome, не
@@ -1508,6 +1539,7 @@ var Render = (function () {
     resetPosition: resetPosition,
     openNotePanel: openNotePanel,
     setZoom: setZoom,
-    getZoom: getZoom
+    getZoom: getZoom,
+    whenGeometrySettled: whenGeometrySettled
   };
 })();
