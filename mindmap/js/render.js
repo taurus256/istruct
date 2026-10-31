@@ -93,7 +93,7 @@ var Render = (function () {
         var moved = Model.addOffset(draggedId, dx, dy);
         if (moved) {
           Storage.save();
-          renderAll();
+          animateBranchMove(draggedId, renderAll);
         }
       }
     });
@@ -312,6 +312,108 @@ var Render = (function () {
   var onZoomChange = null;
   function setOnZoomChange(fn) {
     onZoomChange = (typeof fn === 'function') ? fn : null;
+  }
+
+  // Длительность CSS-перехода задана в CSS (.mm-node-wrap--flip, layout.css) — JS сам
+  // длительность не знает, дожидается события transitionend ниже.
+
+  // Применяет FLIP-анимацию (First-Last-Invert-Play) к ветви узла nodeId при
+  // её перемещении через drag&drop (смена родителя ИЛИ ручное смещение).
+  // renderAll() пересоздаёт ВЕСЬ DOM (container.innerHTML = ''), поэтому обычный
+  // CSS transition на перестроенном элементе не сработает напрямую (это новый элемент,
+  // а не тот же, что был). Фикс: замерить позицию ветви ДО перестройки ("First"),
+  // выполнить renderAll() как обычно, затем найти ту же ветвь в новом DOM и сравнить
+  // с её новой позицией ("Last") — разница даёт смещение, с которого нужно
+  // "стартовать" анимацию ("Invert"), после чего она плавно съедет к реальному
+  // месту через CSS transition ("Play").
+  //
+  // Анимируется ТОЛЬКО сама перемещённая ветвь (узел + потомки) — остальные узлы
+  // схемы, даже сдвинувшиеся из-за перестройки layout'а, НЕ анимируются (согласовано).
+  //
+  // ВАЖНО про CSS-переменные vs инлайн-transform: .mm-node-wrap может уже иметь
+  // ПОСТОЯННЫЙ инлайн-transform (data.offset, см. renderBranch: wrap.style.transform =
+  // 'translate(...)'). Инлайн-стиль всегда перебивает правило из CSS-файла для того
+  // же свойства независимо от специфичности — поэтому подход с CSS-переменными/классами
+  // ЗДЕСЬ НЕ СРАБОТАЕТ. Вместо этого FLIP комбинирует своё смещение НАПРЯМУЮ в
+  // style.transform: читает базовое смещение из data.offset через Model.getNode(nodeId).data.offset
+  // (то же значение, что использовал последний renderBranch), добавляет к нему FLIP-дельту
+  // и пишет сумму одним translate(...) в style.transform напрямую; сам CSS transition
+  // навешивается через класс .mm-node-wrap--flip (см. layout.css, transition: transform).
+  //
+  // callback — функция, выполняющая саму мутацию/renderAll() (синхронно).
+  function animateBranchMove(nodeId, callback) {
+    var beforeEl = nodeEls[nodeId];
+    var beforeWrap = beforeEl && beforeEl.closest('.mm-node-wrap');
+    var beforeRect = beforeWrap ? beforeWrap.getBoundingClientRect() : null;
+
+    callback();
+
+    if (!beforeRect) {
+      return; // ветвь до мутации не найдена (например узел только что создан) — анимировать нечего
+    }
+
+    var afterEl = nodeEls[nodeId];
+    var afterWrap = afterEl && afterEl.closest('.mm-node-wrap');
+    if (!afterWrap) {
+      return; // узел удалён/не найден после мутации — нечего анимировать
+    }
+
+    var afterRect = afterWrap.getBoundingClientRect();
+    var dx = beforeRect.left - afterRect.left;
+    var dy = beforeRect.top - afterRect.top;
+    if (!dx && !dy) {
+      return; // визуальное положение не изменилось — анимировать нечего
+    }
+
+    // Учитываем CSS zoom на .mm-row-middle: getBoundingClientRect() уже возвращает
+    // масштабированные экранные координаты, но CSS transform на самом элементе внутри
+    // zoom-контекста задаётся в НЕЗАЗУМЛЕННЫХ (CSS-пиксельных) единицах, делённых
+    // на текущий zoom — иначе смещение будет в 2-3 раза больше/меньше нужного при
+    // zoom != 1 (см. аналогичный расчёт в zoom.js:applyZoomAt).
+    var zoom = currentZoom || 1;
+    var invertDx = dx / zoom;
+    var invertDy = dy / zoom;
+
+    // Базовое смещение (data.offset) уже применено к afterWrap.style.transform в
+    // renderBranch — прочитаем те же числа из модели (не парсим style.transform строкой,
+    // чтобы не зависеть от формата вывода CSS-движка).
+    var afterNode = Model.getNode(nodeId);
+    var baseOffset = (afterNode && afterNode.data && afterNode.data.offset) || null;
+    var baseDx = baseOffset ? baseOffset.dx : 0;
+    var baseDy = baseOffset ? baseOffset.dy : 0;
+
+    // Устанавливаем СТАРТОВОЕ (смещённое) положение БЕЗ transition — ветвь визуально
+    // оказывается там же, где была до мутации ("Invert").
+    afterWrap.style.transition = 'none';
+    afterWrap.style.transform = 'translate(' + (baseDx + invertDx) + 'px, ' + (baseDy + invertDy) + 'px)';
+
+    // Двойной rAF (как и в scheduleConnectorsUpdate): первый кадр гарантирует, что браузер
+    // уже применил начальное (смещённое) положение без transition, второй запускает сам
+    // переход к реальному (базовому) положению через CSS transition.
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        // afterWrap могло уже быть удалено из DOM очередным renderAll за это время
+        // (например быстрое последовательные действия пользователя) — проверяем через
+        // isConnected перед применением финального состояния.
+        if (!afterWrap.isConnected) {
+          return;
+        }
+        afterWrap.classList.add('mm-node-wrap--flip');
+        afterWrap.style.transition = '';
+        afterWrap.style.transform = 'translate(' + baseDx + 'px, ' + baseDy + 'px)';
+        afterWrap.addEventListener('transitionend', function cleanup(e) {
+          if (e.target !== afterWrap) { return; }
+          afterWrap.removeEventListener('transitionend', cleanup);
+          afterWrap.classList.remove('mm-node-wrap--flip');
+          afterWrap.style.transition = '';
+          // Приводим инлайн-стиль точно к тому, что бы произвёл обычный renderBranch() — если
+          // у узла нет ручного offset, там вообще нет style.transform (не "translate(0px, 0px)").
+          if (!baseOffset) {
+            afterWrap.style.transform = '';
+          }
+        });
+      });
+    });
   }
 
   // Полная перерисовка дерева от корня.
@@ -647,6 +749,7 @@ var Render = (function () {
         var result = Model.moveNode(draggedId, targetId);
         if (!result.ok) {
           console.warn('Перенос узла отклонён: ' + result.reason);
+          renderAll();
         } else {
           // Перенос меняет набор детей и у старого, и у нового родителя —
           // "завершённость" обоих могла поменяться в любую сторону (см.
@@ -656,8 +759,8 @@ var Render = (function () {
             Model.recomputeAncestorMarks(oldParentId);
           }
           Storage.save();
+          animateBranchMove(draggedId, renderAll);
         }
-        renderAll();
       }
     });
 
