@@ -84,19 +84,39 @@ var Render = (function () {
     // в renderNodeBox() и означает смену родителя) сдвигает перетаскиваемый
     // узел (и всю его ветвь — см. transform в renderBranch()) на дельту
     // перемещения мыши между dragstart и drop.
+    // Активен между первым onRepositionDrag данного drag-жеста и onRepositionCancel/Drop —
+    // гарантирует ровно один startConnectorsFollow()/stopConnectorsFollow() на весь жест,
+    // а не на каждый из множества onRepositionDrag-вызовов за один drag.
+    var liveRepositionActive = false;
+
     DragDrop.attachContainerHandlers(container, {
       // Live-превью перемещения: вызывается на каждый кадр во время перетаскивания
       // (dragdrop.js сам троттлит через requestAnimationFrame), ДО любой мутации модели —
-      // ветвь визуально следует за курсором до отпускания кнопки мыши.
+      // ветвь визуально следует за курсором до отпускания кнопки мыши. Пока ветвь движется
+      // таким образом — связи-линии к ней тоже должны пересчитываться каждый кадр — см.
+      // startConnectorsFollow() (непрерывный rAF-цикл, в отличие от одноразового scheduleConnectorsUpdate).
       onRepositionDrag: function (draggedId, dx, dy) {
+        if (!liveRepositionActive) {
+          liveRepositionActive = true;
+          startConnectorsFollow();
+        }
         applyLiveRepositionTransform(draggedId, dx, dy);
       },
       // Drag завершён без drop (Escape, отпущено за пределами окна) — сбрасываем
-      // live-превью к тому, что бы отрисовал обычный renderBranch() (мутации не было).
+      // live-превью к тому, что бы отрисовал обычный renderBranch() (мутации не было),
+      // и останавливаем непрерывный пересчёт связей (если он был запущен — live даже один раз).
       onRepositionCancel: function (draggedId) {
         applyLiveRepositionTransform(draggedId, 0, 0);
+        if (liveRepositionActive) {
+          liveRepositionActive = false;
+          stopConnectorsFollow();
+        }
       },
       onRepositionDrop: function (draggedId, dx, dy) {
+        if (liveRepositionActive) {
+          liveRepositionActive = false;
+          stopConnectorsFollow();
+        }
         if (dx === 0 && dy === 0) {
           // Отпустили практически на месте — ничего не меняем, но live-превью сбросим
           // (она всё равно уже нулевая при dx=dy=0, но на всякий случай).
@@ -429,6 +449,12 @@ var Render = (function () {
     afterWrap.style.transition = 'none';
     afterWrap.style.transform = 'translate(' + (baseDx + invertDx) + 'px, ' + (baseDy + invertDy) + 'px)';
 
+    // Связи-линии должны следовать за ветвью на каждом кадре FLIP-перехода — одноразовый
+    // scheduleConnectorsUpdate (вызываемый внутри renderAll выше, до этой точки) посчитает линии по
+    // ФИНАЛЬНОЙ геометрии, тогда как ветвь сейчас ещё 260мс будет визуально двигаться через
+    // CSS transition — без непрерывного пересчёта линии остались бы на старом месте всё время движения.
+    startConnectorsFollow();
+
     // Двойной rAF (как и в scheduleConnectorsUpdate): первый кадр гарантирует, что браузер
     // уже применил начальное (смещённое) положение без transition, второй запускает сам
     // переход к реальному (базовому) положению через CSS transition.
@@ -436,8 +462,10 @@ var Render = (function () {
       requestAnimationFrame(function () {
         // afterWrap могло уже быть удалено из DOM очередным renderAll за это время
         // (например быстрое последовательные действия пользователя) — проверяем через
-        // isConnected перед применением финального состояния.
+        // isConnected перед применением финального состояния. Если afterWrap удалён — непрерывный
+        // пересчёт связей тоже нужно остановить, иначе он останется висеть навсегда.
         if (!afterWrap.isConnected) {
+          stopConnectorsFollow();
           return;
         }
         afterWrap.classList.add('mm-node-wrap--flip');
@@ -453,6 +481,9 @@ var Render = (function () {
           if (!baseOffset) {
             afterWrap.style.transform = '';
           }
+          // Анимация завершилась — останавливаем непрерывный пересчёт (он делает последний точный
+          // проход сам, см. stopConnectorsFollow).
+          stopConnectorsFollow();
         });
       });
     });
@@ -1350,6 +1381,47 @@ var Render = (function () {
         verifyConnectorsSettled(0);
       });
     });
+  }
+
+  // НЕПРЕРЫВНЫЙ (а не одноразовый, в отличие от scheduleConnectorsUpdate выше) цикл
+  // пересчёта коннекторов — нужен, пока ветвь узла ВИЗУАЛЬНО движется кадр за кадром
+  // (live-превью ручного перетаскивания ДО drop, см. applyLiveRepositionTransform, и
+  // CSS transition FLIP-анимации ПОСЛЕ drop/reparent, см. animateBranchMove) — в эти
+  // моменты позиция узла меняется НЕ через renderAll()/scheduleConnectorsUpdate, а
+  // напрямую через style.transform без единого "официального" события перерисовки,
+  // поэтому связи-линии, посчитанные один раз, визуально отстают от реально движущейся
+  // ветви. followConnectorsRaf — id текущего requestAnimationFrame цикла (не null,
+  // пока цикл активен); несколько источников движения (drag и, в редком случае быстрой
+  // повторной мутации, одновременно идущая анимация) используют один и тот же цикл —
+  // followConnectorsRefCount считает, сколько источников сейчас требуют пересчёта, чтобы
+  // цикл не останавливался раньше времени, если он нужен более чем одному из них.
+  var followConnectorsRaf = null;
+  var followConnectorsRefCount = 0;
+
+  function startConnectorsFollow() {
+    followConnectorsRefCount += 1;
+    if (followConnectorsRaf) {
+      return; // цикл уже идёт — новый не нужен, просто увеличили счётчик выше
+    }
+    function tick() {
+      renderConnectors();
+      followConnectorsRaf = requestAnimationFrame(tick);
+    }
+    followConnectorsRaf = requestAnimationFrame(tick);
+  }
+
+  function stopConnectorsFollow() {
+    followConnectorsRefCount = Math.max(0, followConnectorsRefCount - 1);
+    if (followConnectorsRefCount > 0) {
+      return; // другой источник движения всё ещё активен — цикл не останавливаем
+    }
+    if (followConnectorsRaf) {
+      cancelAnimationFrame(followConnectorsRaf);
+      followConnectorsRaf = null;
+    }
+    // Финальный точный пересчёт после остановки цикла — на случай, если последний tick()
+    // уже запланированный кадр не успел сработать до cancelAnimationFrame.
+    renderConnectors();
   }
 
   // Подстраховка сверх двойного rAF (воспроизводится в Chrome, не
