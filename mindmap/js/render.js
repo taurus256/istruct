@@ -127,11 +127,13 @@ var Render = (function () {
         var moved = Model.addOffset(draggedId, dx, dy);
         if (moved) {
           Storage.save();
-          // Ветвь уже визуально на месте (live-превью совпадает с финальным положением),
-          // поэтому animateBranchMove здесь стартует с нулевой/минимальной дельтой и ничего
-          // видимо не «дёрнет» — вызываем её всё равно для симметрии/надёжности (нет
-          // смысла усложнять вызов специальным условием).
-          animateBranchMove(draggedId, renderAll);
+          // FLIP-анимация перемещения отключена: при быстром drag&drop и отпускании
+          // последний кадр live-превью (applyLiveRepositionTransform, троттлится через rAF
+          // в dragdrop.js) мог не успеть примениться до drop — тогда animateBranchMove стартовал
+          // анимацию от устаревшей визуальной позиции (старый кадр live-превью), что выглядело
+          // как «откат назад» перед переходом на финальную позицию. Убран по решению
+          // пользователя — обычный renderAll() без промежуточной анимации.
+          renderAll();
         }
       }
     });
@@ -832,7 +834,9 @@ var Render = (function () {
             Model.recomputeAncestorMarks(oldParentId);
           }
           Storage.save();
-          animateBranchMove(draggedId, renderAll);
+          // FLIP-анимация перемещения отключена (см. такое же решение в onRepositionDrop выше) —
+          // простой renderAll() без промежуточной анимации.
+          renderAll();
         }
       }
     });
