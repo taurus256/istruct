@@ -124,6 +124,14 @@ var Render = (function () {
     }
     if (id != null && nodeEls[id]) {
       nodeEls[id].classList.add('node--selected');
+      // Выделенный узел показывает попап-панель действий НАД собой (см.
+      // .node__panel--edit в layout.css) — если узел стоит у самого верхнего
+      // края видимой области #mindmap-root (чаще всего это root: в отличие
+      // от остальных узлов у него нет соседей сверху, дающих естественный
+      // запас), панель уходит выше границы контейнера и обрезается его
+      // overflow — кнопки в ней становятся недоступны. Подскролливаем, чтобы
+      // панель гарантированно попадала в видимую область.
+      scrollNodeIntoViewIfNeeded(id);
     }
     notifySelectionChanged();
   }
@@ -268,13 +276,23 @@ var Render = (function () {
     var dx = 0;
     var dy = 0;
 
+    // node__panel--edit всплывает НАД боксом (bottom: calc(100% + 4px) в
+    // layout.css), т.е. физически выше nodeRect.top — её собственный
+    // getBoundingClientRect() учитываем ОТДЕЛЬНО (а не просто "добавляем
+    // высоту"), т.к. это абсолютно позиционированный элемент со своей
+    // геометрией, не обязанной быть прямо над боксом по высоте вплотную.
+    // Элемент панели существует в DOM всегда (видимость переключается CSS
+    // по классу node--selected), поэтому его rect корректен уже сейчас.
+    var panel = box.querySelector('.node__panel--edit');
+    var topEdge = (panel ? Math.min(nodeRect.top, panel.getBoundingClientRect().top) : nodeRect.top);
+
     if (nodeRect.left < contRect.left) {
       dx = nodeRect.left - contRect.left;
     } else if (nodeRect.right > contRect.right) {
       dx = nodeRect.right - contRect.right;
     }
-    if (nodeRect.top < contRect.top) {
-      dy = nodeRect.top - contRect.top;
+    if (topEdge < contRect.top) {
+      dy = topEdge - contRect.top;
     } else if (nodeRect.bottom > contRect.bottom) {
       dy = nodeRect.bottom - contRect.bottom;
     }
@@ -1075,13 +1093,21 @@ var Render = (function () {
 
     var GUTTER = 24; // небольшой отступ, чтобы узлы не прижимались к краю
 
-    // Измеряет минимальные координаты всех узлов в системе контента.
+    // Измеряет минимальные координаты всех узлов в системе контента. Учитываем
+    // не только сам бокс узла, но и его всплывающие панели, уходящие ЕЩЁ
+    // ДАЛЬШЕ вверх/влево за пределы бокса (node__panel--edit/--note-test —
+    // выше бокса, node__panel--add-left — левее): иначе компенсация доводит
+    // до GUTTER только сам бокс, а его панель (например, кнопки добавления у
+    // узла, перетащенного вручную через data.offset близко к верхнему краю —
+    // см. баг с "Feed-forward слой" в mindmap (3).json) всё равно остаётся в
+    // отрицательной, недостижимой scroll'ом зоне и визуально пропадает.
+    // Панели существуют в DOM всегда (видимость переключается CSS), поэтому
+    // их геометрия корректна независимо от текущего hover/selected.
     function measureMin() {
       var cr = container.getBoundingClientRect();
       var mnX = Infinity;
       var mnY = Infinity;
-      Object.keys(nodeBodyEls).forEach(function (id) {
-        var el = nodeBodyEls[id];
+      function consider(el) {
         if (!el) {
           return;
         }
@@ -1090,6 +1116,16 @@ var Render = (function () {
         var y = r.top - cr.top + container.scrollTop;
         if (x < mnX) { mnX = x; }
         if (y < mnY) { mnY = y; }
+      }
+      Object.keys(nodeBodyEls).forEach(function (id) {
+        consider(nodeBodyEls[id]);
+        var box = nodeEls[id];
+        if (!box) {
+          return;
+        }
+        consider(box.querySelector('.node__panel--edit'));
+        consider(box.querySelector('.node__panel--note-test'));
+        consider(box.querySelector('.node__panel--add-left'));
       });
       return { x: mnX, y: mnY };
     }

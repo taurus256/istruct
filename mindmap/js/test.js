@@ -190,7 +190,7 @@ var TestPanel = (function () {
     return '' +
       '<div class="test-intro-status">' +
         '<div class="test-intro-status__title' + (passed ? ' test-intro-status__title--pass' : ' test-intro-status__title--fail') + '">' +
-          (passed ? 'Пройден' : 'Не пройден') +
+          (passed ? 'Тест пройден' : 'Тест не пройден') +
         '</div>' +
         '<div class="test-intro-status__detail">' +
           result.correctCount + '/' + result.totalCount + ' правильных (' + result.scorePercent + '%)' +
@@ -467,7 +467,7 @@ var TestPanel = (function () {
       '<div class="test-body">' +
         '<div class="test-node-title">' + esc(nodeTitle(nodeId)) + '</div>' +
         '<div class="test-result-card ' + (passed ? 'test-result-card--pass' : 'test-result-card--fail') + '">' +
-          '<div class="test-result-status">' + (passed ? 'Пройден' : 'Не пройден') + '</div>' +
+          '<div class="test-result-status">' + (passed ? 'Тест пройден' : 'Тест не пройден') + '</div>' +
         '</div>' +
         '<div class="test-stats">' +
           statCard('Время', '~' + mins + ' мин', false) +
