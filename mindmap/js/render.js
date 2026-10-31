@@ -85,18 +85,60 @@ var Render = (function () {
     // узел (и всю его ветвь — см. transform в renderBranch()) на дельту
     // перемещения мыши между dragstart и drop.
     DragDrop.attachContainerHandlers(container, {
+      // Live-превью перемещения: вызывается на каждый кадр во время перетаскивания
+      // (dragdrop.js сам троттлит через requestAnimationFrame), ДО любой мутации модели —
+      // ветвь визуально следует за курсором до отпускания кнопки мыши.
+      onRepositionDrag: function (draggedId, dx, dy) {
+        applyLiveRepositionTransform(draggedId, dx, dy);
+      },
+      // Drag завершён без drop (Escape, отпущено за пределами окна) — сбрасываем
+      // live-превью к тому, что бы отрисовал обычный renderBranch() (мутации не было).
+      onRepositionCancel: function (draggedId) {
+        applyLiveRepositionTransform(draggedId, 0, 0);
+      },
       onRepositionDrop: function (draggedId, dx, dy) {
         if (dx === 0 && dy === 0) {
-          return; // отпустили практически на месте — ничего не меняем
+          // Отпустили практически на месте — ничего не меняем, но live-превью сбросим
+          // (она всё равно уже нулевая при dx=dy=0, но на всякий случай).
+          applyLiveRepositionTransform(draggedId, 0, 0);
+          return;
         }
         Undo.push();
         var moved = Model.addOffset(draggedId, dx, dy);
         if (moved) {
           Storage.save();
+          // Ветвь уже визуально на месте (live-превью совпадает с финальным положением),
+          // поэтому animateBranchMove здесь стартует с нулевой/минимальной дельтой и ничего
+          // видимо не «дёрнет» — вызываем её всё равно для симметрии/надёжности (нет
+          // смысла усложнять вызов специальным условием).
           animateBranchMove(draggedId, renderAll);
         }
       }
     });
+  }
+
+  // Live-превью ручного позиционирования во время drag (ДО drop, без мутации модели): накладывает
+  // временный (dx, dy) над уже существующим базовым data.offset ветви (тот же приём,
+  // что и в animateBranchMove), БЕЗ transition и БЕЗ мутации модели — чисто визуальный
+  // эффект «ветвь едет за курсором». dx/dy — экранные (незазумленные) пиксели смещения
+  // курсора, как и в onRepositionDrop/Model.addOffset.
+  function applyLiveRepositionTransform(nodeId, dx, dy) {
+    var el = nodeEls[nodeId];
+    var wrap = el && el.closest('.mm-node-wrap');
+    if (!wrap) {
+      return;
+    }
+    var node = Model.getNode(nodeId);
+    var baseOffset = (node && node.data && node.data.offset) || null;
+    var baseDx = baseOffset ? baseOffset.dx : 0;
+    var baseDy = baseOffset ? baseOffset.dy : 0;
+
+    // dx/dy — разница экранных координат курсора (e.clientX/Y), а CSS transform на элементе
+    // внутри zoom-контекста (.mm-row-middle) задаётся в НЕЗАЗУМЛЕННЫХ единицах — делим
+    // на текущий zoom, как и в animateBranchMove/zoom.js:applyZoomAt.
+    var zoom = currentZoom || 1;
+    wrap.style.transition = 'none';
+    wrap.style.transform = 'translate(' + (baseDx + dx / zoom) + 'px, ' + (baseDy + dy / zoom) + 'px)';
   }
 
   function getSelectedId() {

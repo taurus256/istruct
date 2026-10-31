@@ -19,12 +19,24 @@
  *    обрабатывается там точно так же, как drop на свободном месте.
  */
 
+// 1×1 прозрачный GIF — подменяет собой нативный браузерный «призрак» drag&drop (статичный
+// снимок перетаскиваемого элемента под курсором), чтобы live-превью ручного
+// позиционирования (реальный узел, двигающийся за курсором) было видно пользователю,
+// а не закрыто замороженным снимком-призраком.
+var TRANSPARENT_DRAG_IMAGE = new Image();
+TRANSPARENT_DRAG_IMAGE.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBTAA7';
+
 var DragDrop = (function () {
   var draggedId = null;
   // Координаты курсора в момент dragstart — нужны, чтобы на drop вычислить
   // (dx, dy) реального перемещения мыши для сценария ручного позиционирования.
   var dragStartX = 0;
   var dragStartY = 0;
+  // Callbacks текущего активного ручного позиционирования — нужны dragend-обработчику
+  // на самом узле (attachHandlers), чтобы сбросить live-превью, если drag
+  // завершился БЕЗ drop (Escape, отпущено за пределами окна и т.п.) — иначе ветвь
+  // останется визуально смещённой без соответствующей мутации в модели.
+  var activeRepositionCallbacks = null;
 
   /**
    * Навешивает drag&drop-обработчики на DOM-элемент узла.
@@ -46,11 +58,25 @@ var DragDrop = (function () {
       e.dataTransfer.setData('text/plain', node.id);
       e.dataTransfer.effectAllowed = 'move';
       el.classList.add('dragging');
+      // Подменяем нативный "призрак" браузера на прозрачный 1x1-пиксель: без
+      // этого браузер показывает статичный снимок перетаскиваемого элемента под курсором,
+      // который невозможно перерисовать в реальном времени — нам нужен live-превью
+      // на реальном узле (см. onRepositionDrag в attachContainerHandlers).
+      if (typeof e.dataTransfer.setDragImage === 'function') {
+        e.dataTransfer.setDragImage(TRANSPARENT_DRAG_IMAGE, 0, 0);
+      }
     });
 
     el.addEventListener('dragend', function () {
       el.classList.remove('dragging');
       draggedId = null;
+      // Если активное live-позиционирование не завершилось через drop (Escape,
+      // отпущено за пределами окна и т.п.) — сбросить визуальное смещение, чтобы ветвь
+      // не осталась «застрявшей» без соответствующей мутации в модели.
+      if (activeRepositionCallbacks && typeof activeRepositionCallbacks.onRepositionCancel === 'function') {
+        activeRepositionCallbacks.onRepositionCancel(node.id);
+      }
+      activeRepositionCallbacks = null;
       clearDropHighlights();
     });
 
@@ -141,6 +167,11 @@ var DragDrop = (function () {
    * отдельно от attachHandlers() на каждом узле.
    * callbacks.onRepositionDrop(draggedId, dx, dy) — dx/dy в пикселях,
    * смещение курсора мыши между dragstart и drop.
+   * callbacks.onRepositionDrag(draggedId, dx, dy) — вызывается НЕОДНОКРАТНО во время
+   * перетаскивания (на каждый кадр, через requestAnimationFrame-троттлинг) с теми
+   * же dx/dy, чтобы отрисовать live-превью перемещения ветви за курсором до drop.
+   * callbacks.onRepositionCancel(draggedId) — drag завершён без drop (dragend без
+   * предшествующего 'drop'), live-превью нужно сбросить.
    */
   function attachContainerHandlers(containerEl, callbacks) {
     // Сценарий смены иерархии (Ctrl + drop поверх узла) полностью обрабатывает
@@ -151,6 +182,11 @@ var DragDrop = (function () {
       return !!(overNode && e.ctrlKey);
     }
 
+    // Троттлинг onRepositionDrag через rAF: dragover стреляет значительно чаще, чем
+    // браузер успевает отрисовать кадр — вызываем live-превью не чаще одного раза
+    // на кадр, чтобы не нагружать главный поток лишними пересчётами стилей.
+    var dragFrameScheduled = false;
+
     containerEl.addEventListener('dragover', function (e) {
       if (!draggedId || isReparentScenario(e)) {
         return;
@@ -158,6 +194,22 @@ var DragDrop = (function () {
       e.preventDefault(); // разрешить drop как ручное позиционирование
       e.dataTransfer.dropEffect = 'move';
       containerEl.classList.add('mm-drop-reposition');
+
+      activeRepositionCallbacks = callbacks;
+      if (typeof callbacks.onRepositionDrag === 'function' && !dragFrameScheduled) {
+        dragFrameScheduled = true;
+        var liveDx = e.clientX - dragStartX;
+        var liveDy = e.clientY - dragStartY;
+        var liveId = draggedId;
+        requestAnimationFrame(function () {
+          dragFrameScheduled = false;
+          // draggedId мог уже сброситься к моменту кадра (drop/dragend уже случились) —
+          // не применяем устаревшую превью.
+          if (draggedId === liveId) {
+            callbacks.onRepositionDrag(liveId, liveDx, liveDy);
+          }
+        });
+      }
     });
 
     containerEl.addEventListener('dragleave', function (e) {
@@ -179,6 +231,7 @@ var DragDrop = (function () {
       var dx = e.clientX - dragStartX;
       var dy = e.clientY - dragStartY;
       draggedId = null;
+      activeRepositionCallbacks = null;
       if (typeof callbacks.onRepositionDrop === 'function') {
         callbacks.onRepositionDrop(id, dx, dy);
       }
