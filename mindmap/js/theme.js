@@ -25,30 +25,25 @@ var Theme = (function () {
   }
 
   function init() {
-    // Кнопка "Тема" встречается в НЕСКОЛЬКИХ вкладках ribbon'а (ВИД и
-    // ИНСТРУМЕНТЫ — см. ribbonConfig.js) как один и тот же action theme_toggle
-    // под разными DOM id (btn-theme/btn-theme-tools). Раньше это были ДВЕ
-    // кнопки с ОДНИМ И ТЕМ ЖЕ id='btn-theme' — document.getElementById
-    // находил только первую, вторая была нерабочей "мёртвой кнопкой".
-    // Находим все такие кнопки через общий data-action хук (простав-
-    // ляется ribbonRenderer.js) и навешиваем обработчик на каждую.
-    var btns = document.querySelectorAll('[data-action="theme_toggle"]');
-    if (!btns.length) { return; }
-
-    function sync() {
-      btns.forEach(function (btn) {
-        btn.classList.toggle('ribbon-btn--selected', current() === 'dark');
-      });
-    }
-
-    sync();
-    btns.forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        toggle();
-        sync();
-      });
-    });
+    // Кнопки действия theme_toggle могут быть в НЕСКОЛЬКИХ вкладках ribbon'а
+    // (см. ribbonConfig.js), у всех один и тот же data-action. КЛИК больше НЕ
+    // навешивается здесь: поведение привязано централизованно в app.js — одним
+    // делегированным обработчиком по [data-action] на #toolbar
+    // (ActionHandlers.theme_toggle). Иначе на кнопке оказались бы ДВА
+    // обработчика (этот + делегированный) и тема переключалась бы дважды —
+    // визуально «не переключалась вообще».
+    // Здесь остаётся только первичная синхронизация подсветки по текущей теме.
+    syncButtons();
   }
 
-  return { current: current, toggle: toggle, init: init };
+  // Подсветка всех кнопок действия theme_toggle по текущей теме.
+  // Вызывается при инициализации и из app.js после каждого переключения.
+  function syncButtons() {
+    var btns = document.querySelectorAll('[data-action="theme_toggle"]');
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].classList.toggle('ribbon-btn--selected', current() === 'dark');
+    }
+  }
+
+  return { current: current, toggle: toggle, init: init, syncButtons: syncButtons };
 })();

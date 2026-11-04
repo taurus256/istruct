@@ -6,11 +6,19 @@
  * способ отображения — в будущем по тому же RibbonConfig можно построить и
  * мобильный рендерер).
  *
- * Имя/иконка кнопок здесь не хранятся — content-элементы ссылаются на
- * действие по id (поле action), а имя/иконку резолвит ribbonRenderer.js
- * через общий реестр действий (см. getAction() в actions.js). Определения
- * всплывающих меню (панель ФАЙЛ) вынесены в отдельный файл popups.js — он
- * читает тот же реестр действий, но не зависит от RibbonConfig и наоборот.
+ * Имя/иконка кнопок здесь не хранятся — каждый элемент ссылается на действие
+ * (поле action), а имя/иконку резолвит ribbonRenderer.js через общий реестр
+ * действий (см. getAction() в actions.js). Поведение по клику — тоже по
+ * действию, а не по DOM id: кнопка получает data-action = item.action, а
+ * app.js ловит клик ОДНИМ делегированным обработчиком на #toolbar и вызывает
+ * ActionHandlers[action] (тот же принцип, что у popups.js → popupMenu.js).
+ * Поэтому здесь НЕТ поля id — как и в popups.js/buttonPanels.js: раскладку
+ * тулбара можно менять (переносить/дублировать кнопки, добавлять новые с уже
+ * существующим действием) без правок JS.
+ *
+ * Определения всплывающих меню (панель ФАЙЛ) вынесены в отдельный файл
+ * popups.js — он читает тот же реестр действий, но не зависит от
+ * RibbonConfig и наоборот.
  *
  * Обычный <script> (НЕ fetch отдельного .json) — при открытии приложения
  * через file:// локальные JSON-файлы недоступны через сетевые запросы
@@ -21,20 +29,13 @@
  *            'smallbutton' (компактная кнопка 30px высотой; идущие подряд
  *            smallbutton внутри одной группы автоматически группируются
  *            рендерером в колонки максимум по 3 штуки).
- *   id     — DOM id создаваемой кнопки; ДОЛЖЕН совпадать с id, которые
- *            ожидает app.js (document.getElementById(id).addEventListener(...)) —
- *            это ключевой приём интеграции: вся существующая логика
- *            обработчиков продолжает работать без изменений, т.к. не знает,
- *            что кнопки теперь создаются динамически. Это ОТДЕЛЬНЫЙ от
- *            action id идентификатор: одно действие (например
- *            theme_toggle) может стоять за НЕСКОЛЬКИМИ кнопками в разных
- *            вкладках, и у каждой — свой уникальный DOM id (см. btn-theme/
- *            btn-theme-tools ниже — раньше у них был ОДИН И ТОТ ЖЕ id
- *            'btn-theme', что было ошибкой: document.getElementById
- *            находит только первый элемент, поэтому кнопка "Тема" во
- *            вкладке ИНСТРУМЕНТЫ была нерабочей "мёртвой кнопкой").
- *   action — id действия из реестра Actions (actions.js) — имя и иконка
- *            кнопки берутся оттуда (см. getAction() в ribbonRenderer.js).
+ *   action — id действия из реестра Actions (actions.js) — ЕДИНСТВЕННОЕ
+ *            обязательное поле, кроме type: оттуда берутся имя, иконка и
+ *            обработчик. Одно и то же действие может стоять за НЕСКОЛЬКИМИ
+ *            кнопками в разных вкладках (например notes_panel — в
+ *            РЕДАКТИРОВАНИЕ/Вид и в ВИД/Показать): это нормально, каждая
+ *            кнопка получит свой data-action, а состояние подсветки и клик
+ *            обрабатываются по действию сразу для всех кнопок.
  *
  * Поле вкладки (элемента tabs):
  *   nonSwitching — (опционально, true) вкладка НЕ переключает контент
@@ -58,15 +59,15 @@ var RibbonConfig = {
         {
           name: 'Добавить',
           content: [
-            { type: 'button', id: 'btn-add-node', action: 'node_add_text' },
-            { type: 'button', id: 'btn-add-test', action: 'node_add_test' },
-            { type: 'button', id: 'btn-add-link', action: 'node_add_link' }
+            { type: 'button', action: 'node_add_text' },
+            { type: 'button', action: 'node_add_test' },
+            { type: 'button', action: 'node_add_link' }
           ]
         },
-         {
+        {
           name: 'Действия',
           content: [
-            { type: 'button', id: 'btn-remove-node', action: 'node_remove' }
+            { type: 'button', action: 'node_remove' }
           ]
         },
         {
@@ -74,50 +75,50 @@ var RibbonConfig = {
           // колонки по 3 (см. SMALL_GROUP_SIZE в ribbonRenderer.js).
           name: 'Цвета',
           content: [
-            { type: 'button', id: 'btn-mark-node', action: 'node_mark' },
-            { type: 'smallbutton', id: 'btn-color-yellow', action: 'node_color_yellow' },
-            { type: 'smallbutton', id: 'btn-color-gray', action: 'node_color_gray' },
-            { type: 'smallbutton', id: 'btn-color-green', action: 'node_color_green' },
-            { type: 'smallbutton', id: 'btn-color-pink', action: 'node_color_pink' },
-            { type: 'smallbutton', id: 'btn-color-blue', action: 'node_color_blue' },
-            { type: 'smallbutton', id: 'btn-color-reset', action: 'node_color_reset' }
+            { type: 'button', action: 'node_mark' },
+            { type: 'smallbutton', action: 'node_color_yellow' },
+            { type: 'smallbutton', action: 'node_color_gray' },
+            { type: 'smallbutton', action: 'node_color_green' },
+            { type: 'smallbutton', action: 'node_color_pink' },
+            { type: 'smallbutton', action: 'node_color_blue' },
+            { type: 'smallbutton', action: 'node_color_reset' }
           ]
         },
-		{
-            name: 'Вид',
-            content: [
-               { type: 'button', id: 'btn-notes', action: 'notes_panel' }
-            ]
+        {
+          name: 'Вид',
+          content: [
+            { type: 'button', action: 'notes_panel' }
+          ]
         }
       ]
     },
     {
-       name: 'СХЕМА',
-       groups: [
-         {
-           name: 'Схема',
-           content: [
-             { type: 'button', id: 'btn-import', action: 'scheme_import' },
-             { type: 'button', id: 'btn-export', action: 'scheme_export' },
-             { type: 'button', id: 'btn-clear-scheme', action: 'scheme_clear' }
-           ]
-         }
-       ]
-     },
+      name: 'СХЕМА',
+      groups: [
+        {
+          name: 'Схема',
+          content: [
+            { type: 'button', action: 'scheme_import' },
+            { type: 'button', action: 'scheme_export' },
+            { type: 'button', action: 'scheme_clear' }
+          ]
+        }
+      ]
+    },
     {
       name: 'ВИД',
       groups: [
         {
           name: 'Показать',
           content: [
-            { type: 'button', id: 'btn-help-docs', action: 'help_docs' },
-            { type: 'button', id: 'btn-notes', action: 'notes_panel' },
+            { type: 'button', action: 'help_docs' },
+            { type: 'button', action: 'notes_panel' }
           ]
         },
         {
           name: 'Инструменты',
           content: [
-            { type: 'button', id: 'btn-theme', action: 'theme_toggle' }
+            { type: 'button', action: 'theme_toggle' }
           ]
         }
       ]

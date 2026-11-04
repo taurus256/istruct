@@ -2,14 +2,18 @@
  * ribbonRenderer.js — десктопный рендерер ribbon-тулбара по декларативному
  * описанию (см. ribbonConfig.js). Содержит ТОЛЬКО логику отображения — не знает
  * о конкретных кнопках/обработчиках/теме; просто строит DOM по переданной
- * структуре { tabs: [...] }. app.js затем находит созданные кнопки по id и
- * навешивает обработчики — ribbonRenderer в это не вмешивается.
+ * структуре { tabs: [...] }.
  *
- * Имя/иконка кнопки больше не хранятся в самом content-элементе — они
- * разрешаются из реестра действий (actions.js) по item.action (см.
- * resolveAction ниже). Если action не найден — кнопка всё равно рендерится
- * (чтобы не ломать весь ribbon целиком из-за одной опечатки), но с пустыми
- * именем/иконкой и предупреждением в консоль.
+ * Каждая кнопка получает data-action = item.action — DOM id НЕ присваивается.
+ * Поведение привязывается снаружи ОДНИМ делегированным обработчиком по
+ * [data-action] (app.js, #toolbar) — тот же принцип, что у остальных
+ * декларативных поверхностей (popups.js → popupMenu.js,
+ * buttonPanels.js → buttonPanel.js).
+ *
+ * Имя/иконка кнопки в самом конфиге не хранятся — они разрешаются из реестра
+ * действий (actions.js) по item.action (см. resolveAction ниже). Если action не
+ * найден — кнопка всё равно рендерится (чтобы не ломать весь ribbon
+ * целиком из-за одной опечатки), но с пустыми именем/иконкой и предупреждением в консоль.
  */
 var RibbonRenderer = (function () {
   'use strict';
@@ -21,7 +25,7 @@ var RibbonRenderer = (function () {
   function resolveAction(item) {
     var action = typeof getAction === 'function' ? getAction(item.action) : null;
     if (!action) {
-      console.warn('RibbonRenderer: действие не найдено для кнопки', item.id, '— action:', item.action);
+      console.warn('RibbonRenderer: действие не найдено для кнопки — action:', item.action);
       return { name: '', icon: '', iconNeutral: false };
     }
     return action;
@@ -41,7 +45,6 @@ var RibbonRenderer = (function () {
     var action = resolveAction(item);
     var btn = document.createElement('button');
     btn.type = 'button';
-    btn.id = item.id;
     btn.className = 'ribbon-btn';
     btn.dataset.action = item.action;
     btn.appendChild(createIconEl(action));
@@ -56,7 +59,6 @@ var RibbonRenderer = (function () {
     var action = resolveAction(item);
     var btn = document.createElement('button');
     btn.type = 'button';
-    btn.id = item.id;
     btn.className = 'ribbon-small-btn';
     btn.dataset.action = item.action;
     var icon = document.createElement('span');
@@ -146,10 +148,11 @@ var RibbonRenderer = (function () {
     var tabsEl = document.createElement('div');
     tabsEl.className = 'ribbon-tabs';
 
-    // Кнопки Undo/Redo — справа от названий вкладок, в той же строке. Сам
-    // ribbonRenderer ничего не знает про Undo — только создаёт кнопки с фиксированными
-    // id (как и все остальные кнопки ribbon) — логику (состояние/клик)
-    // навешивает app.js.
+    // Кнопки Undo/Redo — сразу справа от названий вкладок, в той же строке.
+    // Это статичные элементы рендерера (не пункты RibbonConfig и не действия из
+    // actions.js): у них своё собственное состояние (enabled + иконка вкл/выкл,
+    // см. app.js:updateUndoRedoButtons), которое не описывается декларацией
+    // тулбара. Поэтому здесь остаются их единственные DOM id (#btn-undo/#btn-redo).
     var undoRedoEl = document.createElement('div');
     undoRedoEl.className = 'ribbon-undo-redo';
 
@@ -172,10 +175,9 @@ var RibbonRenderer = (function () {
     var tabButtons = [];
     // ВАЖНО: содержимое ВСЕХ вкладок рендерится СРАЗУ и остаётся в DOM постоянно
     // (переключение вкладки — чисто визуальное, через hidden, без пересоздания DOM).
-    // Причина: app.js ищет ВСЕ кнопки по id СРАЗУ при инициализации (document.getElementById),
-    // в т.ч. кнопки с других вкладок (Импорт/Экспорт/Очистить/Справка/Панель/Тема) —
-    // если рендерить только активную вкладку, остальные кнопки будут null в момент
-    // инициализации и обработчики сломаются.
+    // Причина: делегированный обработчик кликов в app.js и синхронизация
+    // подсветки модальных кнопок ищут кнопки по [data-action] по ВСЕМУ документу
+    // и должны видеть кнопки с любых вкладок, а не только с активной.
     var tabContents = [];
 
     function activateTab(index) {

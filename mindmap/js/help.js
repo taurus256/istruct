@@ -3,9 +3,10 @@
  *
  * Полностью самостоятельный независимый модуль: НЕ связан с координатором
  * общей боковой панели #side-panel (заметки/тест, см. app.js) — управляет
- * своей собственной левой панелью и своей кнопкой #btn-help-docs САМ, без
- * участия координатора. Обе панели (эта и #side-panel) могут быть открыты
- * одновременно и переключаются независимо.
+ * своей собственной левой панелью САМ, без участия координатора. Обе панели
+ * (эта и #side-panel) могут быть открыты одновременно и переключаются
+ * независимо. Кнопка тулбара — действие help_docs (см. ribbonConfig.js;
+ * подсветка ставится сразу всем кнопкам с data-action="help_docs").
  *
  * Контент разделов (массив SECTIONS: { id, title, bodyHtml }) СГЕНЕРИРОВАН из
  * text.md в корне репозитория скриптом mindmap/tools/gen-help.js. НЕ редактируйте
@@ -17,7 +18,6 @@
 
 var Help = (function () {
   var panelEl = null;   // #help-panel
-  var btnEl = null;     // #btn-help-docs
   var active = false;
   var currentSection = null; // null = оглавление, иначе id раздела
 
@@ -56,10 +56,19 @@ var Help = (function () {
 
   function init() {
     panelEl = document.getElementById('help-panel');
-    btnEl = document.getElementById('btn-help-docs');
 
     if (panelEl) {
       panelEl.addEventListener('click', onPanelClick);
+    }
+  }
+
+  // Подсветка кнопок-триггеров ("Справка") — ищем по data-action, а не по
+  // DOM id: одна и та же кнопка-действие может стоять в нескольких местах
+  // ribbon'а (см. ribbonConfig.js).
+  function syncButtons(isOpen) {
+    var btns = document.querySelectorAll('[data-action="help_docs"]');
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].classList.toggle('ribbon-btn--selected', !!isOpen);
     }
   }
 
@@ -82,9 +91,7 @@ var Help = (function () {
     if (panelEl) {
       panelEl.hidden = false;
     }
-    if (btnEl) {
-      btnEl.classList.add('ribbon-btn--selected');
-    }
+    syncButtons(true);
     renderIndex();
   }
 
@@ -96,9 +103,7 @@ var Help = (function () {
     if (panelEl) {
       panelEl.hidden = true;
     }
-    if (btnEl) {
-      btnEl.classList.remove('ribbon-btn--selected');
-    }
+    syncButtons(false);
   }
 
   function isActive() {
