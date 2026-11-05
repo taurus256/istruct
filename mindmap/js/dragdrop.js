@@ -33,10 +33,25 @@ var DragDrop = (function () {
   var dragStartX = 0;
   var dragStartY = 0;
   // Callbacks текущего активного ручного позиционирования — нужны dragend-обработчику
-  // на самом узле (attachHandlers), чтобы сбросить live-превью, если drag
-  // завершился БЕЗ drop (Escape, отпущено за пределами окна и т.п.) — иначе ветвь
-  // останется визуально смещённой без соответствующей мутации в модели.
+  // на самом узле (attachHandlers), чтобы завершить жест, если drag завершился без нативного 'drop'.
   var activeRepositionCallbacks = null;
+  // true между реальным 'drop' и следующим 'dragend'. Chrome иногда не доставляет
+  // нативное событие 'drop' при очень быстром drag&drop (известный баг тайминга нативного
+  // HTML5 DnD в Chromium, не воспроизводится в Firefox/Safari) — без дополнительной обработки это приводило
+  // к тому, что dragend трактовал такой жест как «отмену» и откатывал узел ровно к той позиции, с
+  // которой начался drag. Оба drop-обработчика (узла и контейнера) выставляют этот флаг
+  // в true — dragend проверяет его, чтобы не обрабатывать уже завершённый жест повторно.
+  var dropFired = false;
+  // true, если пользователь явно нажал Escape во время активного drag — такой жест должен
+  // ОТМЕНЯТЬ перемещение (откат к стартовой позиции), в отличие от Chrome-бага выше,
+  // когда 'drop' просто не доставлен браузером, хотя пользователь штатно отпустил кнопку мыши над холстом.
+  var escapeCancelled = false;
+
+  document.addEventListener('keydown', function (e) {
+    if (draggedId && (e.key === 'Escape' || e.code === 'Escape')) {
+      escapeCancelled = true;
+    }
+  });
 
   /**
    * Навешивает drag&drop-обработчики на DOM-элемент узла.
@@ -55,6 +70,8 @@ var DragDrop = (function () {
       draggedId = node.id;
       dragStartX = e.clientX;
       dragStartY = e.clientY;
+      dropFired = false;
+      escapeCancelled = false;
       e.dataTransfer.setData('text/plain', node.id);
       e.dataTransfer.effectAllowed = 'move';
       el.classList.add('dragging');
@@ -67,14 +84,31 @@ var DragDrop = (function () {
       }
     });
 
-    el.addEventListener('dragend', function () {
+    el.addEventListener('dragend', function (e) {
       el.classList.remove('dragging');
+      var endedId = draggedId;
       draggedId = null;
-      // Если активное live-позиционирование не завершилось через drop (Escape,
-      // отпущено за пределами окна и т.п.) — сбросить визуальное смещение, чтобы ветвь
-      // не осталась «застрявшей» без соответствующей мутации в модели.
-      if (activeRepositionCallbacks && typeof activeRepositionCallbacks.onRepositionCancel === 'function') {
-        activeRepositionCallbacks.onRepositionCancel(node.id);
+      // Если нативный 'drop' уже отработал жест (статистический большинство случаев) —
+      // ничего делать не нужно, onRepositionDrop/onDrop уже всё завершили.
+      if (dropFired) {
+        activeRepositionCallbacks = null;
+        clearDropHighlights();
+        return;
+      }
+      // 'drop' не сработал. Если это именно настоящая отмена пользователем (Escape, отпущено за
+      // пределами окна) — сбрасываем live-превью к нулю, как и раньше. ИНАЧЕ (Chrome-баг
+      // тайминга, см. комментарий при dropFired выше) — 'drop' просто не доставлен браузером, хотя
+      // жест реально завершился внутри холста — тогда фиксируем позицию сами, как если бы это был
+          // настоящий drop, используя координаты самого dragend (он несёт финальные clientX/clientY даже
+          // когда drop не сработал).
+      var hasCoords = !escapeCancelled && e && (e.clientX || e.clientY);
+      var container = activeRepositionCallbacks && activeRepositionCallbacks.__container;
+      if (hasCoords && activeRepositionCallbacks && typeof activeRepositionCallbacks.onRepositionDrop === 'function') {
+        var dx = e.clientX - dragStartX;
+        var dy = e.clientY - dragStartY;
+        activeRepositionCallbacks.onRepositionDrop(endedId, dx, dy);
+      } else if (activeRepositionCallbacks && typeof activeRepositionCallbacks.onRepositionCancel === 'function') {
+        activeRepositionCallbacks.onRepositionCancel(endedId);
       }
       activeRepositionCallbacks = null;
       clearDropHighlights();

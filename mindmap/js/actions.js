@@ -74,7 +74,7 @@ var Actions = [
   // выше: создаёт НОВУЮ схему из выбранного файла, а не перезаписывает
   // существующую (см. Storage.importAsNewScheme в filesPanel.js).
   { id: 'file_create_new', name: 'Создать новую схему', icon: 'assets/icons/small/plus.svg' },
-  { id: 'file_import_new', name: 'Загрузить из файла', icon: 'assets/icons/arrow-down.svg' },
+  { id: 'file_import_new', name: 'Загрузить из файла', icon: 'assets/icons/small/import-json.svg' },
 
   // ---- Действия нижней панели кнопок прохождения теста (см.
   // ButtonPanels.testIntro/testQuestion/testResult, test.js). Стиль кнопок —

@@ -44,7 +44,7 @@ var Popups = {
     items: [
       {
         type: 'submenu',
-        name: 'Создать',
+        name: 'Добавить узел',
         icon: 'assets/icons/small/create-node.svg',
         submenu: [
           { type: 'menuitem', action: 'node_add_text' },
