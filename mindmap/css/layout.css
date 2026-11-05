@@ -1034,14 +1034,14 @@ h1 {
   border-radius: var(--radius-button);
   font-size: 12px;
   line-height: 1;
-  padding: 3px 6px;
+  padding: 4px 4px;
   cursor: pointer;
   color: var(--node-text-color, inherit);
 }
 
 .node__btn img {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   display: block;
 }
 
@@ -1337,7 +1337,7 @@ body.mm-resizing .panel-resize-handle {
   gap: 12px;
   align-items: flex-start;
   width: 100%;
-  padding: 14px;
+  padding: 16px;
   background: var(--surface, #ffffff);
   border: 1px solid var(--test-card-border, #e2e5e9);
   border-radius: var(--radius-ui);
@@ -1831,7 +1831,7 @@ body.mm-resizing .panel-resize-handle {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px;
+  padding: 8px 16px;
   border-bottom: 1px solid var(--notes-inner-border, #e5e7eb);
   flex: 0 0 auto;
 }
