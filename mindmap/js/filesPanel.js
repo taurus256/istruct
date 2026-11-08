@@ -313,9 +313,10 @@ var FilesPanel = (function () {
     card.className = 'scheme-card';
     card.dataset.schemeId = scheme.id;
 
+    // Иконка схемы — готовый ассет assets/icon.png (см. .scheme-card__icon
+    // в layout.css: фон-картинка). Пустой <span> — просто площадка 48x48.
     var icon = document.createElement('span');
     icon.className = 'scheme-card__icon';
-    icon.textContent = 'iS';
     card.appendChild(icon);
 
     var body = document.createElement('span');

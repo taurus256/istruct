@@ -1354,21 +1354,18 @@ body.mm-resizing .panel-resize-handle {
   width: 48px;
   height: 48px;
   border-radius: var(--radius-ui);
-  color: var(--test-accent-text, #ffffff);
-  font: 700 16px/1 var(--font-family-base);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* Фоллбэк (плоский цвет) для браузеров без color-mix() — отдельное
-     объявление ДО градиента: если следующий background целиком невалиден
-     (неизвестная функция color-mix), парсер отбрасывает его целиком и
-     оставляет это значение в силе. */
-  background: var(--test-accent-blue, #005fb8);
-  background: linear-gradient(135deg,
-    var(--test-accent-blue, #005fb8) 55%,
-    color-mix(in srgb, var(--test-accent-blue, #005fb8) 60%, white 40%) 55%,
-    color-mix(in srgb, var(--test-accent-blue, #005fb8) 60%, white 40%) 65%,
-    var(--test-accent-blue, #005fb8) 65%);
+  /* Иконка схемы — готовый растровый ассет assets/icon.png (160x160, RGBA).
+     Раньше «иконка» собиралась здесь из CSS (синий квадрат + линейный
+     градиент-«диагональ» через color-mix) — это убрано: картинка одна
+     для всех схем, фон/скругление даёт сам PNG.
+     contain (а не cover) — чтобы не обрезать углы логотипа при 48x48.
+     image-rendering оставлен авто — PNG в 3.3x от целевого размера, браузер
+     сам сгладит при даунскейле. */
+  background: transparent;
+  background-image: url('../assets/icon.png');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
 }
 
 .scheme-card__body {
