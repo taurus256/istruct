@@ -37,9 +37,9 @@ var ButtonPanel = (function () {
     btn.type = 'button';
     btn.className = 'btn-panel__btn btn-panel__btn--' + modifier;
     btn.dataset.action = item.action;
-    // Иконка — только если у действия она задана (test_*-действия внизу
-    // теста — чисто текстовые кнопки, см. actions.js).
-    if (action.icon) {
+    // Иконка — только у primarybutton и только если у действия она задана.
+    // Кнопки типа 'button' рендерятся без иконки (чисто текстовые).
+    if (item.type === 'primarybutton' && action.icon) {
       btn.appendChild(makeIconEl(action.icon));
     }
     var label = document.createElement('span');
