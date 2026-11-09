@@ -1,7 +1,7 @@
 {
-  "name": "Mind Map",
-  "short_name": "Mind Map",
-  "description": "Mind map для построения и прохождения учебных схем: узлы, заметки, тесты",
+  "name": "iStruct",
+  "short_name": "iStruct",
+  "description": "Приложение для структурирования информации",
   "lang": "ru",
   "start_url": "./index.html",
   "scope": "./",
