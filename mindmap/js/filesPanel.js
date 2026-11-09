@@ -167,15 +167,17 @@ var FilesPanel = (function () {
 
   function onCreateClick() {
     Model.initEmpty();
-    Storage.createScheme();
-    afterSchemeSwitch();
+    Storage.createScheme().then(function () {
+      afterSchemeSwitch();
+    });
   }
 
   function onImportFileChosen(e) {
     var file = e.target.files[0];
     Storage.importAsNewScheme(file, function (newId) {
-      Storage.loadScheme(newId);
-      afterSchemeSwitch();
+      Storage.loadScheme(newId).then(function () {
+        afterSchemeSwitch();
+      });
     });
     importInput.value = ''; // сброс, чтобы можно было повторно выбрать тот же файл
   }
@@ -185,8 +187,11 @@ var FilesPanel = (function () {
       close(); // клик по уже активной схеме — просто закрыть панель
       return;
     }
-    Storage.switchScheme(id);
-    afterSchemeSwitch();
+    Storage.switchScheme(id).then(function (ok) {
+      if (ok) {
+        afterSchemeSwitch();
+      }
+    });
   }
 
   /* ===================== Действия меню карточки ("ещё действия") ===================
@@ -204,24 +209,22 @@ var FilesPanel = (function () {
       return;
     }
 
-    var result = Storage.deleteScheme(id);
-    if (!result.deleted) {
-      return;
-    }
-
-    if (result.wasActive) {
-      if (result.newActiveId) {
-        Storage.loadScheme(result.newActiveId);
-      } else {
-        // Схем больше не осталось — создаём новую, как при полностью
-        // пустом хранилище (см. Storage.load()).
-        Model.initEmpty();
-        Storage.createScheme();
+    Storage.deleteScheme(id).then(function (result) {
+      if (!result.deleted) {
+        return;
       }
-      afterSchemeSwitch();
-    } else {
+
+      if (result.wasActive) {
+        if (result.newActiveId) {
+          return Storage.loadScheme(result.newActiveId).then(afterSchemeSwitch);
+        }
+        // Схем больше не осталось — создаём новую, как при полностью
+        // пустом хранилище (см. Storage.init()).
+        Model.initEmpty();
+        return Storage.createScheme().then(afterSchemeSwitch);
+      }
       refreshList();
-    }
+    });
   }
 
   // Запрашивает у пользователя файл и перезаписывает им схему schemeId (НЕ
@@ -248,8 +251,9 @@ var FilesPanel = (function () {
 
     Storage.importIntoScheme(schemeId, file, function () {
       if (schemeId === Storage.getActiveId()) {
-        Storage.loadScheme(schemeId);
-        afterSchemeSwitch();
+        Storage.loadScheme(schemeId).then(function () {
+          afterSchemeSwitch();
+        });
       } else {
         refreshList();
       }

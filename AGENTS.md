@@ -6,15 +6,16 @@
 
 - `Java_Middle_Developer_Course.md` — учебный план (Markdown) по подготовке Java Middle Developer со ссылками на источники. Правки — только текстовые (добавление/уточнение разделов и ссылок), без кода.
 - `src/Main.java` — учебная песочница для Java-примеров из курса. Отдельный IntelliJ-модуль (`jLearn.iml`), без систем сборки (Maven/Gradle) — компилируется и запускается напрямую через `javac`/`java` или через IDE.
-- `mindmap/` — самостоятельное веб-приложение mind map: чистые HTML/CSS/JS без фреймворков и сборки, открывается напрямую (`file://mindmap/index.html`) или через любой статический сервер.
+- `mindmap/` — самостоятельное веб-приложение mind map: чистые HTML/CSS/JS без фреймворков и сборки. Данные схем хранятся в IndexedDB, поэтому запускать нужно через статический сервер (`http://localhost:8000`); `file://` остаётся совместимым режимом (без PWA-манифеста и `navigator.storage`).
   - `mindmap/js/nodeTypes.js → model.js → storage.js → dragdrop.js → render.js → pan.js → app.js` — порядок подключения `<script>` в `index.html` строго фиксирован: каждый следующий файл использует объекты, объявленные предыдущими. **Никогда не меняйте порядок и не переводите на ES-модули без явного запроса.**
   - `mindmap/css/layout.css` — структура/раскладка, `mindmap/css/theme.css` — визуальное оформление.
 
 ## Сборка, запуск, тестирование
 
 - Java-код: `javac src/Main.java -d out && java -cp out Main`, либо запуск через IntelliJ (Run/Debug на `Main.main`).
-- Mind map: тестов и сборки нет. Проверка вручную в браузере или headless-рендерингом:
-  `chromium --headless=new --dump-dom file://$(pwd)/mindmap/index.html` — быстро выявляет JS-ошибки без открытия окна браузера.
+- Mind map: тестов и сборки нет. Запуск: `python3 -m http.server 8000 --directory mindmap`, затем `http://localhost:8000`.
+- Проверка целостности хранилища без открытия UI — `window.runStorageSelfTest()` в консоли браузера или через headless-браузер (`page.evaluate`).
+- Headless-рендеринг для поиска JS-ошибок: `chromium --headless=new --dump-dom http://localhost:8000/index.html`. Важно: рендер `--dump-dom` возвращает разметку ДО асинхронного `Storage.init()`, поэтому для проверки отрисованного дерева ждать появления `.node` в DOM.
 - Автотестов в проекте нет. При добавлении новой логики в `mindmap/` предпочтителен простой sanity-check через headless-рендеринг, а не привнесение фреймворка тестирования.
 
 ## Стиль кода

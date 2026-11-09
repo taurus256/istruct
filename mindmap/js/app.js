@@ -136,25 +136,57 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   Theme.init();
-  Storage.load();
 
   var mindmapRoot = document.getElementById('mindmap-root');
-  Render.init(mindmapRoot);
-  Render.renderAll();
-  Pan.init(mindmapRoot);
-  // Зум схемы колесом при зажатом Ctrl (после Render.init/renderAll — дерево
-  // уже в DOM, можно восстановить сохранённый масштаб).
-  if (typeof Zoom !== 'undefined') {
-    Zoom.init(mindmapRoot);
+
+  /* ===================== Хранилище (IndexedDB) ==========================
+     Storage.init() АСИНХРОНЕН (IndexedDB) — он открывает базу, при
+     необходимости переносит данные из localStorage и загружает активную схему
+     в Model. Всё, что работает с содержимым модели (Render.init/renderAll,
+     восстановление зума и pan, панели заметок/теста), обязано дождаться его:
+     до этого Model ещё не содержит загруженного дерева. */
+  function startApp() {
+    Render.init(mindmapRoot);
+    Render.renderAll();
+    Pan.init(mindmapRoot);
+    // Зум схемы колесом при зажатом Ctrl (после Render.init/renderAll — дерево
+    // уже в DOM, можно восстановить сохранённый масштаб).
+    if (typeof Zoom !== 'undefined') {
+      Zoom.init(mindmapRoot);
+    }
+    // Восстанавливаем позицию панорамирования СТРОГО ПОСЛЕ зума — pan.js:restore()
+    // сам переводит натуральные координаты в текущий зум и клампит в допустимый
+    // диапазон — если вызвать до зума, следующее изменение зума сбило бы позицию.
+    if (typeof Pan !== 'undefined' && typeof Pan.restore === 'function') {
+      Pan.restore();
+    }
+    Notes.init();
+    TestPanel.init();
+    // Индикатор масштаба строится по актуальному зуму — уже после старта.
+    updateZoomIndicator(Render.getZoom());
   }
-  // Восстанавливаем позицию панорамирования СТРОГО ПОСЛЕ зума — pan.js:restore()
-  // сам переводит натуральные координаты в текущий зум и клампит в допустимый
-  // диапазон — если вызвать до зума, следующее изменение зума сбило бы позицию.
-  if (typeof Pan !== 'undefined' && typeof Pan.restore === 'function') {
-    Pan.restore();
+
+  var storageReady = (typeof Storage !== 'undefined' && typeof Storage.init === 'function')
+    ? Storage.init()
+    : Promise.resolve();
+
+  storageReady.then(function () {
+    startApp();
+    // Браузер по умолчанию вправе вытеснить данные origin'а при нехватке
+    // места. Просим «постоянное» хранилище — для установленного PWA это
+    // происходит без диалога, на обычной странице решает эвристика браузера.
+    // Запрос фоновый: он не блокирует запуск и не влияет на работу, если в
+    // нём отказано.
+    if (typeof Storage !== 'undefined' && typeof Storage.requestPersistence === 'function') {
+      Storage.requestPersistence();
+    }
+  });
+
+  // Проверка целостности IndexedDB (test.js) — независимый модуль, ей не
+  // нужна ни разметка, ни Storage: тест сам создаёт временную базу.
+  if (typeof StorageSelfTest !== 'undefined') {
+    window.runStorageSelfTest = StorageSelfTest.run;
   }
-  Notes.init();
-  TestPanel.init();
 
   /* ============ Индикатор масштаба и кнопка сброса в статус-баре ============
      Индикатор показывает текущий масштаб в %, кнопка сброса всегда занимает
@@ -221,9 +253,6 @@ document.addEventListener('DOMContentLoaded', function () {
     Undo.setOnChange(updateUndoRedoButtons);
     updateUndoRedoButtons();
   }
-  // Начальное состояние (учитывает восстановленный из localStorage масштаб).
-  updateZoomIndicator(Render.getZoom());
-
   if (zoomResetBtn) {
     zoomResetBtn.addEventListener('click', function () {
       if (typeof Zoom !== 'undefined' && Zoom.reset) {

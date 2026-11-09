@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
+<!-- PWA: манифест даёт установку приложения (и, как следствие, более охотный
+     persist() для IndexedDB — см. Storage.requestPersistence). Требует запуска
+     через http(s)://, на file:// браузер манифест игнорирует. -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#ffffff">
 <title>Mind Map</title>
 <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16x16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png">
@@ -118,6 +123,7 @@
 <script src="js/panelResize.js"></script>
 <script src="js/pan.js"></script>
 <script src="js/zoom.js"></script>
+<script src="js/storageSelfTest.js"></script>
 <script src="js/popupMenu.js"></script>
 <script src="js/filesPanel.js"></script>
 <script src="js/ribbonConfig.js"></script>

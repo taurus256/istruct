@@ -87,7 +87,11 @@ var RibbonConfig = {
         {
           name: 'Вид',
           content: [
-            { type: 'button', action: 'notes_panel' }
+            { type: 'button', action: 'notes_panel' },
+            { type: 'smallbutton', action: 'help_docs' },
+            { type: 'smallbutton', action: 'scheme_zoom_in' },
+            { type: 'smallbutton', action: 'scheme_zoom_out' }
+
           ]
         }
       ]
