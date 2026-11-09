@@ -664,9 +664,37 @@ var Storage = (function () {
     });
   }
 
-  // Экспорт текущей модели в файл mindmap.json (Blob + скрытая ссылка-скачивание).
-  // Экспорт — это единственное сегодня действие, которое считается
-  // «сохранением» (см. шапку файла) — помечаем savedAt активной схемы.
+  // Имя файла для exportJSON: имя схемы (text корневого узла) без символов,
+  // запрещённых в именах файлов на Windows/POSIX (/ \ : * ? " < > |,
+  // управляющие символы), с обрезанными пробелами/точками по краям (Windows не
+  // допускает точку в конце имени). Переводим строки/табуляцию в пробелы и
+  // схлопываем повторы. Пустое/служебное имя («Без названия») → прежний
+  // mindmap.json, чтобы не получить файл с пустым именем.
+  function exportFileName(payload) {
+    var raw = payloadName(payload);
+    if (!raw || raw === 'Без названия') {
+      return 'mindmap.json';
+    }
+    var safe = raw
+      .replace(/[\u0000-\u001f\u007f]+/g, ' ')
+      .replace(/[\\/:*?"<>|]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .replace(/^[\s.]+|[\s.]+$/g, '');
+    if (!safe) {
+      return 'mindmap.json';
+    }
+    // Лимит длины: 255 байт — ограничение большинства файловых систем; режем
+    // по символам с запасом под расширение (кириллица в UTF-8 занимает 2 байта).
+    if (safe.length > 80) {
+      safe = safe.slice(0, 80).replace(/[\s.]+$/g, '');
+    }
+    return safe + '.json';
+  }
+
+  // Экспорт текущей модели в файл, имя которого совпадает с именем схемы
+  // (text корневого узла), см. exportFileName. Экспорт — это единственное
+  // сегодня действие, которое считается «сохранением» (см. шапку файла) —
+  // помечаем savedAt активной схемы.
   function exportJSON() {
     var payload = buildPayload();
     var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -674,7 +702,7 @@ var Storage = (function () {
 
     var a = document.createElement('a');
     a.href = url;
-    a.download = 'mindmap.json';
+    a.download = exportFileName(payload);
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
