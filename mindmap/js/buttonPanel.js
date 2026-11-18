@@ -4,11 +4,10 @@
  * ТОЛЬКО отображение (строит DOM по описанию), без логики обработчиков и
  * без вложенности (в отличие от popupMenu.js — здесь нет submenu).
  *
- * Клик НЕ обрабатывается этим модулем — каждая кнопка получает
- * data-action = item.action (как кнопки ribbonRenderer.js), а вызывающий
- * код сам решает, как реагировать: делегированием по [data-action] на
- * контейнере (см. test.js: onViewClick) либо прямой выборкой конкретной
- * кнопки по [data-action="..."] (см. filesPanel.js).
+ * Каждая кнопка получает data-action = item.action, клик по ней уходит в
+ * ActionManager.run(action) — обработчики регистрируют модули-владельцы
+ * (filesPanel.js, test.js). Кнопки с недоступными в режиме «только для
+ * чтения» действиями скрываются (ActionManager.syncVisibility).
  */
 var ButtonPanel = (function () {
   function resolveAction(item) {
@@ -59,6 +58,8 @@ var ButtonPanel = (function () {
     items.forEach(function (item) {
       panel.appendChild(makeButtonEl(item));
     });
+    ActionManager.syncVisibility(panel);
+    ActionManager.bindClicks(panel);
     return panel;
   }
 

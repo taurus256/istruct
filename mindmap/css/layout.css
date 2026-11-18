@@ -176,6 +176,16 @@ h1 {
   display: none;
 }
 
+/* Кнопки/пункты с недоступным действием (ActionManager.syncVisibility) и
+   вкладки/группы/колонки ленты, в которых не осталось видимых кнопок
+   (ribbonRenderer.js), скрываются атрибутом hidden. Авторские display:flex у
+   .ribbon-btn/.ribbon-group/.ribbon-tab и т.п. перебивают встроенное
+   [hidden]{display:none} — нужно явное правило с большей специфичностью. */
+[data-action][hidden],
+.ribbon-toolbar [hidden] {
+  display: none;
+}
+
 .ribbon-group {
   display: flex;
   align-items: stretch;
@@ -219,7 +229,7 @@ h1 {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  width: 100px;
+  min-width: 98px;
   height: 98px;
   flex: 0 0 auto;
   padding: 6px 4px 4px;
@@ -405,6 +415,30 @@ h1 {
   text-align: center;
   align-self: center;
   cursor: default;
+}
+
+/* Индикатор режима «только для чтения» (схема курса, см.
+   ActionManager.onLockChange в app.js) — иконка замка с подписью в статус-баре, видимые
+   только когда режим включён. Стоят перед индикатором масштаба, за ними —
+   разделитель #status-lock-divider (тоже скрыт в обычном режиме). */
+.status-bar__lock {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  align-self: center;
+  cursor: default;
+}
+
+.status-bar__lock[hidden],
+.status-bar__divider[hidden] {
+  display: none;
+}
+
+.status-bar__lock img {
+  display: block;
+  width: 16px;
+  height: 16px;
 }
 
 /* Кнопка сброса зума. Всегда занимает своё место в статус-баре (не
@@ -1354,18 +1388,24 @@ body.mm-resizing .panel-resize-handle {
   width: 48px;
   height: 48px;
   border-radius: var(--radius-ui);
-  /* Иконка схемы — готовый растровый ассет assets/icon.png (160x160, RGBA).
-     Раньше «иконка» собиралась здесь из CSS (синий квадрат + линейный
+  /* Иконка схемы — готовый векторный ассет assets/icon.svg (160x160, логотип
+     в синем квадрате со скруглением 28:200 = 8.4px при 48px). Раньше
+     «иконка» собиралась здесь из CSS (синий квадрат + линейный
      градиент-«диагональ» через color-mix) — это убрано: картинка одна
-     для всех схем, фон/скругление даёт сам PNG.
+     для всех схем, фон/скругление даёт сам SVG.
      contain (а не cover) — чтобы не обрезать углы логотипа при 48x48.
-     image-rendering оставлен авто — PNG в 3.3x от целевого размера, браузер
-     сам сгладит при даунскейле. */
+     SVG рисуется в любом масштабе, отдельные favicon/PNG не нужны. */
   background: transparent;
-  background-image: url('../assets/icon.png');
+  background-image: url('../assets/icon.svg');
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
+}
+
+/* Схема курса ("locked": true) — только для чтения, поэтому карточка
+   показывает перечёркнутый логотип (assets/icon_locked.svg). */
+.scheme-card__icon--locked {
+  background-image: url('../assets/icon_locked.svg');
 }
 
 .scheme-card__body {

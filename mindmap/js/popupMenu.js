@@ -4,10 +4,11 @@
  * Пункты типа 'menuitem' резолвятся через getAction() (actions.js) —
  * имя/иконка берутся из реестра действий, а не хранятся в popups.js.
  *
- * Клик по пункту 'menuitem' вызывает ActionHandlers[action.id](context)
- * (см. app.js) и закрывает меню. ActionHandlers — ЕДИНСТВЕННОЕ место, где
- * этот модуль знает о поведении конкретных действий — сам popupMenu.js
- * ничего не знает о том, ЧТО делает, например, file_delete.
+ * Клик по пункту 'menuitem' вызывает ActionManager.run(action.id, context)
+ * и закрывает меню — сам popupMenu.js ничего не знает о том, ЧТО делает,
+ * например, file_delete. Пункты с недоступными действиями (режим «только для
+ * чтения», см. lockedAvailable в actions.js) не рендерятся; подменю без
+ * видимых пунктов — тоже.
  *
  * Вложенность submenu — ОДИН уровень (submenu внутри submenu не
  * поддерживается: достаточно для текущих сценариев — см. popups.js).
@@ -84,11 +85,7 @@ var PopupMenu = (function () {
       // обнуляет currentContext, иначе обработчик всегда получал бы null.
       var context = currentContext;
       close();
-      if (typeof ActionHandlers !== 'undefined' && typeof ActionHandlers[action.id] === 'function') {
-        ActionHandlers[action.id](context);
-      } else {
-        console.warn('PopupMenu: нет обработчика ActionHandlers для действия', action.id);
-      }
+      ActionManager.run(action.id, context);
     });
 
     return row;
@@ -148,7 +145,16 @@ var PopupMenu = (function () {
   // (popups.js) — это чисто визуальная уборка уже отфильтрованного результата.
   function filterVisibleItems(items) {
     var visible = items.filter(function (item) {
-      return !item.visibleWhen || !!currentVisibility[item.visibleWhen];
+      if (item.visibleWhen && !currentVisibility[item.visibleWhen]) {
+        return false;
+      }
+      if (item.type === 'menuitem') {
+        return ActionManager.isAvailable(item.action);
+      }
+      if (item.type === 'submenu') {
+        return filterVisibleItems(item.submenu).length > 0;
+      }
+      return true;
     });
     var cleaned = [];
     visible.forEach(function (item) {

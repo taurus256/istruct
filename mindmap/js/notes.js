@@ -127,6 +127,7 @@ var Notes = (function () {
       md = (stored !== undefined && stored !== null) ? String(stored) : '';
     }
 
+    // Заметки редактируются и в схеме курса ("locked") — это конспект учащегося.
     var editable = currentNodeId != null;
     if (sourceEl) {
       sourceEl.value = md;

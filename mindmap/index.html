@@ -99,14 +99,17 @@
   <span class="ribbon-divider status-bar__divider"></span>
   <span id="status-hint" class="status-bar__hint"></span>
   <span class="ribbon-divider status-bar__divider"></span>
+  <span id="status-lock" class="status-bar__lock" title="Функции редактирования для этой схемы ограничены" hidden><img src="assets/icons/small/lock.svg" alt=""><span class="status-bar__lock-text">Только аннотирование</span></span>
+  <span class="ribbon-divider status-bar__divider" id="status-lock-divider" hidden></span>
   <span id="status-zoom" class="status-bar__label" title="Изменить: Ctrl+колесо мыши, либо Alt + '+'/'-' - изменить, Alt + 0 - вернуть  ">Масштаб: 100%</span>
   <span class="ribbon-divider status-bar__divider"></span>
-  <button id="btn-zoom-reset" type="button" class="status-bar__reset" disabled></button>
+  <button id="btn-zoom-reset" type="button" class="status-bar__reset" data-action="scheme_zoom_reset" disabled></button>
 </div>
 
 <!-- Порядок подключения важен: каждый следующий файл использует объекты, объявленные предыдущими -->
 <script src="js/theme.js"></script>
 <script src="js/actions.js"></script>
+<script src="js/actionManager.js"></script>
 <script src="js/popups.js"></script>
 <script src="js/buttonPanels.js"></script>
 <script src="js/buttonPanel.js"></script>
@@ -114,6 +117,7 @@
 <script src="js/model.js"></script>
 <script src="js/undo.js"></script>
 <script src="js/storage.js"></script>
+<script src="js/lockPack.js"></script>
 <script src="js/dragdrop.js"></script>
 <script src="js/render.js"></script>
 <script src="js/markdown.js"></script>

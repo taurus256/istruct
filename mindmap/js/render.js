@@ -96,6 +96,9 @@ var Render = (function () {
       // таким образом — связи-линии к ней тоже должны пересчитываться каждый кадр — см.
       // startConnectorsFollow() (непрерывный rAF-цикл, в отличие от одноразового scheduleConnectorsUpdate).
       onRepositionDrag: function (draggedId, dx, dy) {
+        if (Model.isLocked()) {
+          return;
+        }
         if (!liveRepositionActive) {
           liveRepositionActive = true;
           startConnectorsFollow();
@@ -116,6 +119,12 @@ var Render = (function () {
         if (liveRepositionActive) {
           liveRepositionActive = false;
           stopConnectorsFollow();
+        }
+        if (Model.isLocked()) {
+          // Схема «только для чтения»: ручное позиционирование запрещено,
+          // live-превью просто сбрасываем к авто-позиции.
+          applyLiveRepositionTransform(draggedId, 0, 0);
+          return;
         }
         if (dx === 0 && dy === 0) {
           // Отпустили практически на месте — ничего не меняем, но live-превью сбросим
@@ -681,7 +690,7 @@ var Render = (function () {
     // Панель направления 'up' располагалась бы сверху бокса и перекрывалась
     // бы с панелью действий (edit, тоже сверху), поэтому её кнопки
     // объединяются в одну панель с действиями (см. node__panel--add-group).
-    if (typeDef.canHaveChildren !== false) {
+    if (typeDef.canHaveChildren !== false && getAddableTypes().length > 0) {
       var dirs = isRoot ? DIRECTIONS : [Model.getDirection(node.id) || 'right'];
       dirs.forEach(function (direction) {
         if (direction === 'up') {
@@ -747,6 +756,9 @@ var Render = (function () {
 
       commentEl.addEventListener('dblclick', function (e) {
         e.stopPropagation();
+        if (Model.isLocked()) {
+          return;
+        }
         startEditingComment(commentEl, node.id);
       });
     }
@@ -778,6 +790,8 @@ var Render = (function () {
       }
       selectNode(node.id);
       var hasTest = Model.hasTest(node.id);
+      // Режим аннотирования сюда не передаётся — popupMenu.js сам
+      // скрывает пункты с недоступными действиями (ActionManager.isAvailable).
       var visibility = {
         notRoot: !isRoot,
         hasOffset: !!(node.data && node.data.offset),
@@ -807,8 +821,13 @@ var Render = (function () {
     });
 
     // Двойной клик по тексту — редактирование через contenteditable.
+    // В режиме «только для чтения» (схема "locked") стартовать редактирование
+    // нельзя ни двойным кликом, ни Enter (см. editNode).
     textEl.addEventListener('dblclick', function (e) {
       e.stopPropagation();
+      if (Model.isLocked()) {
+        return;
+      }
       startEditing(textEl, node.id);
     });
 
@@ -856,47 +875,49 @@ var Render = (function () {
     var panel = document.createElement('span');
     panel.className = 'node__panel node__panel--edit';
 
-    // Кнопка добавления/редактирования комментария-атрибута.
     var hasComment = Model.getComment(node.id) !== undefined;
-    var commentBtn = document.createElement('button');
-    commentBtn.type = 'button';
-    commentBtn.className = 'node__btn node__btn--comment';
-    commentBtn.title = hasComment ? 'Редактировать комментарий' : 'Добавить комментарий';
-    commentBtn.innerHTML = '<img src="assets/icons/small/comment.svg" alt="">';
-    commentBtn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      editOrAddComment(node.id);
-    });
-    panel.appendChild(commentBtn);
+    appendNodeActionButton(panel, 'node_comment', node.id, 'node__btn--comment',
+      hasComment ? 'Редактировать комментарий' : 'Добавить комментарий');
 
     // Кнопка сброса ручного позиционирования — только у узлов с data.offset.
     if (!isRoot && node.data && node.data.offset) {
-      var resetBtn = document.createElement('button');
-      resetBtn.type = 'button';
-      resetBtn.className = 'node__btn node__btn--reset-position';
-      resetBtn.title = 'Сбросить ручное положение узла';
-      resetBtn.innerHTML = '<img src="assets/icons/small/undo-2.svg" alt="">';
-      resetBtn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        resetPosition(node.id);
-      });
-      panel.appendChild(resetBtn);
+      appendNodeActionButton(panel, 'node_reset_position', node.id, 'node__btn--reset-position',
+        'Сбросить ручное положение узла');
     }
 
     if (!isRoot) {
-      var delBtn = document.createElement('button');
-      delBtn.type = 'button';
-      delBtn.className = 'node__btn node__btn--delete';
-      delBtn.title = 'Удалить узел (дети перейдут к родителю)';
-      delBtn.innerHTML = '<img src="assets/icons/small/trash.svg" alt="">';
-      delBtn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        deleteNode(node.id);
-      });
-      panel.appendChild(delBtn);
+      appendNodeActionButton(panel, 'node_remove', node.id, 'node__btn--delete',
+        'Удалить узел (дети перейдут к родителю)');
     }
 
     return panel;
+  }
+
+  // Кнопка панели узла для действия actionId (иконка — из actions.js). Не
+  // создаётся, если действие недоступно (режим «только для чтения») — при
+  // смене режима дерево всё равно перерисовывается (renderAll).
+  function appendNodeActionButton(panel, actionId, nodeId, modifier, title) {
+    if (!ActionManager.isAvailable(actionId)) {
+      return;
+    }
+    var action = getAction(actionId);
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'node__btn ' + modifier;
+    btn.title = title || action.name;
+    btn.innerHTML = '<img src="' + (action.smallicon || action.icon) + '" alt="">';
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      ActionManager.run(actionId, nodeId);
+    });
+    panel.appendChild(btn);
+  }
+
+  // Типы узлов, дочерний узел которых сейчас можно добавить (их addAction доступен).
+  function getAddableTypes() {
+    return NodeTypeRegistry.getAll().filter(function (typeDef) {
+      return typeDef.addAction && ActionManager.isAvailable(typeDef.addAction);
+    });
   }
 
   // Создаёт кнопку «открыть заметку/тест» для узла на основе того, ЧТО у него
@@ -908,6 +929,10 @@ var Render = (function () {
     var hasTest = Model.hasTest(nodeId);
     var hasNote = Model.getNote(nodeId) !== undefined;
     if (!hasTest && !hasNote) {
+      return null;
+    }
+    var actionId = hasTest ? 'node_open_test' : 'node_open_note';
+    if (!ActionManager.isAvailable(actionId)) {
       return null;
     }
     var btn = document.createElement('button');
@@ -927,14 +952,13 @@ var Render = (function () {
     }
     btn.addEventListener('click', function (e) {
       e.stopPropagation();
-      openNotePanel(nodeId);
+      ActionManager.run(actionId, nodeId);
     });
     return btn;
   }
 
   // Сбрасывает ручное позиционирование узла (data.offset) — кнопка в
-  // node__panel--edit и действие 'node_reset_position' контекстного меню
-  // (см. ActionHandlers в app.js) используют одну и ту же логику.
+  // обработчик действия 'node_reset_position' (см. app.js).
   function resetPosition(nodeId) {
     Undo.push();
     Model.clearOffset(nodeId);
@@ -955,12 +979,12 @@ var Render = (function () {
     }
   }
 
-  // Создаёт кнопки добавления по одной на каждый зарегистрированный тип
-  // узла (+У/+Т/+С) в указанном направлении. direction передаётся в addChild
-  // только для прямых детей root; у остальных направление наследуется
-  // (передаём undefined).
+  // Создаёт кнопки добавления по одной на каждый доступный тип узла
+  // (+У/+Т/+С) в указанном направлении; клик запускает addAction типа. direction
+  // передаётся только для прямых детей root; у остальных направление
+  // наследуется (передаём undefined).
   function makeAddButtons(parentContainer, nodeId, direction) {
-    NodeTypeRegistry.getAll().forEach(function (childTypeDef) {
+    getAddableTypes().forEach(function (childTypeDef) {
       var addBtn = document.createElement('button');
       addBtn.type = 'button';
       addBtn.className = 'node__btn node__btn--add node__btn--add-' + childTypeDef.type;
@@ -978,7 +1002,7 @@ var Render = (function () {
       }
       addBtn.addEventListener('click', function (e) {
         e.stopPropagation();
-        addChild(nodeId, childTypeDef.type, direction);
+        ActionManager.run(childTypeDef.addAction, nodeId, { direction: direction });
       });
       parentContainer.appendChild(addBtn);
     });
@@ -987,6 +1011,9 @@ var Render = (function () {
   // Публичный запуск редактирования текста узла по его id (например по
   // нажатию Enter на выделенном узле — аналогично двойному клику по тексту).
   function editNode(nodeId) {
+    if (Model.isLocked()) {
+      return;
+    }
     var bodyEl = nodeBodyEls[nodeId];
     if (!bodyEl) {
       return;
@@ -1132,6 +1159,9 @@ var Render = (function () {
   // direction передаётся только когда явно выбрана стрелка в тулбаре root'а;
   // для остальных случаев Model.createNode сама решит, нужен ли фолбэк.
   function addChild(parentId, type, direction) {
+    if (Model.isLocked()) {
+      return;
+    }
     try {
       Undo.push();
       var newNode = Model.createNode(type, parentId, null, direction);

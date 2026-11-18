@@ -5,10 +5,12 @@
  * структуре { tabs: [...] }.
  *
  * Каждая кнопка получает data-action = item.action — DOM id НЕ присваивается.
- * Поведение привязывается снаружи ОДНИМ делегированным обработчиком по
- * [data-action] (app.js, #toolbar) — тот же принцип, что у остальных
- * декларативных поверхностей (popups.js → popupMenu.js,
- * buttonPanels.js → buttonPanel.js).
+ * Клики рендерер передаёт в ActionManager.run одним делегированным
+ * обработчиком (ActionManager.bindClicks).
+ *
+ * Режим «только для чтения»: кнопки с недоступными действиями скрывает
+ * ActionManager.syncVisibility, а рендерер вслед за ним сворачивает
+ * опустевшие колонки, группы, разделители и вкладки (collapseEmpty).
  *
  * Имя/иконка кнопки в самом конфиге не хранятся — они разрешаются из реестра
  * действий (actions.js) по item.action (см. resolveAction ниже). Если action не
@@ -19,6 +21,11 @@ var RibbonRenderer = (function () {
   'use strict';
 
   var SMALL_GROUP_SIZE = 3;
+
+  // Активация вкладки и список переключаемых вкладок последнего init() — нужны
+  // collapseEmpty()/ensureActiveTabVisible() при смене режима «только для чтения».
+  var activateTabFn = null;
+  var switchingTabs = []; // { index, button, content }
 
   // item.action -> Action (actions.js). Отсутствие действия — не фатально
   // для всего рендера (см. шапку файла), только для этой одной кнопки.
@@ -159,6 +166,7 @@ var RibbonRenderer = (function () {
     var undoBtn = document.createElement('button');
     undoBtn.type = 'button';
     undoBtn.id = 'btn-undo';
+    undoBtn.dataset.action = 'edit_undo';
     undoBtn.className = 'ribbon-undo-redo__btn';
     undoBtn.title = 'Отменить (Ctrl+Z)';
     undoBtn.innerHTML = '<img src="assets/icons/small/undo_disable.svg" alt="">';
@@ -167,6 +175,7 @@ var RibbonRenderer = (function () {
     var redoBtn = document.createElement('button');
     redoBtn.type = 'button';
     redoBtn.id = 'btn-redo';
+    redoBtn.dataset.action = 'edit_redo';
     redoBtn.className = 'ribbon-undo-redo__btn';
     redoBtn.title = 'Повторить (Ctrl+Y)';
     redoBtn.innerHTML = '<img src="assets/icons/small/redo_disable.svg" alt="">';
@@ -175,8 +184,8 @@ var RibbonRenderer = (function () {
     var tabButtons = [];
     // ВАЖНО: содержимое ВСЕХ вкладок рендерится СРАЗУ и остаётся в DOM постоянно
     // (переключение вкладки — чисто визуальное, через hidden, без пересоздания DOM).
-    // Причина: делегированный обработчик кликов в app.js и синхронизация
-    // подсветки модальных кнопок ищут кнопки по [data-action] по ВСЕМУ документу
+    // Причина: синхронизация подсветки модальных кнопок и видимости в режиме
+    // «только для чтения» ищут кнопки по [data-action] по ВСЕМУ документу
     // и должны видеть кнопки с любых вкладок, а не только с активной.
     var tabContents = [];
 
@@ -188,6 +197,8 @@ var RibbonRenderer = (function () {
         el.hidden = (i !== index);
       });
     }
+    activateTabFn = activateTab;
+    switchingTabs = [];
 
     config.tabs.forEach(function (tab, index) {
       var tabBtn = document.createElement('button');
@@ -224,7 +235,11 @@ var RibbonRenderer = (function () {
       tabButtons.push(tabBtn);
       tabsEl.appendChild(tabBtn);
 
-      tabContents.push(renderTabContent(tab));
+      var contentEl = renderTabContent(tab);
+      if (!tab.nonSwitching) {
+        switchingTabs.push({ index: index, button: tabBtn, content: contentEl });
+      }
+      tabContents.push(contentEl);
     });
 
     tabsRowEl.appendChild(tabsEl);
@@ -245,6 +260,67 @@ var RibbonRenderer = (function () {
       }
     }
     activateTab(defaultIndex);
+
+    ActionManager.bindClicks(containerEl);
+    ActionManager.onLockChange(function () {
+      collapseEmpty();
+    });
+  }
+
+  function hasVisibleChild(el) {
+    for (var i = 0; i < el.children.length; i++) {
+      if (!el.children[i].hidden) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // Скрывает колонки smallbutton, группы и вкладки, в которых не осталось
+  // видимых кнопок (после ActionManager.syncVisibility), и расставляет
+  // разделители только между видимыми группами.
+  function collapseEmpty() {
+    switchingTabs.forEach(function (tab) {
+      var groups = tab.content.querySelectorAll('.ribbon-group');
+      var visibleGroups = 0;
+      for (var g = 0; g < groups.length; g++) {
+        var cols = groups[g].querySelectorAll('.ribbon-col');
+        for (var c = 0; c < cols.length; c++) {
+          cols[c].hidden = !hasVisibleChild(cols[c]);
+        }
+        var row = groups[g].querySelector('.ribbon-group__row');
+        groups[g].hidden = !hasVisibleChild(row);
+        var divider = groups[g].previousElementSibling;
+        if (divider) {
+          divider.hidden = groups[g].hidden || visibleGroups === 0;
+        }
+        if (!groups[g].hidden) {
+          visibleGroups += 1;
+        }
+      }
+      tab.button.hidden = visibleGroups === 0;
+    });
+    ensureActiveTabVisible();
+  }
+
+  // Если активная вкладка стала невидимой (например в режиме «только
+  // для чтения» в ней не осталось кнопок), активирует первую видимую.
+  function ensureActiveTabVisible() {
+    if (!activateTabFn) {
+      return;
+    }
+    var active = switchingTabs.filter(function (t) {
+      return t.button.classList.contains('ribbon-tab--active');
+    })[0];
+    if (active && !active.button.hidden) {
+      return;
+    }
+    var firstVisible = switchingTabs.filter(function (t) {
+      return !t.button.hidden;
+    })[0];
+    if (firstVisible) {
+      activateTabFn(firstVisible.index);
+    }
   }
 
   return {

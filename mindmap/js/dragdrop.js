@@ -59,11 +59,13 @@ var DragDrop = (function () {
    */
   function attachHandlers(el, node, callbacks) {
     var isRoot = node.id === Model.getState().rootId;
-    // Запрет переноса root: элемент вообще не становится draggable.
-    el.setAttribute('draggable', isRoot ? 'false' : 'true');
+    // Запрет переноса root и любого узла схемы «только для чтения» (locked):
+    // элемент вообще не становится draggable.
+    var isLocked = Model.isLocked();
+    el.setAttribute('draggable', (isRoot || isLocked) ? 'false' : 'true');
 
     el.addEventListener('dragstart', function (e) {
-      if (isRoot) {
+      if (isRoot || isLocked) {
         e.preventDefault();
         return;
       }
@@ -164,6 +166,9 @@ var DragDrop = (function () {
    * дублирует часть логики Model.moveNode, чтобы подсвечивать цель ДО drop.
    */
   function canDrop(dragId, targetId) {
+    if (Model.isLocked()) {
+      return { ok: false, reason: 'схема открыта только для чтения' };
+    }
     if (dragId === targetId) {
       return { ok: false, reason: 'нельзя перенести узел в самого себя' };
     }

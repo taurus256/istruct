@@ -34,10 +34,35 @@ var TestPanel = (function () {
 
   function init() {
     viewEl = document.getElementById('test-view');
-    // Делегирование кликов внутри вью — единый обработчик по data-action.
+    // Внутренние команды вью (close/prev/next, выбор варианта) — делегированием
+    // по data-action; кнопки футера (действия test_*) идут через ActionManager.
     if (viewEl) {
       viewEl.addEventListener('click', onViewClick);
     }
+    ActionManager.registerAll({
+      test_start: function () {
+        startAttempt(currentNodeId);
+      },
+      test_submit: function () {
+        if (!attempt) { return; }
+        if (attempt.index < attempt.questions.length - 1) {
+          attempt.index += 1;
+          renderQuestion();
+        } else {
+          finalize('finished'); // последний вопрос → завершение
+        }
+      },
+      test_finish: function () {
+        if (attempt) { finalize('finished'); } // ранний конец: неотвеченные = неверные
+      },
+      test_return: function () {
+        // Результат остаётся сохранённым; показываем стартовый экран.
+        renderIntro(currentNodeId);
+      },
+      test_retry: function () {
+        startAttempt(currentNodeId);
+      }
+    });
   }
 
   /* ============================ Показ вью ================================ */
@@ -509,9 +534,6 @@ var TestPanel = (function () {
       case 'close':
         if (onCloseRequest) { onCloseRequest(); }
         break;
-      case 'test_start':
-        startAttempt(currentNodeId);
-        break;
       case 'prev':
         if (attempt && attempt.index > 0) { attempt.index -= 1; renderQuestion(); }
         break;
@@ -519,26 +541,6 @@ var TestPanel = (function () {
         if (attempt && attempt.index < attempt.questions.length - 1) {
           attempt.index += 1; renderQuestion();
         }
-        break;
-      case 'test_submit':
-        if (attempt) {
-          if (attempt.index < attempt.questions.length - 1) {
-            attempt.index += 1;
-            renderQuestion();
-          } else {
-            finalize('finished'); // последний вопрос → завершение
-          }
-        }
-        break;
-      case 'test_finish':
-        if (attempt) { finalize('finished'); } // ранний конец: неотвеченные = неверные
-        break;
-      case 'test_return':
-        // Результат остаётся сохранённым; показываем стартовый экран.
-        renderIntro(currentNodeId);
-        break;
-      case 'test_retry':
-        startAttempt(currentNodeId);
         break;
       default:
         break;

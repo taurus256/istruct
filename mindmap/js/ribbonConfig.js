@@ -10,8 +10,11 @@
  * (поле action), а имя/иконку резолвит ribbonRenderer.js через общий реестр
  * действий (см. getAction() в actions.js). Поведение по клику — тоже по
  * действию, а не по DOM id: кнопка получает data-action = item.action, а
- * app.js ловит клик ОДНИМ делегированным обработчиком на #toolbar и вызывает
- * ActionHandlers[action] (тот же принцип, что у popups.js → popupMenu.js).
+ * клик уходит в ActionManager.run(action) (тот же принцип, что у меню и панелей).
+ *
+ * Видимость в режиме «только для чтения» здесь не задаётся: кнопка
+ * скрывается, если у её действия нет lockedAvailable (actions.js), а группа и
+ * вкладка — если в них не осталось видимых кнопок (ribbonRenderer.js).
  * Поэтому здесь НЕТ поля id — как и в popups.js/buttonPanels.js: раскладку
  * тулбара можно менять (переносить/дублировать кнопки, добавлять новые с уже
  * существующим действием) без правок JS.
@@ -96,20 +99,7 @@ var RibbonConfig = {
         }
       ]
     },
-    {
-      name: 'СХЕМА',
-      groups: [
-        {
-          name: 'Схема',
-          content: [
-            { type: 'button', action: 'scheme_import' },
-            { type: 'button', action: 'scheme_export' },
-            { type: 'button', action: 'scheme_clear' }
-          ]
-        }
-      ]
-    },
-    {
+{
       name: 'ВИД',
       groups: [
         {
@@ -123,6 +113,20 @@ var RibbonConfig = {
           name: 'Инструменты',
           content: [
             { type: 'button', action: 'theme_toggle' }
+          ]
+        }
+      ]
+    },
+    {
+      name: 'СХЕМА',
+      groups: [
+        {
+          name: 'Схема',
+          content: [
+            { type: 'button', action: 'scheme_import' },
+            { type: 'button', action: 'scheme_export' },
+            { type: 'button', action: 'scheme_export_locked' },
+            { type: 'button', action: 'scheme_clear' }
           ]
         }
       ]

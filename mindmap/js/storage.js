@@ -70,7 +70,17 @@
  * (setColor/getColor/clearColor) и render.js (Render.setNodeColor).
  * Корневой узел не окрашивается. DATA_FORMAT.md §2.7.
  *
- * version 9 (текущая): у пайлоада СХЕМЫ ЦЕЛИКОМ (рядом с "version"/"rootId"/
+ * version 10 (текущая): у пайлоада СХЕМЫ ЦЕЛИКОМ (рядом с "version"/"rootId"/
+ * "nodes"/"pan", НЕ внутри узла) может появиться необязательное поле
+ * "locked": true — схема только для чтения (экспорт «Экспортировать курс»,
+ * см. exportLocked). Флаг относится ко ВСЕЙ схеме, а не к узлу: при загрузке
+ * такого файла приложение прячет инструменты редактирования и блокирует
+ * правку содержимого (см. ActionManager/lockedAvailable, model.js:isLocked); тесты
+ * проходить можно. Хранится ВНЕ Model.state — как и "pan" — в кэше
+ * currentLocked, поэтому автосохранение locked-схемы не снимает флаг.
+ * Отсутствие поля — обычная схема.
+ *
+ * version 9: у пайлоада СХЕМЫ ЦЕЛИКОМ (рядом с "version"/"rootId"/
  * "nodes", НЕ внутри узла) может появиться необязательное поле "pan":
  * { "x": number, "y": number } — последняя сохранённая позиция панорамирования
  * (scrollLeft/scrollTop контейнера #mindmap-root) ЭТОЙ схемы, в НАТУРАЛЬНЫХ
@@ -173,6 +183,11 @@ var Storage = (function () {
   // Кэш имён схем: { id: корневой текст } — чтобы listSchemes()/getSchemeName()
   // не ходили в базу за каждой НЕактивной схемой.
   var nameCache = {};
+  // Кэш флага locked КАЖДОЙ схемы (true — схема курса, только для чтения) —
+  // по тем же причинам, что и nameCache: панель ФАЙЛ рисуется синхронно по
+  // индексу, а флаг лежит в payload'е, который читается только при загрузке
+  // схемы. Нужен для иконки карточки (icon_locked.svg), см. listSchemes.
+  var lockedCache = {};
   // Кэш текущего pan АКТИВНОЙ схемы в памяти — { x, y } или null. Устанавливается
   // при load()/loadScheme()/createScheme() (из payload'а, который загружается в
   // Model) и обновляется в setPan(). НУЖЕН именно как кэш в памяти, а НЕ
@@ -182,6 +197,10 @@ var Storage = (function () {
   // такое сохранение стирало бы ранее сохранённый pan (payload формируется заново
   // с нуля, без поля "pan").
   var currentPan = null;
+  // Кэш флага locked АКТИВНОЙ схемы — по тем же причинам, что и currentPan:
+  // buildPayload() собирается заново при каждом автосохранении, и без этого
+  // кэша поле "locked" пропадало бы из payload'а при первой же правке.
+  var currentLocked = false;
 
   /* ============================ IndexedDB ================================= */
 
@@ -280,6 +299,21 @@ var Storage = (function () {
         activeId: idx.activeId,
         schemes: idx.schemes
       });
+    });
+  }
+
+  // Заполняет nameCache именами ВСЕХ схем — иначе после перезапуска панель
+  // ФАЙЛ показывала бы «Без названия» для всех неактивных схем.
+  function cacheAllNames(db) {
+    return runTx(db, [SCHEMES_STORE], 'readonly', function (tx) {
+      var request = tx.objectStore(SCHEMES_STORE).getAll();
+      request.onsuccess = function () {
+        (request.result || []).forEach(function (record) {
+          if (record && isValidPayload(record.payload)) {
+            cacheName(record.id, record.payload);
+          }
+        });
+      };
     });
   }
 
@@ -407,6 +441,7 @@ var Storage = (function () {
 
   function cacheName(id, payload) {
     nameCache[id] = payloadName(payload);
+    lockedCache[id] = extractLocked(payload);
   }
 
   // Строит payload схемы из ТЕКУЩЕГО Model.getState() + текущего currentPan кэша
@@ -414,11 +449,18 @@ var Storage = (function () {
   // ни одно из них не затирало ранее сохранённый pan при перезаписи payload'а.
   function buildPayload() {
     var state = Model.getState();
-    var payload = { version: 9, rootId: state.rootId, nodes: serializeNodes(state.nodes) };
+    var payload = { version: 10, rootId: state.rootId, nodes: serializeNodes(state.nodes) };
     if (currentPan) {
       payload.pan = { x: currentPan.x, y: currentPan.y };
     }
+    if (currentLocked) {
+      payload.locked = true;
+    }
     return payload;
+  }
+
+  function extractLocked(payload) {
+    return !!(payload && payload.locked === true);
   }
 
   // Извлекает поле "pan" из payload'а с валидацией ({x,y} числа или null) —
@@ -532,6 +574,7 @@ var Storage = (function () {
         var id = entries[i].id;
         schemeStore.put({ id: id, payload: payloads[id] });
         nameCache[id] = payloadName(payloads[id]);
+        lockedCache[id] = extractLocked(payloads[id]);
       }
       tx.objectStore(META_STORE).put({
         key: INDEX_RECORD_KEY,
@@ -625,6 +668,16 @@ var Storage = (function () {
     return currentPan ? { x: currentPan.x, y: currentPan.y } : null;
   }
 
+  /**
+   * true, если АКТИВНАЯ схема загружена из файла схемы курса ("locked": true
+   * в payload'е) — т.е. сейчас приложение должно работать в режиме только для
+   * чтения (см. ActionManager). Читается из кэша в памяти, синхронно,
+   * как и getPan(): обновляется при init/loadScheme/importJSON/switchScheme.
+   */
+  function getLocked() {
+    return currentLocked;
+  }
+
   /* ============================ Чтение ==================================== */
 
   // Загружает активную схему при старте приложения: открывает базу, при
@@ -634,25 +687,40 @@ var Storage = (function () {
   // его как первую схему. Возвращает Promise — app.js ждёт его перед отрисовкой.
   function init() {
     return openDb().then(function (db) {
-      return migrateFromLocalStorage(db).then(function (migrated) {
-        return readIndexRecord(db);
+      // Миграция — только если в базе ещё нет индекса: ключи localStorage остаются
+      // резервной копией, и повторный перенос при каждом старте перезаписывал бы
+      // индекс старым списком схем, теряя созданные после переноса.
+      return readIndexRecord(db).then(function (idx) {
+        if (idx) {
+          return idx;
+        }
+        return migrateFromLocalStorage(db).then(function () {
+          return readIndexRecord(db);
+        });
+      }).then(function (idx) {
+        return cacheAllNames(db).then(function () {
+          return idx;
+        });
       }).then(function (idx) {
         if (idx && idx.activeId) {
           return readSchemeRecord(db, idx.activeId).then(function (payload) {
             if (payload) {
               Model.setState({ rootId: payload.rootId, nodes: payload.nodes });
               currentPan = extractPan(payload);
+              currentLocked = extractLocked(payload);
               cacheName(idx.activeId, payload);
               return;
             }
             console.warn('Активная схема повреждена или отсутствует, создаём новую');
             Model.initEmpty();
             currentPan = null;
+            currentLocked = false;
             return createScheme();
           });
         }
         Model.initEmpty();
         currentPan = null;
+        currentLocked = false;
         return createScheme();
       });
     }).catch(function (e) {
@@ -661,6 +729,7 @@ var Storage = (function () {
       // модели, дальнейшие сохранения будут падать в handleWriteError.
       Model.initEmpty();
       currentPan = null;
+      currentLocked = false;
     });
   }
 
@@ -691,46 +760,135 @@ var Storage = (function () {
     return safe + '.json';
   }
 
+  // Имя файла «Экспортировать курс»: то же имя схемы, но с суффиксом
+  // «-course» — чтобы файл курса не перезатирал обычный экспорт той же схемы.
+  function exportLockedFileName(payload) {
+    var name = exportFileName(payload);
+    return name.replace(/\.json$/i, '') + '-course.json';
+  }
+
+  // Скачивание текста как файла — общий код exportJSON/exportLocked.
+  function downloadText(text, fileName) {
+    var blob = new Blob([text], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // Отметка «схема сохранена в файл» (savedAt) — общая для exportJSON/exportLocked.
+  function markExported(payload) {
+    var idx = indexCache;
+    if (!idx || !idx.activeId) {
+      return;
+    }
+    var id = idx.activeId;
+    var entry = findSchemeEntry(idx, id);
+    if (!entry) {
+      return;
+    }
+    var now = Date.now();
+    entry.savedAt = now;
+    entry.modifiedAt = now;
+    cacheName(id, payload);
+    openDb().then(function (db) {
+      return writeIndexRecord(db, idx);
+    }).catch(function (e) {
+      handleWriteError(e, 'отметку об экспорте');
+    });
+  }
+
   // Экспорт текущей модели в файл, имя которого совпадает с именем схемы
   // (text корневого узла), см. exportFileName. Экспорт — это единственное
   // сегодня действие, которое считается «сохранением» (см. шапку файла) —
   // помечаем savedAt активной схемы.
   function exportJSON() {
     var payload = buildPayload();
-    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-    var url = URL.createObjectURL(blob);
-
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = exportFileName(payload);
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
-    var idx = indexCache;
-    if (idx && idx.activeId) {
-      var id = idx.activeId;
-      var entry = findSchemeEntry(idx, id);
-      if (entry) {
-        var now = Date.now();
-        entry.savedAt = now;
-        entry.modifiedAt = now;
-        cacheName(id, payload);
-        openDb().then(function (db) {
-          return writeIndexRecord(db, idx);
-        }).catch(function (e) {
-          handleWriteError(e, 'отметку об экспорте');
-        });
-      }
-    }
+    downloadText(JSON.stringify(payload, null, 2), exportFileName(payload));
+    markExported(payload);
   }
 
   /**
-   * Импорт JSON из выбранного файла — ПЕРЕЗАПИСЫВАЕТ АКТИВНУЮ схему на месте
-   * (используется кнопкой "Импорт JSON" вкладки СХЕМА). При ошибке
+   * «Экспортировать курс»: в файл пишется обфусцированный конверт (lockPack.js)
+   * с "locked": true. Активная схема при этом остаётся редактируемой — режим только
+   * для чтения включается при загрузке этого файла.
+   */
+  function exportLocked() {
+    var payload = buildPayload();
+    payload.locked = true;
+    downloadText(JSON.stringify(LockPack.pack(payload)), exportLockedFileName(payload));
+    markExported(payload);
+  }
+
+  /**
+   * Разбирает текст файла в payload схемы — общая точка для всех путей импорта
+   * (importJSON/importAsNewScheme/importIntoScheme). Понимает обычный JSON
+   * схемы и конверт «Экспортировать курс» (lockPack.js); payload из конверта
+   * всегда получает locked: true. При ошибке показывает alert и возвращает null.
+   */
+  function parseSchemeFile(text) {
+    var parsed;
+    try {
+      parsed = JSON.parse(text);
+    } catch (e) {
+      alert('Не удалось прочитать файл: некорректный JSON.');
+      return null;
+    }
+
+    var payload = parsed;
+    if (LockPack.isPacked(parsed)) {
+      var unpacked = LockPack.unpack(parsed);
+      if (!unpacked.ok) {
+        alert(unpacked.reason);
+        return null;
+      }
+      payload = unpacked.payload;
+    }
+
+    if (!isValidPayload(payload)) {
+      alert('Файл повреждён или имеет неверный формат: ожидаются поля version, rootId, nodes.');
+      return null;
+    }
+    if (payload !== parsed) {
+      payload.locked = true;
+    }
+    return payload;
+  }
+
+  /**
+   * Решает, что делать с файлом, загружаемым поверх существующей схемы:
+   * заменить её (только при совпадающем уровне доступа — locked в locked или
+   * обычная в обычную — и после подтверждения) или создать копию (уровни
+   * разные). Так схема курса никогда не затирает редактируемую схему.
+   * Возвращает 'replace' | 'copy' | 'cancel'.
+   */
+  function chooseImportMode(payload, targetLocked, targetName) {
+    if (extractLocked(payload) !== targetLocked) {
+      return 'copy';
+    }
+    var confirmed = window.confirm('Заменить схему «' + targetName + '» содержимым файла?');
+    return confirmed ? 'replace' : 'cancel';
+  }
+
+  // Регистрирует payload как новую схему и делает её активной, предварительно
+  // сохранив исходящую схему. Возвращает Promise<id новой схемы>.
+  function addAsNewScheme(payload) {
+    return flush().then(function () {
+      return createSchemeRecord(generateSchemeId(), payload);
+    });
+  }
+
+  /**
+   * Загрузка файла кнопкой "Загрузить из файла" (вкладка СХЕМА) поверх
+   * АКТИВНОЙ схемы — по правилу chooseImportMode: замена на месте либо копия,
+   * которая становится активной и загружается в Model. При ошибке
    * структуры/парсинга показывает alert и НЕ трогает текущее состояние.
-   * onSuccess вызывается после успешного применения импортированных данных.
+   * onSuccess() вызывается после того, как Model содержит загруженную схему.
    */
   function importJSON(file, onSuccess) {
     if (!file) {
@@ -739,26 +897,29 @@ var Storage = (function () {
 
     var reader = new FileReader();
     reader.onload = function (event) {
-      var payload;
-      try {
-        payload = JSON.parse(event.target.result);
-      } catch (e) {
-        alert('Не удалось прочитать файл: некорректный JSON.');
+      var payload = parseSchemeFile(event.target.result);
+      if (!payload) {
         return;
       }
 
-      if (!isValidPayload(payload)) {
-        alert('Файл повреждён или имеет неверный формат: ожидаются поля version, rootId, nodes.');
+      var activeId = getActiveId();
+      var mode = chooseImportMode(payload, currentLocked, getSchemeName(activeId));
+      if (mode === 'cancel') {
         return;
       }
-
-      Model.setState({ rootId: payload.rootId, nodes: payload.nodes });
-      currentPan = extractPan(payload);
-      saveImmediate().then(function () {
+      var done = function () {
         if (typeof onSuccess === 'function') {
           onSuccess();
         }
-      });
+      };
+      if (mode === 'copy') {
+        addAsNewScheme(payload).then(loadScheme).then(done);
+        return;
+      }
+      Model.setState({ rootId: payload.rootId, nodes: payload.nodes });
+      currentPan = extractPan(payload);
+      currentLocked = extractLocked(payload);
+      saveImmediate().then(done);
     };
     reader.onerror = function () {
       alert('Ошибка чтения файла.');
@@ -782,25 +943,12 @@ var Storage = (function () {
 
     var reader = new FileReader();
     reader.onload = function (event) {
-      var payload;
-      try {
-        payload = JSON.parse(event.target.result);
-      } catch (e) {
-        alert('Не удалось прочитать файл: некорректный JSON.');
+      var payload = parseSchemeFile(event.target.result);
+      if (!payload) {
         return;
       }
 
-      if (!isValidPayload(payload)) {
-        alert('Файл повреждён или имеет неверный формат: ожидаются поля version, rootId, nodes.');
-        return;
-      }
-
-      // flush исходящей (текущей активной) схемы перед переключением —
-      // дальше регистрируем новую и делаем её активной.
-      flush().then(function () {
-        var id = generateSchemeId();
-        return createSchemeRecord(id, payload);
-      }).then(function (id) {
+      addAsNewScheme(payload).then(function (id) {
         if (typeof onSuccess === 'function') {
           onSuccess(id);
         }
@@ -846,6 +994,7 @@ var Storage = (function () {
    */
   function createScheme() {
     currentPan = null; // новая схема всегда без сохранённой позиции панорамирования
+    currentLocked = false; // и без флага «только для чтения»
     return createSchemeRecord(generateSchemeId(), buildPayload());
   }
 
@@ -858,6 +1007,7 @@ var Storage = (function () {
       }
       Model.setState({ rootId: payload.rootId, nodes: payload.nodes });
       currentPan = extractPan(payload);
+      currentLocked = extractLocked(payload);
       cacheName(id, payload);
       return true;
     });
@@ -917,7 +1067,8 @@ var Storage = (function () {
   // Список всех схем для панели "ФАЙЛ". Для активной схемы имя читается
   // напрямую из Model (in-memory) — там оно гарантированно актуально, даже
   // если автосохранение (debounce) ещё не долетело до базы; для остальных
-  // схем — из кэша имён (getSchemeName).
+  // схем — из кэша имён (getSchemeName). locked — из кэша флагов, для активной
+  // схемы точнее currentLocked.
   function listSchemes() {
     var idx = indexCache;
     if (!idx) {
@@ -933,7 +1084,8 @@ var Storage = (function () {
         name: getSchemeName(entry.id),
         modifiedAt: entry.modifiedAt,
         savedAt: entry.savedAt,
-        isActive: isActive
+        isActive: isActive,
+        locked: isActive ? currentLocked : !!lockedCache[entry.id]
       });
     }
     return result;
@@ -942,8 +1094,8 @@ var Storage = (function () {
   /**
    * Удаляет схему id целиком (payload + запись в индексе). НЕ трогает
    * Model/активную схему напрямую (как и importAsNewScheme — Storage
-   * остаётся чистым слоем хранения) — вызывающий код (ActionHandlers.file_delete
-   * в app.js) сам решает, что делать дальше, по возвращаемому значению
+   * остаётся чистым слоем хранения) — вызывающий код (действие file_delete
+   * в filesPanel.js) сам решает, что делать дальше, по возвращаемому значению
    * (Promise):
    *   { deleted: boolean, wasActive: boolean, newActiveId: string|null }
    * Если wasActive=true и newActiveId задан — вызывающий должен
@@ -973,6 +1125,7 @@ var Storage = (function () {
       idx.activeId = newActiveId;
     }
     delete nameCache[id];
+    delete lockedCache[id];
 
     // Удаление payload и записи индекса — одной транзакцией, чтобы не
     // оставить «схему-призрак» в индексе при сбое.
@@ -998,13 +1151,15 @@ var Storage = (function () {
    * Импорт JSON из файла В СУЩЕСТВУЮЩУЮ схему id (перезаписывает именно
    * ЕЁ payload, НЕ обязательно активную — в отличие от importJSON, который
    * всегда перезаписывает активную). Используется меню "ещё действия" у
-   * карточки схемы (см. ActionHandlers.file_import_json в app.js) — там
+   * карточки схемы (см. действие file_import_json в filesPanel.js) — там
    * можно выбрать импорт в ЛЮБУЮ карточку, не только в открытую сейчас.
    * НЕ трогает Model напрямую (та же асимметрия, что и у importAsNewScheme/
    * deleteScheme) — если id совпадает с активной схемой, вызывающий код сам
    * обязан Storage.loadScheme(id) + Undo.reset() + Render.renderAll(), иначе
-   * canvas будет показывать устаревшее содержимое. При ошибке — alert,
-   * ничего не меняется. onSuccess() вызывается после успешного применения.
+   * canvas будет показывать устаревшее содержимое. Замена или копия — по
+   * правилу chooseImportMode; копия становится активной схемой. При ошибке —
+   * alert, ничего не меняется. onSuccess(resultId) получает id схемы, куда
+   * записан файл: id (замена) или id новой копии.
    */
   function importIntoScheme(id, file, onSuccess) {
     if (!file) {
@@ -1013,31 +1168,36 @@ var Storage = (function () {
 
     var reader = new FileReader();
     reader.onload = function (event) {
-      var payload;
-      try {
-        payload = JSON.parse(event.target.result);
-      } catch (e) {
-        alert('Не удалось прочитать файл: некорректный JSON.');
-        return;
-      }
-
-      if (!isValidPayload(payload)) {
-        alert('Файл повреждён или имеет неверный формат: ожидаются поля version, rootId, nodes.');
+      var payload = parseSchemeFile(event.target.result);
+      if (!payload) {
         return;
       }
 
       openDb().then(function (db) {
-        return persistScheme(db, id, payload, function (cache) {
-          var entry = findSchemeEntry(cache, id);
-          if (entry) {
-            entry.modifiedAt = Date.now();
+        return readSchemeRecord(db, id).then(function (target) {
+          var mode = chooseImportMode(payload, extractLocked(target), getSchemeName(id));
+          if (mode === 'cancel') {
+            return;
           }
+          if (mode === 'copy') {
+            return addAsNewScheme(payload).then(function (newId) {
+              if (typeof onSuccess === 'function') {
+                onSuccess(newId);
+              }
+            });
+          }
+          return persistScheme(db, id, payload, function (cache) {
+            var entry = findSchemeEntry(cache, id);
+            if (entry) {
+              entry.modifiedAt = Date.now();
+            }
+          }).then(function () {
+            cacheName(id, payload);
+            if (typeof onSuccess === 'function') {
+              onSuccess(id);
+            }
+          });
         });
-      }).then(function () {
-        cacheName(id, payload);
-        if (typeof onSuccess === 'function') {
-          onSuccess();
-        }
       }).catch(function (e) {
         handleWriteError(e, 'схему');
       });
@@ -1105,6 +1265,8 @@ var Storage = (function () {
     saveImmediate: saveImmediate,
     flush: flush,
     exportJSON: exportJSON,
+    exportLocked: exportLocked,
+    getLocked: getLocked,
     importJSON: importJSON,
     importAsNewScheme: importAsNewScheme,
     importIntoScheme: importIntoScheme,

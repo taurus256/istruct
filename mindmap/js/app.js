@@ -3,134 +3,14 @@
  * горячие клавиши.
  */
 
-// ActionHandlers — обработчики действий по id действия из реестра Actions
-// (actions.js). ЕДИНСТВЕННАЯ точка привязки поведения во всём интерфейсе:
-//   • пункты всплывающих меню (popupMenu.js) — ActionHandlers[action.id](context);
-//   • кнопки ribbon-тулбара (ribbonRenderer.js) — через делегирование клика по
-//     [data-action] в конце файла (см. блок «Привязка действий ribbon»);
-//   • кнопки декларативных панелей (buttonPanel.js) — так же по [data-action],
-//     но рендерятся и обрабатываются внутри своих модулей (test.js/filesPanel.js).
-// DOM id кнопок в риббоне больше НЕ используются — конфиг тулбара (ribbonConfig.js)
-// описывает только ссылки на действия (item.action), ровно как popups.js.
-//
-// ВАЖНО: этот объект — в ГЛОБАЛЬНОЙ области, а функции-«внутренности» панелей
-// (toggleSidePanel, updateMarkButtonState и т.п.) живут ВНУТРИ колбэка
-// DOMContentLoaded ниже и снаружи не видны. Поэтому действия, которым нужна
-// такая внутренняя логика, НЕ обращаются к ней напрямую — они просто шлют
-// DOM-событие 'mindmap:action' на #toolbar (см. dispatchRibbonAction), а
-// локальный слушатель внутри колбэка выполняет действие в замыкании.
-// Исключение — действия на уже загруженных глобальных модулях (Theme, Help,
-// Zoom, Storage, Model, Render), вызываемые напрямую.
-// Канал из глобальной области в замыкание DOMContentLoaded: 'mindmap:action'.
-// Слушатель на #toolbar внутри колбэка (см. «локальные действия») выполняет
-// внутреннюю логику (панели, подсветка) — она НЕ доступна глобально.
-function dispatchRibbonAction(type, detail) {
-  var toolbar = document.getElementById('toolbar');
-  if (!toolbar) {
-    return;
-  }
-  toolbar.dispatchEvent(new CustomEvent('mindmap:action', { detail: { type: type, value: detail } }));
-}
-
-var ActionHandlers = {
-  file_delete: function (schemeId) {
-    FilesPanel.deleteScheme(schemeId);
-  },
-  file_import_json: function (schemeId) {
-    FilesPanel.requestImportIntoScheme(schemeId);
-  },
-  file_import_md: function () {
-    // Импорт схемы из Markdown — пока не реализован (нет ни формата, ни
-    // парсера, см. анализ перед этим шагом). Пункт меню намеренно оставлен
-    // видимым, но неактивным — заглушка вместо тихого no-op.
-    alert('Импорт MD — в разработке');
-  },
-
-  // Контекстное меню узла (правый клик, см. Popups.node/render.js) — context
-  // здесь ВСЕГДА id конкретного узла, по которому кликнули правой кнопкой
-  // (НЕ обязательно текущий Render.getSelectedId(), хотя contextmenu-
-  // обработчик и выделяет его заодно — см. render.js).
-  node_add_text: function (nodeId) {
-    Render.addChild(nodeId, 'main');
-  },
-  node_add_test: function (nodeId) {
-    Render.addChild(nodeId, 'test');
-  },
-  node_add_link: function (nodeId) {
-    Render.addChild(nodeId, 'link');
-  },
-  node_remove: function (nodeId) {
-    Render.deleteNode(nodeId);
-  },
-  node_comment: function (nodeId) {
-    Render.editOrAddComment(nodeId);
-  },
-  node_reset_position: function (nodeId) {
-    Render.resetPosition(nodeId);
-  },
-  node_open_test: function (nodeId) {
-    Render.openNotePanel(nodeId);
-  },
-  node_open_note: function (nodeId) {
-    Render.openNotePanel(nodeId);
-  },
-  node_mark: function (nodeId) {
-    if (nodeId) {
-      Render.toggleMarked(nodeId);
-      dispatchRibbonAction('node_mark_sync', nodeId);
-    }
-  },
-
-  // Контекстное меню фона канвы (правый клик вне узлов, см. Popups.canvas/
-  // render.js) — context здесь не используется (действия не привязаны к
-  // конкретному узлу), поэтому обработчики ничего не принимают.
-  scheme_zoom_in: function () {
-    Zoom.zoomIn();
-  },
-  scheme_zoom_out: function () {
-    Zoom.zoomOut();
-  },
-  scheme_export: function () {
-    Storage.exportJSON();
-  },
-
-  // ---- Действия ribbon-тулбара (ribbonConfig.js). Контекст (context)
-  // приходит как id текущего ВЫДЕЛЕННОГО узла (см. runToolbarAction ниже) —
-  // кроме "Очистить" и переключателей темы/панели/справки, которые от
-  // конкретного узла не зависят.
-  scheme_clear: function () {
-    var confirmed = window.confirm('Вы уверены, что хотите очистить схему и все данные?');
-    if (!confirmed) {
-      return;
-    }
-    Model.initEmpty();
-    Storage.saveImmediate();
-    // Структурное изменение всей модели — как и при импорте JSON, нужен полный
-    // renderAll() (selectNode() теперь лёгкий и сам по себе не пересбирает DOM).
-    Render.selectNode(null);
-    Render.renderAll();
-  },
-  help_docs: function () {
-    Help.toggle();
-  },
-  notes_panel: function () {
-    dispatchRibbonAction('notes_panel');
-  },
-  theme_toggle: function () {
-    Theme.toggle();
-    dispatchRibbonAction('theme_toggle_sync');
-  },
-  node_color_reset: function (nodeId) {
-    if (nodeId) {
-      Render.setNodeColor(nodeId, null);
-    }
-  }
-};
+// Поведение кнопок, пунктов меню и горячих клавиш привязано к действиям
+// (actions.js) и запускается только через ActionManager.run(id). Общие обработчики
+// регистрируются внутри DOMContentLoaded (блок «Обработчики действий»), чтобы
+// иметь доступ к функциям панелей; специфичные для панелей — в filesPanel.js и test.js.
 
 document.addEventListener('DOMContentLoaded', function () {
   // Рендерим ribbon-тулбар по декларативному описанию (RibbonConfig) ПЕРВОЙ
-  // строкой — все остальные обработчики ниже ищут кнопки по id
-  // (document.getElementById), они должны уже существовать в DOM.
+  // строкой — обработчики ниже ищут кнопки в DOM.
   if (typeof RibbonRenderer !== 'undefined' && typeof RibbonConfig !== 'undefined') {
     RibbonRenderer.init(document.getElementById('toolbar'), RibbonConfig);
   }
@@ -172,6 +52,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
   storageReady.then(function () {
     startApp();
+    // Режим «только для чтения» известен только после загрузки схемы.
+    ActionManager.notifyLockChanged();
     // Браузер по умолчанию вправе вытеснить данные origin'а при нехватке
     // места. Просим «постоянное» хранилище — для установленного PWA это
     // происходит без диалога, на обычной странице решает эвристика браузера.
@@ -239,28 +121,15 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  // Клики Undo/Redo (data-action edit_undo/edit_redo) и «Вернуть» в статус-баре
+  // (scheme_zoom_reset) идут через ActionManager — см. «Обработчики действий».
   if (typeof Undo !== 'undefined') {
-    if (undoBtn) {
-      undoBtn.addEventListener('click', function () {
-        Undo.undo();
-      });
-    }
-    if (redoBtn) {
-      redoBtn.addEventListener('click', function () {
-        Undo.redo();
-      });
-    }
     Undo.setOnChange(updateUndoRedoButtons);
     updateUndoRedoButtons();
   }
-  if (zoomResetBtn) {
-    zoomResetBtn.addEventListener('click', function () {
-      if (typeof Zoom !== 'undefined' && Zoom.reset) {
-        Zoom.reset();
-      } else {
-        Render.setZoom(1);
-      }
-    });
+  var statusBarEl = document.getElementById('status-bar');
+  if (statusBarEl) {
+    ActionManager.bindClicks(statusBarEl);
   }
 
   // Панель выбора схемы (#files-panel) — открывается вкладкой "ФАЙЛ"
@@ -279,7 +148,7 @@ document.addEventListener('DOMContentLoaded', function () {
       FilesPanel.init({ tabBtnEl: filesTabBtn });
       document.addEventListener('ribbon:nonswitching-tab-click', function (e) {
         if (e.detail && e.detail.tabName === 'ФАЙЛ') {
-          FilesPanel.toggle();
+          ActionManager.run('files_panel');
         }
       });
     }
@@ -399,15 +268,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  // Вызывается действием notes_panel (см. ActionHandlers).
+  // Вызывается действием notes_panel.
   function toggleSidePanel() {
     if (panelOpen) { closePanel(); } else { openPanel(); }
-  }
-
-  // Добавляет дочерний узел заданного типа к выделенному узлу, иначе к root.
-  function addNodeOfType(type) {
-    var targetId = Render.getSelectedId() || Model.getState().rootId;
-    Render.addChild(targetId, type);
   }
 
   // "Отметить" — модальная кнопка: отражает состояние выделенного узла
@@ -461,19 +324,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
   var importInput = document.getElementById('input-import');
 
-  /* ============ Привязка действий ribbon-тулбара ============
-     ОДИН делегированный обработчик на всю панель вместо поиска каждой
-     кнопки по DOM id: ribbonConfig.js описывает только ссылки на действия
-     (item.action), а ribbonRenderer.js проставляет каждой кнопке
-     data-action = item.action (тот же принцип, что popups.js/popupMenu.js).
-     Поэтому раскладка тулбара меняется без правок в этом файле: одну и ту же
-     кнопку (действие) можно ставить в несколько вкладок/групп, а новую кнопку
-     с уже существующим действием — просто добавить в конфиг.
-
-     Особенность: действия node_add_* / node_remove / node_comment /
-     node_reset_position / node_open_* в контекстном меню узла работают с
-     ПЕРЕДАННЫМ id узла, а из тулбара контекста нет — для них передаётся
-     текущее выделение (если выделения нет — клик игнорируется). */
   // Единая регистрация хука смены выделения — маршрутизирует в нужный вью
   // и обновляет состояние модальных кнопок "Выполнен"/"Цвета".
   Render.setOnSelectionChange(function (id) {
@@ -490,123 +340,140 @@ document.addEventListener('DOMContentLoaded', function () {
     openPanel();
   });
 
-  var toolbarEl = document.getElementById('toolbar');
+  /* ==================== Режим аннотирования ====================
+     Схема загружена из обфусцированного файла «Экспортировать курс»
+     ("locked": true, см. Storage.getLocked). Структуру и текст менять нельзя,
+     но можно дополнять заметки/комментарии, проходить тесты, отмечать и
+     раскрашивать узлы — и отменять эти правки. Что доступно, задаёт поле
+     lockedAvailable действий (actions.js): ActionManager не запускает
+     остальные действия, а их кнопки/пункты меню скрываются.
+     Режим меняется при загрузке/импорте/смене схемы — после них вызывается
+     ActionManager.notifyLockChanged(). */
+  var statusLockEl = document.getElementById('status-lock');
+  var statusLockDividerEl = document.getElementById('status-lock-divider');
 
-  // Действия добавления дочернего узла: action id -> тип узла в реестре
-  // NodeTypeRegistry. Работают с ТЕКУЩИМ выделенным узлом (а не с узлом из
-  // контекстного меню).
-  var SELECTION_ADD_ACTIONS = {
-    node_add_text: 'main',
-    node_add_test: 'test',
-    node_add_link: 'link'
-  };
-
-  // Действия, которым из тулбара передаётся id текущего выделенного узла.
-  // Остальные действия ActionHandlers (scheme_clear, help_docs, notes_panel,
-  // theme_toggle, scheme_export) от узла не зависят и вызываются без аргументов.
-  var SELECTION_AWARE_ACTIONS = {
-    node_remove: true,
-    node_comment: true,
-    node_reset_position: true,
-    node_open_test: true,
-    node_open_note: true,
-    node_mark: true,
-    node_color_reset: true
-  };
-
-  function runToolbarAction(actionId) {
-    if (typeof actionId !== 'string' || !actionId) {
-      return;
+  ActionManager.onLockChange(function (locked) {
+    if (statusLockEl) {
+      statusLockEl.hidden = !locked;
     }
-    var selectedId = Render.getSelectedId() || null;
+    if (statusLockDividerEl) {
+      statusLockDividerEl.hidden = !locked;
+    }
+    updateUndoRedoButtons();
+  });
 
-    // Добавление узла — по таблице action -> тип узла.
-    if (Object.prototype.hasOwnProperty.call(SELECTION_ADD_ACTIONS, actionId)) {
-      addNodeOfType(SELECTION_ADD_ACTIONS[actionId]);
-      return;
-    }
-
-    // Цвет узла — действие node_color_<key> (включая node_color_reset).
-    var colorKey = colorKeyFromAction(actionId);
-    if (colorKey) {
-      if (!selectedId) {
-        return; // нечего красить — без выделения цвет не к чему применить
-      }
-      Render.setNodeColor(selectedId, colorKey === 'reset' ? null : colorKey);
-      updateColorButtonsState(selectedId);
-      return;
-    }
-
-    // "Отметить" — модальный переключатель, дополнительно синхронизирует
-    // подсветку (ActionHandlers.node_mark делает это сам для id узла).
-    if (actionId === 'node_mark') {
-      if (!selectedId) {
-        return;
-      }
-      ActionHandlers.node_mark(selectedId);
-      return;
-    }
-
-    if (actionId === 'scheme_import') {
-      // Открываем системный диалог выбора файла (скрытый input#input-import
-      // остаётся статичным элементом index.html — это не кнопка тулбара).
-      if (importInput) {
-        importInput.click();
-      }
-      return;
-    }
-
-    var handler = ActionHandlers[actionId];
-    if (typeof handler !== 'function') {
-      console.warn('app.js: нет обработчика ActionHandlers для действия', actionId);
-      return;
-    }
-    if (SELECTION_AWARE_ACTIONS[actionId]) {
-      if (!selectedId) {
-        return;
-      }
-      handler(selectedId);
-      return;
-    }
-    handler();
+  /* ======================== Обработчики действий ========================
+     Контекст (id узла) для действий с полем target подставляет ActionManager:
+     из меню узла приходит id кликнутого узла, из ленты и горячих клавиш —
+     выделенный узел (см. actions.js). */
+  // options.direction — сторона кнопки добавления на корневом узле (render.js).
+  function addChildOfType(type) {
+    return function (nodeId, options) {
+      Render.addChild(nodeId, type, options && options.direction);
+    };
   }
 
-  // Слушатель 'mindmap:action' — тот самый «внутренний» канал для действий,
-  // которым нужна локальная логика (см. комментарий к ActionHandlers
-  // в начале файла).
-  if (toolbarEl) {
-    toolbarEl.addEventListener('mindmap:action', function (e) {
-      var type = e.detail && e.detail.type;
-      var value = e.detail && e.detail.value;
-      if (type === 'notes_panel') {
-        toggleSidePanel();
-      } else if (type === 'node_mark_sync') {
-        updateMarkButtonState(value || null);
-      } else if (type === 'theme_toggle_sync') {
-        updateThemeButtonState();
-      }
-    });
+  function setColor(colorKey) {
+    return function (nodeId) {
+      Render.setNodeColor(nodeId, colorKey);
+      // Смена цвета создаёт шаг истории — Undo.push сам onChange не вызывает.
+      updateUndoRedoButtons();
+      updateColorButtonsState(nodeId);
+    };
   }
 
-  if (toolbarEl) {
-    toolbarEl.addEventListener('click', function (e) {
-      var actionEl = e.target.closest ? e.target.closest('[data-action]') : null;
-      if (!actionEl || !toolbarEl.contains(actionEl) || actionEl.disabled) {
+  ActionManager.registerAll({
+    scheme_import: function () {
+      // Скрытый input#input-import — статичный элемент index.html.
+      importInput.click();
+    },
+    scheme_export: function () {
+      Storage.exportJSON();
+    },
+    // «Экспортировать курс» — обфусцированный файл, который при загрузке
+    // открывается в режиме только для чтения (см. Storage.exportLocked).
+    scheme_export_locked: function () {
+      Storage.exportLocked();
+    },
+    scheme_clear: function () {
+      var confirmed = window.confirm('Вы уверены, что хотите очистить схему и все данные?');
+      if (!confirmed) {
         return;
       }
-      runToolbarAction(actionEl.dataset.action);
-      // Модальные кнопки ("Отметить", цвета) отражают состояние узла —
-      // после действия обновляем их подсветку.
-      updateMarkButtonState(Render.getSelectedId());
-      updateColorButtonsState(Render.getSelectedId());
-    });
-  }
+      Model.initEmpty();
+      Storage.saveImmediate();
+      // Структурное изменение всей модели — нужен полный renderAll().
+      Render.selectNode(null);
+      Render.renderAll();
+    },
+    scheme_zoom_in: function () {
+      Zoom.zoomIn();
+    },
+    scheme_zoom_out: function () {
+      Zoom.zoomOut();
+    },
+    scheme_zoom_reset: function () {
+      Zoom.reset();
+    },
+    node_add_text: addChildOfType('main'),
+    node_add_test: addChildOfType('test'),
+    node_add_link: addChildOfType('link'),
+    node_remove: function (nodeId) {
+      Render.deleteNode(nodeId);
+    },
+    node_edit: function (nodeId) {
+      Render.editNode(nodeId);
+    },
+    node_comment: function (nodeId) {
+      Render.editOrAddComment(nodeId);
+    },
+    node_reset_position: function (nodeId) {
+      Render.resetPosition(nodeId);
+    },
+    node_open_test: function (nodeId) {
+      Render.openNotePanel(nodeId);
+    },
+    node_open_note: function (nodeId) {
+      Render.openNotePanel(nodeId);
+    },
+    node_mark: function (nodeId) {
+      Render.toggleMarked(nodeId);
+      updateMarkButtonState(nodeId);
+    },
+    node_color_yellow: setColor('yellow'),
+    node_color_gray: setColor('gray'),
+    node_color_green: setColor('green'),
+    node_color_pink: setColor('pink'),
+    node_color_blue: setColor('blue'),
+    node_color_reset: setColor(null),
+    edit_undo: function () {
+      Undo.undo();
+    },
+    edit_redo: function () {
+      Undo.redo();
+    },
+    help_docs: function () {
+      Help.toggle();
+    },
+    notes_panel: toggleSidePanel,
+    theme_toggle: function () {
+      Theme.toggle();
+      updateThemeButtonState();
+    },
+    file_import_md: function () {
+      // Импорт из Markdown пока не реализован — заглушка вместо тихого no-op.
+      alert('Импорт MD — в разработке');
+    }
+  });
 
   importInput.addEventListener('change', function (e) {
     var file = e.target.files[0];
     Storage.importJSON(file, function () {
       // Импорт — структурное изменение всей модели: нужен полный renderAll()
       // (selectNode() теперь лёгкий и не пересобирает DOM сам по себе).
+      // История отмены относилась к прежнему содержимому (или другой схеме,
+      // если файл лёг копией) — сбрасываем её.
+      Undo.reset();
       Render.selectNode(null);
       Render.renderAll();
       // Если в импортированном файле была сохранёна позиция панорамирования —
@@ -614,6 +481,8 @@ document.addEventListener('DOMContentLoaded', function () {
       if (typeof Pan !== 'undefined' && typeof Pan.restore === 'function') {
         Pan.restore();
       }
+      // Импортированный файл мог быть схемой курса ("locked").
+      ActionManager.notifyLockChanged();
     });
     importInput.value = ''; // сброс, чтобы можно было повторно выбрать тот же файл
   });
@@ -621,6 +490,14 @@ document.addEventListener('DOMContentLoaded', function () {
   // Горячие клавиши: Delete — удалить выделенный узел, Enter — редактировать
   // текст, Insert — добавить дочерний узел, Alt+1 — панель справки, Alt+2 —
   // общая боковая панель (тест/заметки), Alt+3 — панель ФАЙЛ.
+  // Все они запускают действия через ActionManager; если действие недоступно
+  // (режим «только для чтения», нет выделения), клавиша достаётся браузеру.
+  function runHotkey(e, actionId) {
+    if (ActionManager.run(actionId)) {
+      e.preventDefault();
+    }
+  }
+
   document.addEventListener('keydown', function (e) {
     var active = document.activeElement;
 
@@ -633,18 +510,15 @@ document.addEventListener('DOMContentLoaded', function () {
     // редактированием нет.
     if (e.altKey && !e.ctrlKey && !e.shiftKey && !e.metaKey) {
       if (e.code === 'Digit1') {
-        e.preventDefault();
-        Help.toggle();
+        runHotkey(e, 'help_docs');
         return;
       }
       if (e.code === 'Digit2') {
-        e.preventDefault();
-        toggleSidePanel();
+        runHotkey(e, 'notes_panel');
         return;
       }
-      if (e.code === 'Digit3' && typeof FilesPanel !== 'undefined') {
-        e.preventDefault();
-        FilesPanel.toggle();
+      if (e.code === 'Digit3') {
+        runHotkey(e, 'files_panel');
         return;
       }
     }
@@ -664,15 +538,13 @@ document.addEventListener('DOMContentLoaded', function () {
     // заметки) — Ctrl+Z должен достаться браузеру (собственный undo этого
     // конкретного поля) — это уже обеспечивает guard выше. Используем
     // e.code (не e.key), чтобы хоткей работал независимо от раскладки клавиатуры.
-    if (e.ctrlKey && !e.altKey && !e.metaKey && typeof Undo !== 'undefined') {
+    if (e.ctrlKey && !e.altKey && !e.metaKey) {
       if (!e.shiftKey && e.code === 'KeyZ') {
-        e.preventDefault();
-        Undo.undo();
+        runHotkey(e, 'edit_undo');
         return;
       }
       if (e.code === 'KeyY' || (e.shiftKey && e.code === 'KeyZ')) {
-        e.preventDefault();
-        Undo.redo();
+        runHotkey(e, 'edit_redo');
         return;
       }
     }
@@ -694,24 +566,17 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
 
-    var selectedId = Render.getSelectedId();
-    if (!selectedId) {
+    // Действия с target работают с выделенным узлом. Для Insert на корне
+    // направление не выбирается — Model.createNode берёт 'right' по умолчанию.
+    if (!Render.getSelectedId()) {
       return;
     }
-
     if (e.key === 'Delete') {
-      e.preventDefault();
-      Render.deleteNode(selectedId);
+      runHotkey(e, 'node_remove');
     } else if (e.key === 'Enter') {
-      // Enter на выделенном узле — редактирование текста (как двойной клик).
-      e.preventDefault();
-      Render.editNode(selectedId);
+      runHotkey(e, 'node_edit');
     } else if (e.key === 'Insert') {
-      // Insert на выделенном узле — добавление дочернего узла.
-      e.preventDefault();
-      // Если выделен root, направление ветви не выбирается хоткеем — 'right' по умолчанию.
-      var isRootSelected = selectedId === Model.getState().rootId;
-      Render.addChild(selectedId, 'main', isRootSelected ? 'right' : undefined);
+      runHotkey(e, 'node_add_text');
     }
   });
 

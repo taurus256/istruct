@@ -10,7 +10,9 @@ var NodeTypeRegistry = (function () {
 
   /**
    * Регистрирует тип узла.
-   * config: { type, label, cssClass, defaultText, canHaveChildren, singletonPerParent, icon, iconDark }
+   * config: { type, label, cssClass, defaultText, canHaveChildren, singletonPerParent, icon, iconDark, addAction }
+   * addAction: id действия (actions.js), добавляющего дочерний узел этого типа —
+   * кнопки добавления на узле (render.js makeAddButtons) запускают его через ActionManager.
    * singletonPerParent: true — у одного родителя может быть не более одного
    * ребёнка этого типа (используется, например, для комментариев).
    * icon: путь к SVG-иконке (assets/icons/small/*.svg), которая используется вместо
@@ -34,7 +36,8 @@ var NodeTypeRegistry = (function () {
       // По умолчанию ограничение "один на родителя" не действует
       singletonPerParent: config.singletonPerParent === true,
       icon: config.icon || null,
-      iconDark: config.iconDark || null
+      iconDark: config.iconDark || null,
+      addAction: config.addAction || null
     };
   }
 
@@ -70,7 +73,8 @@ NodeTypeRegistry.register({
   cssClass: 'node--main',
   defaultText: 'Новый узел',
   canHaveChildren: true,
-  icon: 'assets/icons/small/text.svg'
+  icon: 'assets/icons/small/text.svg',
+  addAction: 'node_add_text'
 });
 
 NodeTypeRegistry.register({
@@ -80,7 +84,8 @@ NodeTypeRegistry.register({
   defaultText: 'Новый тест',
   canHaveChildren: true,
   icon: 'assets/icons/small/test.svg',
-  iconDark: 'assets/icons/small/dark/test.svg'
+  iconDark: 'assets/icons/small/dark/test.svg',
+  addAction: 'node_add_test'
 });
 
 NodeTypeRegistry.register({
@@ -90,5 +95,6 @@ NodeTypeRegistry.register({
   defaultText: 'Новая ссылка',
   canHaveChildren: true,
   icon: 'assets/icons/small/link.svg',
-  iconDark: 'assets/icons/small/dark/link.svg'
+  iconDark: 'assets/icons/small/dark/link.svg',
+  addAction: 'node_add_link'
 });

@@ -18,16 +18,23 @@
  *       текущим popupMenu.js, см. его комментарий).
  *   visibleWhen: <ключ>
  *     — необязательное поле у 'menuitem' (действует и у верхнего уровня, и
- *       внутри submenu): пункт рендерится, только если options.visibility
- *       переданного в PopupMenu.open() объекта содержит этот ключ со
- *       значением true — см. popupMenu.js и render.js (Popups.node ниже:
- *       состав пунктов один и тот же для любого узла, но часть из них имеет
- *       смысл только при определённом состоянии узла).
+ *       внутри submenu) и у 'separator' (иначе «одинокие» разделители
+ *       остаются на месте скрытых пунктов): элемент рендерится, только если
+ *       options.visibility переданного в PopupMenu.open() объекта содержит
+ *       этот ключ со значением true — см. popupMenu.js и render.js
+ *       (Popups.node ниже: состав пунктов один и тот же для любого узла, но
+ *       часть из них имеет смысл только при определённом состоянии узла).
+ *
+ * Режим аннотирования здесь не описывается: пункты с действиями без
+ * lockedAvailable (actions.js) скрываются автоматически, подменю без видимых
+ * пунктов и осиротевшие разделители — тоже (см. popupMenu.js).
  */
 var Popups = {
   // Меню "⋯" у карточки схемы в панели ФАЙЛ (см. filesPanel.js).
   fileCard: {
     items: [
+      // В режиме «только для чтения» «Сохранить в файл» скрыт — он
+      // выгрузил бы исходный JSON схемы курса в обход обфускации.
       { type: 'menuitem', action: 'scheme_export' },
       { type: 'separator' },
       { type: 'menuitem', action: 'file_delete' }
@@ -54,6 +61,7 @@ var Popups = {
       },
       { type: 'separator' },
       { type: 'menuitem', action: 'node_comment' },
+      { type: 'menuitem', action: 'node_mark' },
       { type: 'menuitem', action: 'node_open_test', visibleWhen: 'hasTest' },
       { type: 'menuitem', action: 'node_open_note', visibleWhen: 'hasNote' },
       { type: 'menuitem', action: 'node_reset_position', visibleWhen: 'hasOffset' },
@@ -71,7 +79,8 @@ var Popups = {
       { type: 'menuitem', action: 'scheme_zoom_in' },
       { type: 'menuitem', action: 'scheme_zoom_out' },
       { type: 'separator' },
-      { type: 'menuitem', action: 'scheme_export' }
+      { type: 'menuitem', action: 'scheme_export' },
+      { type: 'menuitem', action: 'scheme_export_locked' }
     ]
   }
 };

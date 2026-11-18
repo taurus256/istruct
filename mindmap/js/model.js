@@ -46,6 +46,13 @@
  * могут быть установлены одновременно (цвет красит фон, отметка — рамку).
  * Корневой узел не окрашивается (см. Render.setNodeColor).
  * См. NODE_COLORS/setColor/getColor/clearColor ниже.
+ *
+ * "locked" (версия формата 10) — флаг СХЕМЫ ЦЕЛИКОМ, а не узла: у пайлоада
+ * рядом с version/rootId/nodes (см. storage.js) может стоять "locked": true,
+ * что означает «схема только для чтения» (файл «Экспортировать курс»).
+ * В модель флаг НЕ попадает (он не часть дерева и не участвует в
+ * undo-снапшотах) — живёт в Storage (currentLocked, см. Storage.getLocked),
+ * а Model.isLocked() отдаёт его здесь же. См. isLocked ниже и actionManager.js.
  */
 
 var Model = (function () {
@@ -60,6 +67,18 @@ var Model = (function () {
   function generateId() {
     idCounter += 1;
     return 'n' + Date.now().toString(36) + idCounter.toString(36);
+  }
+
+  /**
+   * true, если АКТИВНАЯ схема открыта в РЕЖИМЕ АННОТИРОВАНИЯ
+   * ("locked": true в её пайлоаде, см. шапку файла). Флаг берётся из
+   * Storage, а не из state — он не часть дерева и не должен попадать в
+   * undo-снапшоты. В режиме аннотирования структура схемы менять нельзя
+   * (создание/удаление/перенос/текст/offset/comments-структура/тела тестов),
+   * а аннотации (note, comment, color, marked, testResult) — можно.
+   */
+  function isLocked() {
+    return !!(typeof Storage !== 'undefined' && typeof Storage.getLocked === 'function' && Storage.getLocked());
   }
 
   function getState() {
@@ -199,6 +218,9 @@ var Model = (function () {
    * переносятся к его родителю. Корень удалить нельзя.
    */
   function removeNode(id) {
+    if (isLocked()) {
+      return false;
+    }
     if (id === state.rootId) {
       return false; // root неудаляем — no-op
     }
@@ -236,6 +258,9 @@ var Model = (function () {
    * Защита от циклов: нельзя переместить узел в самого себя или в своего потомка.
    */
   function moveNode(id, newParentId) {
+    if (isLocked()) {
+      return { ok: false, reason: 'схема открыта только для чтения' };
+    }
     if (id === state.rootId) {
       return { ok: false, reason: 'root нельзя перемещать' };
     }
@@ -289,6 +314,9 @@ var Model = (function () {
    * относительно автоматически вычисленной radial-позиции.
    */
   function setOffset(id, dx, dy) {
+    if (isLocked()) {
+      return false;
+    }
     var node = getNode(id);
     if (!node || id === state.rootId) {
       return false; // root не перемещается вручную, как и через drag&drop
@@ -302,6 +330,9 @@ var Model = (function () {
    * при повторном перетаскивании уже смещённого узла (смещения суммируются).
    */
   function addOffset(id, dx, dy) {
+    if (isLocked()) {
+      return false;
+    }
     var node = getNode(id);
     if (!node || id === state.rootId) {
       return false;
@@ -313,6 +344,9 @@ var Model = (function () {
 
   // Возвращает узел к автоматической radial-позиции (снимает ручное смещение).
   function clearOffset(id) {
+    if (isLocked()) {
+      return false;
+    }
     var node = getNode(id);
     if (!node || !node.data.offset) {
       return false;
@@ -322,6 +356,9 @@ var Model = (function () {
   }
 
   function updateNodeText(id, text) {
+    if (isLocked()) {
+      return false;
+    }
     var node = getNode(id);
     if (!node) {
       return false;
@@ -336,6 +373,9 @@ var Model = (function () {
    * это «комментария нет»).
    */
   function setComment(id, text) {
+    if (isLocked()) {
+      return false;
+    }
     var node = getNode(id);
     if (!node) {
       return false;
@@ -350,6 +390,9 @@ var Model = (function () {
   }
 
   function clearComment(id) {
+    if (isLocked()) {
+      return false;
+    }
     var node = getNode(id);
     if (!node || node.data.comment === undefined) {
       return false;
@@ -436,9 +479,9 @@ var Model = (function () {
   /**
    * Цвет фона — необязательный атрибут любого узла (node.data.color): один
    * из NODE_COLORS. Чисто визуальный, не влияет на структуру/логику дерева.
-   * Хранится только когда задан допустимым значением — отсутствие поля
+   * Хранится только когда задан допустимым значением — отсутствие поля 
    * равнозначно «цвет не задан» (setColor с недопустимым/пустым значением
-   * ведёт себя как clearColor).
+   * ведёт себя как clearColor). Аннотация: доступна и в locked-схеме.
    */
   var NODE_COLORS = ['yellow', 'gray', 'green', 'pink', 'blue'];
 
@@ -472,6 +515,7 @@ var Model = (function () {
    * Заметка — необязательный атрибут любого узла (node.data.note): текст в
    * формате Markdown. Хранится только когда задана. Пустая/whitespace-строка
    * трактуется как «заметки нет» (setNote при пустом значении удаляет поле).
+   * Доступна и в схеме курса (locked), как testResult/marked.
    */
   function setNote(id, md) {
     var node = getNode(id);
@@ -506,6 +550,9 @@ var Model = (function () {
    * (version 4). Обычно задаётся у узлов типа 'test'.
    */
   function setTest(id, testObj) {
+    if (isLocked()) {
+      return false;
+    }
     var node = getNode(id);
     if (!node) {
       return false;
@@ -528,6 +575,9 @@ var Model = (function () {
   }
 
   function clearTest(id) {
+    if (isLocked()) {
+      return false;
+    }
     var node = getNode(id);
     if (!node || node.data.test === undefined) {
       return false;
@@ -574,8 +624,38 @@ var Model = (function () {
     return state;
   }
 
+  var ANNOTATION_FIELDS = ['note', 'comment', 'color', 'marked', 'testResult'];
+
+  /**
+   * Заменяет ТОЛЬКО аннотации узлов (см. ANNOTATION_FIELDS) значениями из
+   * snap (снимок Undo в locked-схеме). Структура, текст и offset остаются
+   * текущими: в режиме аннотирования они не меняются, а откат снимка не
+   * должен трогать состав дерева.
+   */
+  function restoreAnnotations(snap) {
+    for (var key in snap.nodes) {
+      if (!Object.prototype.hasOwnProperty.call(snap.nodes, key)) {
+        continue;
+      }
+      var node = getNode(key);
+      if (!node) {
+        continue;
+      }
+      var annotations = (snap.nodes[key] && snap.nodes[key].data) || {};
+      ANNOTATION_FIELDS.forEach(function (field) {
+        if (annotations[field] === undefined) {
+          delete node.data[field];
+        } else {
+          node.data[field] = JSON.parse(JSON.stringify(annotations[field]));
+        }
+      });
+    }
+  }
+
   return {
     getState: getState,
+    isLocked: isLocked,
+    restoreAnnotations: restoreAnnotations,
     setState: setState,
     getNode: getNode,
     getRoot: getRoot,

@@ -20,6 +20,13 @@
  *
  * Стеки живут только в памяти вкладки (не сериализуются в localStorage/
  * экспорт) — сбрасываются при перезагрузке страницы, это ожидаемо.
+ *
+ * РЕЖИМ АННОТИРОВАНИЯ (схема с "locked": true, см. Model.isLocked):
+ * структуру менять нельзя, но заметки, комментарии, цвета, отметки и
+ * результаты тестов — можно. Поэтому история здесь работает, но снимок
+ * хранит только АННОТАЦИИ (ANNOTATION_FIELDS): текст, структура (parentId,
+ * direction) и ручной offset в locked не меняются, а откат структурного
+ * снимка восстановил бы подснапшот в обход защиты.
  */
 var Undo = (function () {
   var MAX_UNDO = 100;
@@ -27,8 +34,28 @@ var Undo = (function () {
   var redoStack = [];
   var onChange = null;
 
+  // Поля node.data, которые доступны в режиме аннотирования.
+  var ANNOTATION_FIELDS = ['note', 'comment', 'color', 'marked', 'testResult'];
+
   function snapshot() {
-    return JSON.parse(JSON.stringify(Model.getState()));
+    var snap = JSON.parse(JSON.stringify(Model.getState()));
+    if (!Model.isLocked()) {
+      return snap;
+    }
+    for (var key in snap.nodes) {
+      if (!Object.prototype.hasOwnProperty.call(snap.nodes, key)) {
+        continue;
+      }
+      var data = snap.nodes[key].data || {};
+      var annotations = {};
+      ANNOTATION_FIELDS.forEach(function (field) {
+        if (data[field] !== undefined) {
+          annotations[field] = data[field];
+        }
+      });
+      snap.nodes[key].data = annotations;
+    }
+    return snap;
   }
 
   // Вызывается после ЛЮБОго изменения стеков (push/undo/redo) — используется
@@ -69,7 +96,13 @@ var Undo = (function () {
   // вернулся" и "фокус слетел с узла".
   function restore(snap) {
     var selectedId = Render.getSelectedId();
-    Model.setState(snap);
+    if (Model.isLocked()) {
+      // Режим аннотирования: снимок содержит только аннотации —
+      // структуру дерева не трогаем.
+      Model.restoreAnnotations(snap);
+    } else {
+      Model.setState(snap);
+    }
     Storage.saveImmediate();
     Render.renderAll();
     var stillExists = selectedId != null && !!Model.getNode(selectedId);

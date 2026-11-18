@@ -109,18 +109,15 @@ var Zoom = (function () {
     if (!e.altKey) {
       return;
     }
-    var handled = false;
+    var actionId = null;
     if (e.code === 'Equal' || e.code === 'NumpadAdd' || e.key === '+' || e.key === '=') {
-      zoomFromCenter(Render.getZoom() * STEP);
-      handled = true;
+      actionId = 'scheme_zoom_in';
     } else if (e.code === 'Minus' || e.code === 'NumpadSubtract' || e.key === '-') {
-      zoomFromCenter(Render.getZoom() / STEP);
-      handled = true;
+      actionId = 'scheme_zoom_out';
     } else if (e.code === 'Digit0' || e.code === 'Numpad0' || e.key === '0') {
-      zoomFromCenter(1);
-      handled = true;
+      actionId = 'scheme_zoom_reset';
     }
-    if (handled) {
+    if (actionId && ActionManager.run(actionId)) {
       e.preventDefault();
     }
   }

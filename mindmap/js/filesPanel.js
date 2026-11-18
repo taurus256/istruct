@@ -19,8 +19,6 @@ var FilesPanel = (function () {
   var panelEl = null;      // #files-panel
   var listEl = null;       // #files-panel-list
   var actionsEl = null;    // #files-panel-actions — наполняется ButtonPanel.render(ButtonPanels.files)
-  var createBtn = null;    // [data-action="file_create_new"] внутри actionsEl
-  var importBtn = null;    // [data-action="file_import_new"] внутри actionsEl
   var importInput = null;  // #input-import-new-scheme
   var importIntoInput = null;   // #input-import-into-scheme (меню карточки, см. requestImportIntoScheme)
   var importIntoSchemeId = null; // id схемы — цель следующего выбора файла в importIntoInput
@@ -35,8 +33,6 @@ var FilesPanel = (function () {
     actionsEl = document.getElementById('files-panel-actions');
     if (actionsEl && typeof ButtonPanel !== 'undefined' && typeof ButtonPanels !== 'undefined') {
       actionsEl.appendChild(ButtonPanel.render(ButtonPanels.files));
-      createBtn = actionsEl.querySelector('[data-action="file_create_new"]');
-      importBtn = actionsEl.querySelector('[data-action="file_import_new"]');
     }
     importInput = document.getElementById('input-import-new-scheme');
     importIntoInput = document.getElementById('input-import-into-scheme');
@@ -49,13 +45,16 @@ var FilesPanel = (function () {
     positionPanel();
     window.addEventListener('resize', positionPanel);
 
-    if (createBtn) {
-      createBtn.addEventListener('click', onCreateClick);
-    }
-    if (importBtn && importInput) {
-      importBtn.addEventListener('click', function () {
+    ActionManager.registerAll({
+      files_panel: toggle,
+      file_create_new: onCreateClick,
+      file_import_new: function () {
         importInput.click();
-      });
+      },
+      file_delete: deleteScheme,
+      file_import_json: requestImportIntoScheme
+    });
+    if (importInput) {
       importInput.addEventListener('change', onImportFileChosen);
     }
     if (importIntoInput) {
@@ -155,6 +154,8 @@ var FilesPanel = (function () {
     Undo.reset();
     Render.selectNode(null);
     Render.renderAll();
+    // Новая активная схема может быть схемой курса ("locked") или наоборот.
+    ActionManager.notifyLockChanged();
     // Восстанавливаем позицию панорамирования новой активной схемы (пер-схема,
     // хранится в её payload — см. Storage про version 9). Зум при переключении
     // схемы НЕ меняется (это UI-настройка всего приложения, не per-схема),
@@ -195,7 +196,7 @@ var FilesPanel = (function () {
   }
 
   /* ===================== Действия меню карточки ("ещё действия") ===================
-     Вызываются из ActionHandlers (app.js) — см. Popups.fileCard (popups.js):
+     Обработчики действий (см. init) — пункты Popups.fileCard (popups.js):
      file_delete -> deleteScheme, file_import_json -> requestImportIntoScheme. */
 
   // Удаляет схему id. Если она была активной — переключается на следующую
@@ -249,9 +250,10 @@ var FilesPanel = (function () {
       return;
     }
 
-    Storage.importIntoScheme(schemeId, file, function () {
-      if (schemeId === Storage.getActiveId()) {
-        Storage.loadScheme(schemeId).then(function () {
+    // Файл мог лечь копией (см. Storage.importIntoScheme) — тогда resultId новый и активный.
+    Storage.importIntoScheme(schemeId, file, function (resultId) {
+      if (resultId === Storage.getActiveId()) {
+        Storage.loadScheme(resultId).then(function () {
           afterSchemeSwitch();
         });
       } else {
@@ -317,10 +319,12 @@ var FilesPanel = (function () {
     card.className = 'scheme-card';
     card.dataset.schemeId = scheme.id;
 
-    // Иконка схемы — готовый ассет assets/icon.png (см. .scheme-card__icon
-    // в layout.css: фон-картинка). Пустой <span> — просто площадка 48x48.
+    // Иконка схемы — ассеты assets/icon.svg (обычная схема) и
+    // assets/icon_locked.svg (схема курса, "locked": true — только для чтения).
+    // Обе картинки заданы в layout.css на .scheme-card__icon и её модификаторе
+    // --locked; <span> — просто площадка 48x48.
     var icon = document.createElement('span');
-    icon.className = 'scheme-card__icon';
+    icon.className = 'scheme-card__icon' + (scheme.locked ? ' scheme-card__icon--locked' : '');
     card.appendChild(icon);
 
     var body = document.createElement('span');
@@ -373,8 +377,7 @@ var FilesPanel = (function () {
 
   // Перестроить список карточек НЕ закрывая панель — используется после
   // действий, которые не меняют активную схему (например, удаление
-  // НЕактивной схемы через меню "ещё действия", см. ActionHandlers.file_delete
-  // в app.js). Для действий, которые меняют активную схему, используется
+  // НЕактивной схемы через меню "ещё действия", действие file_delete). Для действий, которые меняют активную схему, используется
   // afterSchemeSwitch() (закрывает панель, как и при обычном переключении).
   function refreshList() {
     if (active) {
