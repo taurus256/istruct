@@ -61,6 +61,7 @@ h1 {
   display: flex;
   align-items: start;
   flex: 0 0 auto;
+  background-color:  var(--toolbar-bg);
 }
 
 /* Строка вкладок (раньше тулбар состоял сразу из групп). */
@@ -113,7 +114,6 @@ h1 {
   padding: 8px 14px 6px;
   font: var(--type-panel-title);
   border: none;
-  border-bottom: 2px solid transparent;
   background: transparent;
   color: var(--ribbon-group-label-color, #7a7a7a);
   cursor: pointer;
@@ -125,8 +125,7 @@ h1 {
 
 .ribbon-tab--active {
   color: var(--ribbon-label-color, #323130);
-  border-bottom-color: var(--ribbon-btn-selected-border, #005fb8);
-  background: var(--toolbar-bg, #f3f3f3);
+  background: var(--root-color, #f3f3f3);
 }
 
 /* Вкладка-меню (nonSwitching в ribbonConfig.js, напр. "ФАЙЛ"): НЕ переключает
@@ -162,7 +161,7 @@ h1 {
   padding: 4px 8px 4px;
   overflow-x: auto;
   flex: 0 0 auto;
-  background: var(--toolbar-bg, #f3f3f3);
+  background: var(--root-color, #f3f3f3);
   scrollbar-width: thin;
 }
 
@@ -870,6 +869,13 @@ h1 {
 
 /* Видимый бокс узла (рамка/фон — в theme.css). */
 .node__body {
+  background: var(--root-color);
+  border: 1px solid var(--node-border-color);
+  border-radius: var(--radius-node);
+  font: var(--node-font);
+  padding: var(--node-padding);
+  color: var(--node-text-color);
+  box-shadow: var(--node-shadow);
   display: inline-flex;
   align-items: center;
   gap: 8px;
